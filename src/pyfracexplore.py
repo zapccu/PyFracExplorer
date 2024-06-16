@@ -10,18 +10,26 @@ class Application:
         self.mainWindow = Tk()
         self.mainWindow.title("PyFracExplore")
 
+        # Container frame
+        self.container = Frame(self.mainWindow, width=400, height=400)
+        self.container.pack(expand=True, fill=BOTH)
+
+        # Canvas
+        self.canvas = Canvas(self.container, width=400, height=400, bg='black',
+                             scrollregion=(0, 0, 800, 800))
+
         # Scrollbars
-        hScroll = Scrollbar(self.mainWindow, orient='horizontal')
-        hScroll.pack(side = BOTTOM, fill = X)
-        vScroll = Scrollbar(self.mainWindow)
-        vScroll.pack(side = RIGHT, fill = Y)
+        hScroll = Scrollbar(self.container, orient='horizontal')
+        vScroll = Scrollbar(self.container, orient='vertical')
+        hScroll.pack(fill=X, side=BOTTOM)
+        vScroll.pack(fill=Y, side=RIGHT)
+        hScroll.config(command=self.canvas.xview)
+        vScroll.config(command=self.canvas.yview)
 
-        # Main frame
-        self.drawFrame = Frame(self.mainWindow, width=400, height=400)
-        self.drawFrame.pack(side = TOP)
+        self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
+        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
 
-        # hScroll.config(command = self.drawFrame.xview)
-        # vScroll.config(command = self.drawFrame.yview)
+        # self.canvas.create_line((0, 0), (799, 799), fill='green', width=1)
 
     def run(self):
         self.mainWindow.mainloop()
