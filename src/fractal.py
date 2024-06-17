@@ -1,10 +1,9 @@
 
 class Fractal:
 
-	name = ""
+	def mapPoint(self, x, y):
+		return (x, y)
 
-	def __init__(self, name):
-		self.name = name
 
 class Mandelbrot(Fractal):
 
@@ -26,4 +25,6 @@ class Mandelbrot(Fractal):
 		while i<self.maxIter and abs(Z) < self.limit:
 			Z = Z*Z+C
 			i += 1
+
+		return (i, Z)
 
