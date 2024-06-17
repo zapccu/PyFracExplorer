@@ -93,6 +93,8 @@ class Graphics:
 	# Drawing canvas
 	canvas = None
 
+	flipY = False
+
 	# Color palette
 	colors = ColorTable()
 
@@ -106,8 +108,17 @@ class Graphics:
 	x = 0
 	y = 0
 
-	def __init__(self, canvas):
+	def flip(self, y):
+		if self.flipY:
+			return self.height-y-1
+		else:
+			return y
+
+	def __init__(self, canvas, width, height, flipY = False):
 		self.canvas = canvas
+		self.width = width
+		self.height = height
+		self.flipY = flipY
 		self.setColor(0)
 
 	def moveTo(self, x, y):
@@ -128,9 +139,9 @@ class Graphics:
 	def horzLineTo(self, x):
 		if x >= 0 and x != self.x:
 			if x > self.x:
-				self.canvas.create_line((self.x, self.y), (x-1, self.y), fill=self.color, width=1)
+				self.canvas.create_line(self.x, self.flip(self.y), x-1, self.flip(self.y), fill=self.color, width=1)
 			else:
-				self.canvas.create_line((self.x, self.y), (x+1, self.y), fill=self.color, width=1)
+				self.canvas.create_line(self.x, self.flip(self.y), x+1, self.flip(self.y), fill=self.color, width=1)
 			self.x = x
 
 	# Draw vertical line excluding end point
@@ -138,12 +149,12 @@ class Graphics:
 	def vertLineTo(self, y):
 		if y >= 0 and y != self.y:
 			if y > self.y:
-				self.canvas.create_line((self.x, self.y), (self.x, y-1), fill=self.color, width=1)
+				self.canvas.create_line((self.x, self.flip(self.y)), (self.x, self.flip(y-1)), fill=self.color, width=1)
 			else:
-				self.canvas.create_line((self.x, self.y), (self.x, y+1), fill=self.color, width=1)
+				self.canvas.create_line((self.x, self.flip(self.y)), (self.x, self.flip(y+1)), fill=self.color, width=1)
 			self.y = y
 
 	# Draw a filled rectangle
 	def fillRect(self, x1, y1, x2, y2):
-		self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.color, outline=self.color)
+		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
 
