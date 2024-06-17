@@ -3,6 +3,7 @@
 
 import sys
 from tkinter import *
+from graphics import *
 
 class Application:
 
@@ -29,9 +30,17 @@ class Application:
         self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
         self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
 
-        # self.canvas.create_line((0, 0), (799, 799), fill='green', width=1)
+        self.graphics = Graphics(self.canvas)
 
     def run(self):
+        palette = ColorTable()
+        palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
+        self.graphics.setColorTable(palette)
+        for i in range(0, 100):
+            self.graphics.setColor(i)
+            self.graphics.moveTo(10, 10+i)
+            self.graphics.horzLineTo(100)
+
         self.mainWindow.mainloop()
 
 def main():
