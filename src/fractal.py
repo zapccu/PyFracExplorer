@@ -1,7 +1,7 @@
 
 class Fractal:
 
-	def mapPoint(self, x, y):
+	def mapPoint(self, x, y, width, height):
 		return (x, y)
 
 
@@ -17,6 +17,11 @@ class Mandelbrot(Fractal):
 		self.size = size
 		self.maxIter = maxIter
 		self.limit = limit
+
+	def mapScreenCoordinates(self, width, height):
+		dx = self.corner.real / width
+		dy = self.corner.imag / height
+
 
 	def iterate(self, C: complex):
 		Z = C
