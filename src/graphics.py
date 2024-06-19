@@ -1,30 +1,37 @@
 
+from fractal import *
 
 class Color:
-	_rgb_ = (0, 0, 0)
-
-	def __init__(self, rgb=(0, 0, 0)):
-		self._rgb_ = rgb
+	# Color value. Integer encoded as 0x00RRGGBB
+	rgb = 0
 
 	def __init__(self, red, green, blue):
-		self._rgb_ = (red, green, blue)
+		self.setRGB(red, green, blue)
 
-	def __eq__(self, color):
-		if self._rgb_ == color.rgb:
-			return True
-		else:
-			return False
-
-	def red(self):
-		return self._rgb_[0]
-	def green(self):
-		return self._rgb_[1]
+	def __repr__(self) -> str:
+		return f"Color({self.red()}, {self.green()}, {self.blue()})"
+	def __str__(self) -> str:
+		return self.rgbStr()
+	
+	def __eq__(self, value: object) -> bool:
+		return self.rgb == value.rgb
+	def __ne__(self, value: object) -> bool:
+		return self.rgb != value.rgb
+	
+	def setRGB(self, red: int, green: int, blue: int):
+		self.rgb = (int(blue) & 0xFF) & ((int(green) & 0xFF) << 8) & ((int(red) & 0xFF) << 16)
+	def getRGB(self):
+		return(self.red(), self.green(), self.blue())
+	
 	def blue(self):
-		return self._rgb_[2]
-	def rgb(self):
-		return self._rgb_
+		return self.rgb & 0xFF
+	def green(self):
+		return (self.rgb >> 8) & 0xFF
+	def red(self):
+		return (self.rgb >> 16) & 0xFF
+	
 	def rgbStr(self):
-		return '#{:02X}{:02X}{:02X}'.format(int(self._rgb_[0]), int(self._rgb_[1]), int(self._rgb_[2]))
+		return '#{:02X}{:02X}{:02X}'.format(int(self.red()), int(self.green()), int(self.blue()))
 
 
 class ColorTable:
@@ -37,11 +44,11 @@ class ColorTable:
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
-	def __getitem__(self, key):
-		if key >= len(self.colors) or key < 0:
+	def getColor(self, idx):
+		if idx >= len(self.colors) or idx < 0:
 			return self.defColor
 		else:
-			return self.colors[key]
+			return self.colors[idx]
 
 	def getModColor(self, value):
 		return self.colors[value % len(self.colors)]
@@ -73,8 +80,8 @@ class ColorTable:
 		self.colors[0] = startColor
 		self.colors[-1] = endColor
 
-		(cRed, cGreen, cBlue) = startColor.rgb()
-		(distRed, distGreen, distBlue) = (
+		cRed, cGreen, cBlue = startColor.getRGB()
+		distRed, distGreen, distBlue = (
 			(endColor.red()-startColor.red())/(numColors-1)*modFlags.red(),
 			(endColor.green()-startColor.green())/(numColors-1)*modFlags.green(),
 			(endColor.blue()-startColor.blue())/(numColors-1)*modFlags.blue()
@@ -93,6 +100,7 @@ class Graphics:
 	# Drawing canvas
 	canvas = None
 
+	# Flip vertical orientation
 	flipY = False
 
 	# Color palette
@@ -130,9 +138,12 @@ class Graphics:
 		self.colors = colorTable
 
 	# Set color to palette index
-	def setColor(self, colorIdx):
-		self.colorIdx = colorIdx
-		self.color = self.colors[colorIdx].rgbStr()
+	def setColor(self, color):
+		if type(color) == int:
+			self.colorIdx = color
+			self.color = self.colors.getColor(color).rgbStr()
+		else:
+			self.color = color.rgbStr()
 
 	# Draw a horizontal line excluding end point
 	# Set cursor to end point
@@ -149,12 +160,31 @@ class Graphics:
 	def vertLineTo(self, y):
 		if y >= 0 and y != self.y:
 			if y > self.y:
-				self.canvas.create_line((self.x, self.flip(self.y)), (self.x, self.flip(y-1)), fill=self.color, width=1)
+				self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y-1), fill=self.color, width=1)
 			else:
-				self.canvas.create_line((self.x, self.flip(self.y)), (self.x, self.flip(y+1)), fill=self.color, width=1)
+				self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y+1), fill=self.color, width=1)
 			self.y = y
 
 	# Draw a filled rectangle
 	def fillRect(self, x1, y1, x2, y2):
 		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
+
+	def drawLineByLine(self, fractal: Fractal):
+		for y in range(self.height):
+			self.moveTo(0, y)
+			cx, cy = fractal.mapXY(0, y)
+			r = fractal.iterate(cx, cy)
+			color = self.colors.getMapColor(r[0], fractal.getMaxValue())
+
+			for x in range(1, self.width):
+				cx, cy = fractal.mapXY(x, y)
+				r = fractal.iterate(cx, cy)
+				newColor = self.colors.getMapColor(r[0], fractal.getMaxValue())
+				if newColor != color:
+					self.setColor(color)
+					self.horzLineTo(x)
+					color = newColor
+
+			self.setColor(color)
+			self.horzLineTo(self.width)
 
