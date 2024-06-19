@@ -16,7 +16,7 @@ class Application:
 		self.height = height
 		self.mainWindow = Tk()
 		self.mainWindow.title("PyFracExplore")
-		self.mainWindow.geometry("{:d}x{:d}".format(width, height))
+		self.mainWindow.geometry(f"{width}x{height}")
 
 		# Container frame
 		self.container = Frame(self.mainWindow, width=self.width/2, height=self.height/2)
@@ -42,17 +42,14 @@ class Application:
 	def run(self):
 		palette = ColorTable()
 		palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
+
 		self.graphics.setColorTable(palette)
 
-		frc = Mandelbrot(800, 800, complex(-1.5, -1.5), complex(3.0, 3.0))
-		self.graphics.drawLineByLine(frc)
+		self.graphics.drawPalette()
 
-		"""
-		for i in range(0, 100):
-			self.graphics.setColor(i)
-			self.graphics.moveTo(10, 10+i)
-			self.graphics.horzLineTo(100)
-		"""
+		# frc = Mandelbrot(800, 800, complex(-1.5, -1.5), complex(3.0, 3.0))
+		# self.graphics.drawLineByLine(frc)
+
 		self.mainWindow.mainloop()
 
 def main():
