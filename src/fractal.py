@@ -1,15 +1,20 @@
 
 class Fractal:
 
-	screenWidth = 0
+	screenWidth  = 0
 	screenHeight = 0
-	fractalWidth = 0.0
+	fractalWidth  = 0.0
 	fractalHeight = 0.0
 
 	dx = 0.0
 	dy = 0.0
+	dxTab = []
+	dyTab = []
 
 	def __init__(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
+		self.setParameters(screenWidth, screenHeight, fractalWidth, fractalHeight)
+
+	def setParameters(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
 		self.screenWidth = screenWidth
 		self.screenHeight = screenHeight
 		self.fractalWidth = fractalWidth
@@ -31,30 +36,45 @@ class Fractal:
 
 	def mapXY(self, x, y):
 		return (self.dxTab[x], self.dyTab[y])
+	
+	def iterate(self, x: float, y: float):
+		return 0
+	
+	def getMaxValue(self):
+		return 1
 
 
 class Mandelbrot(Fractal):
 
-	corner = complex(-1.5, -1.5)
-	size = complex(3.0, 3.0)
+	corner  = complex(-1.5, -1.5)
+	size    = complex(3.0, 3.0)
 	maxIter = 100
-	limit = 8.0
+	limit   = 8.0
 
 	def __init__(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
-		super.__init__(screenWidth, screenHeight, size.real(), size.imag())
+		super().__init__(screenWidth, screenHeight, size.real, size.imag)
 
-		self.corner = corner
-		self.size = size
+		self.corner  = corner
+		self.size    = size
 		self.maxIter = maxIter
-		self.limit = limit
+		self.limit   = limit
 
-	def mapX(self, x):
-		return self.corner.real() + x * self.dx
+	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
+		super().setParameters(screenWidth, screenHeight, size.real, size.imag)
+		
+		self.corner  = corner
+		self.size    = size
+		self.maxIter = maxIter
+		self.limit   = limit
 	
 	def mapX(self, x):
-		return self.corner.real() + x * self.dx
+		return self.corner.real + x * self.dx
+	
+	def mapY(self, y):
+		return self.corner.imag + y * self.dy
 
-	def iterate(self, C: complex):
+	def iterate(self, x: float, y: float):
+		C = complex(x, y)
 		Z = C
 		i = 1
 
@@ -63,4 +83,7 @@ class Mandelbrot(Fractal):
 			i += 1
 
 		return (i, Z)
+	
+	def getMaxValue(self):
+		return self.maxIter
 
