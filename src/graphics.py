@@ -90,6 +90,7 @@ class Graphics:
 			self.moveTo(0, y)
 			cx, cy = fractal.mapXY(0, y)
 			r = fractal.iterate(cx, cy)
+			# print(f"{cx}, {cy} = {r}")
 			color = self.colors.getMapColor(r[0], fractal.getMaxValue())
 
 			for x in range(1, self.width):

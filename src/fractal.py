@@ -6,8 +6,8 @@ class Fractal:
 	fractalWidth  = 0.0
 	fractalHeight = 0.0
 
-	dx = 0.0
-	dy = 0.0
+	dx = 1.0
+	dy = 1.0
 	dxTab = []
 	dyTab = []
 
@@ -15,6 +15,7 @@ class Fractal:
 		self.setParameters(screenWidth, screenHeight, fractalWidth, fractalHeight)
 
 	def setParameters(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
+		print(fractalWidth, fractalHeight)
 		self.screenWidth = screenWidth
 		self.screenHeight = screenHeight
 		self.fractalWidth = fractalWidth

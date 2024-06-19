@@ -80,10 +80,6 @@ class ColorTable:
 		self.colors[0] = startColor
 		self.colors[-1] = endColor
 
-		print(endColor)
-		print("0 = " + str(self.colors[0]))
-		print("99 = " + str(self.colors[-1]))
-
 		cRed, cGreen, cBlue = startColor.getRGB()
 		distRed, distGreen, distBlue = (
 			(endColor.red()-startColor.red())/(numColors-1)*modFlags.red(),
