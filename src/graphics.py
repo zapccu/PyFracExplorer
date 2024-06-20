@@ -58,20 +58,14 @@ class Graphics:
 	# Set drawing position to end point
 	def horzLineTo(self, x):
 		if x >= 0 and x != self.x:
-			if x > self.x:
-				self.canvas.create_line(self.x, self.flip(self.y), x-1, self.flip(self.y), fill=self.color, width=1)
-			else:
-				self.canvas.create_line(self.x, self.flip(self.y), x+1, self.flip(self.y), fill=self.color, width=1)
+			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(self.y), fill=self.color, width=1)
 			self.x = x
 
 	# Draw vertical line excluding end point
 	# Set drawing position to end point
 	def vertLineTo(self, y):
 		if y >= 0 and y != self.y:
-			if y > self.y:
-				self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y-1), fill=self.color, width=1)
-			else:
-				self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y+1), fill=self.color, width=1)
+			self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y), fill=self.color, width=1)
 			self.y = y
 
 	# Draw a filled rectangle
