@@ -88,14 +88,12 @@ class Graphics:
 	def drawLineByLine(self, fractal: Fractal):
 		for y in range(self.height):
 			self.moveTo(0, y)
-			cx, cy = fractal.mapXY(0, y)
-			r = fractal.iterate(cx, cy)
-			# print(f"{cx}, {cy} = {r}")
+			r = fractal.iterate(0, y)
 			color = self.colors.getMapColor(r[0], fractal.getMaxValue())
+			self.setColor(color)
 
 			for x in range(1, self.width):
-				cx, cy = fractal.mapXY(x, y)
-				r = fractal.iterate(cx, cy)
+				r = fractal.iterate(x, y)
 				newColor = self.colors.getMapColor(r[0], fractal.getMaxValue())
 				if newColor != color:
 					self.setColor(color)

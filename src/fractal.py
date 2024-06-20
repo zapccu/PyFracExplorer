@@ -12,10 +12,9 @@ class Fractal:
 	dyTab = []
 
 	def __init__(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
-		self.setParameters(screenWidth, screenHeight, fractalWidth, fractalHeight)
+		self.setDimensions(screenWidth, screenHeight, fractalWidth, fractalHeight)
 
-	def setParameters(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
-		print(fractalWidth, fractalHeight)
+	def setDimensions(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
 		self.screenWidth = screenWidth
 		self.screenHeight = screenHeight
 		self.fractalWidth = fractalWidth
@@ -38,8 +37,8 @@ class Fractal:
 	def mapXY(self, x, y):
 		return (self.dxTab[x], self.dyTab[y])
 	
-	def iterate(self, x: float, y: float):
-		return 0
+	def iterate(self, x: int, y: int):
+		return 1
 	
 	def getMaxValue(self):
 		return 1
@@ -47,7 +46,7 @@ class Fractal:
 
 class Mandelbrot(Fractal):
 
-	corner  = complex(-1.5, -1.5)
+	corner  = complex(-2.0, -1.5)
 	size    = complex(3.0, 3.0)
 	maxIter = 100
 	limit   = 8.0
@@ -61,7 +60,7 @@ class Mandelbrot(Fractal):
 		self.limit   = limit
 
 	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
-		super().setParameters(screenWidth, screenHeight, size.real, size.imag)
+		super().setDimensions(screenWidth, screenHeight, size.real, size.imag)
 		
 		self.corner  = corner
 		self.size    = size
@@ -73,13 +72,19 @@ class Mandelbrot(Fractal):
 	
 	def mapY(self, y):
 		return self.corner.imag + y * self.dy
+	
+	def isLimit(self, c: complex):
+		return c.real*c.real + c.imag*c.imag > self.limit
 
-	def iterate(self, x: float, y: float):
-		C = complex(x, y)
+	def iterate(self, x: int, y: int):
+		ca, cb = self.mapXY(x, y)
+		return self.iterate(complex(ca, cb))
+	
+	def iterate(self, C: complex):
 		Z = C
 		i = 1
 
-		while i<self.maxIter and abs(Z) < self.limit:
+		while i<self.maxIter and self.isLimit(Z) == False:
 			Z = Z*Z+C
 			i += 1
 

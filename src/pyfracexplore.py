@@ -23,7 +23,7 @@ class Application:
 		self.container.pack(expand=True, fill=BOTH)
 
 		# Canvas
-		self.canvas = Canvas(self.container, width=self.width/2, height=self.height/2, bg='black',
+		self.canvas = Canvas(self.container, width=self.width/2, height=self.height/2, bg='white',
 							 scrollregion=(0, 0, self.width, self.height))
 
 		# Scrollbars
@@ -47,10 +47,8 @@ class Application:
 
 		# self.graphics.drawPalette()
 
-		print("Start")
-		frc = Mandelbrot(800, 800, complex(-1.5, -1.5), complex(3.0, 3.0))
+		frc = Mandelbrot(800, 800, complex(-2.0, -1.5), complex(3.0, 3.0))
 		self.graphics.drawLineByLine(frc)
-		print("End")
 
 		self.mainWindow.mainloop()
 
