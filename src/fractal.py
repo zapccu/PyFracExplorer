@@ -69,7 +69,7 @@ class Mandelbrot(Fractal):
 	size    = complex(3.0, 3.0)
 	maxIter = 100
 	limit   = 8.0
-	radius  = 5
+	radius  = 0
 
 	def __init__(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
 		super().__init__(screenWidth, screenHeight, size.real, size.imag)
@@ -78,7 +78,8 @@ class Mandelbrot(Fractal):
 		self.size    = size
 		self.maxIter = maxIter
 		self.limit   = limit
-		self.orbit = [0.0] * self.radius
+		self.orbit = [0.0] * self.maxIter
+		# self.orbit = [0.0] * self.radius
 
 	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
 		super().setDimensions(screenWidth, screenHeight, size.real, size.imag)
@@ -94,25 +95,36 @@ class Mandelbrot(Fractal):
 	def mapY(self, y):
 		return self.corner.imag + y * self.dy
 	
+	# Find orbit, return radius
 	def findOrbit(self, i: int, nZ: float):
-		for o in range(i-1, -1, -1):
-			if self.orbit[o] == nZ:
-				return o
+		for n in range(i-1, i-self.radius, -1):
+			if self.orbit[n] == nZ:
+				return i-n
 		return -1
 
 	def iterate(self, x: int, y: int):
 		ca, cb = self.mapXY(x, y)
 		return self.iterateComplex(complex(ca, cb))
 	
+	# Iterate complex point
+	# Return tuple (iterations, Z, radius)
 	def iterateComplex(self, C: complex):
 		Z = C
 		i = 1
 		nZ = Fractal.norm(Z)
+		self.orbit[0] = nZ
 
 		while i<self.maxIter and nZ < self.limit:
 			Z = Z*Z+C
 			nZ = Fractal.norm(Z)
 
+			if self.radius > 0 and i >= self.radius:
+				d = self.findOrbit(i, nZ)
+				if d > -1:
+					return (self.maxIter, Z, d)
+			self.orbit[i] = nZ
+
+			"""
 			if self.radius > 0 and i >= self.radius:
 				pn = i % self.radius
 				if nZ in self.orbit:
@@ -125,10 +137,11 @@ class Mandelbrot(Fractal):
 					return (self.maxIter, Z, d)
 				else:
 					self.orbit[pn] = nZ
+			"""
 
 			i += 1
 
-		return (i, Z)
+		return (i, Z, 0)
 	
 	def getMaxValue(self):
 		return self.maxIter
