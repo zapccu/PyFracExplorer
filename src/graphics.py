@@ -80,6 +80,7 @@ class Graphics:
 			self.horzLineTo(200)
 
 	def drawLineByLine(self, fractal: Fractal):
+		fractal.beginCalc()
 		for y in range(self.height):
 			self.moveTo(0, y)
 			r = fractal.iterate(0, y)
@@ -96,4 +97,7 @@ class Graphics:
 
 			self.setColor(color)
 			self.horzLineTo(self.width)
+		
+		calcTime = fractal.endCalc()
+		print(f"{calcTime} seconds")
 
