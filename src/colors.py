@@ -1,6 +1,4 @@
 
-import re
-
 class Color:
 	# Color value. Integer encoded as 0x00RRGGBB
 	rgb = 0
