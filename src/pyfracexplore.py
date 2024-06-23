@@ -20,25 +20,30 @@ class Application:
 		self.mainWindow.geometry(f"{width}x{height}")
 
 		# Container frame
-		self.container = Frame(self.mainWindow, width=self.width/2, height=self.height/2)
-		self.container.pack(expand=True, fill=BOTH)
+		# self.container = Frame(self.mainWindow, width=self.width/2, height=self.height/2)
+		# self.container.pack(expand=True, fill=BOTH)
 
 		# Canvas
-		self.canvas = Canvas(self.container, width=self.width/2, height=self.height/2, bg='white',
-							 scrollregion=(0, 0, self.width, self.height))
+		# self.canvas = Canvas(self.container, width=self.width/2, height=self.height/2, bg='white',
+		#					 scrollregion=(0, 0, self.width, self.height))
 
 		# Scrollbars
-		hScroll = Scrollbar(self.container, orient='horizontal')
-		vScroll = Scrollbar(self.container, orient='vertical')
-		hScroll.pack(fill=X, side=BOTTOM)
-		vScroll.pack(fill=Y, side=RIGHT)
-		hScroll.config(command=self.canvas.xview)
-		vScroll.config(command=self.canvas.yview)
+		# hScroll = Scrollbar(self.container, orient='horizontal')
+		# vScroll = Scrollbar(self.container, orient='vertical')
+		# hScroll.pack(fill=X, side=BOTTOM)
+		# vScroll.pack(fill=Y, side=RIGHT)
+		# hScroll.config(command=self.canvas.xview)
+		# vScroll.config(command=self.canvas.yview)
 
-		self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
-		self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
+		# self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
+		# self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
 
-		self.graphics = Graphics(self.canvas, self.width, self.height, flipY = True)
+		self.drawFrame = DrawFrame(self.mainWindow, 800, 800)
+		self.controlFrame = ControlFrame(self.mainWindow, 200, 750)
+		self.statusFrame = StatusFrame(self.mainWindow, 1000, 50)
+		self.statusFrame.addField(150, value="Status")
+
+		self.graphics = Graphics(self.drawFrame, flipY=True)
 
 	def run(self):
 		palette = ColorTable()
@@ -54,7 +59,7 @@ class Application:
 		self.mainWindow.mainloop()
 
 def main():
-	app = Application(800, 800)
+	app = Application(1000, 800)
 	app.run()
 
 if __name__ == "__main__":

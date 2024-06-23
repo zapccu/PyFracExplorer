@@ -40,6 +40,8 @@ class DrawFrame(Frame):
 		self.vScroll.pack(fill=Y, side=RIGHT)
 
 		self.canvas = Canvas(self, width=width, height=height, bg=bg, scrollregion=(0, 0, width, height))
+		self.canvasWidth = width
+		self.canvasHeight = height
 
 		self.hScroll.config(command=self.canvas.xview)
 		self.vScroll.config(command=self.canvas.yview)
@@ -49,7 +51,9 @@ class DrawFrame(Frame):
 	
 	def setCanvasRes(self, width: int, height: int):
 		self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
-
+		self.canvasWidth = width
+		self.canvasHeight = height
+		
 class ControlFrame(Frame):
 
 	def __init__(self, parentWindow: object, width: int, height: int, bg='grey'):

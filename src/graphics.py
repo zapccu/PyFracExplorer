@@ -1,6 +1,7 @@
 
 from fractal import *
 from colors import *
+from gui import *
 
 
 class Graphics:
@@ -28,10 +29,11 @@ class Graphics:
 		else:
 			return y
 
-	def __init__(self, canvas, width, height, flipY = False):
-		self.canvas = canvas
-		self.width = width
-		self.height = height
+	def __init__(self, drawFrame: DrawFrame, flipY = False):
+		self.drawFrame = drawFrame
+		self.canvas = drawFrame.canvas
+		self.width = drawFrame.canvasWidth
+		self.height = drawFrame.canvasHeight
 		self.flipY = flipY
 		self.setColor(0)
 
