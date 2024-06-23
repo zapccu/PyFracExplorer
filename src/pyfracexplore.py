@@ -3,6 +3,7 @@
 
 import sys
 from tkinter import *
+from gui import *
 from graphics import *
 from fractal import *
 

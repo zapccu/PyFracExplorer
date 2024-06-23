@@ -1,7 +1,7 @@
 
 import time
 
-import numpy as np
+# import numpy as np
 # from numba import jit
 
 class Fractal:
@@ -67,47 +67,55 @@ class Mandelbrot(Fractal):
 
 	corner  = complex(-2.0, -1.5)
 	size    = complex(3.0, 3.0)
-	maxIter = 100
-	limit   = 8.0
-	radius  = 0
 
-	def __init__(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
+	maxIter   = 100		# Maximum number of iterations
+	limit     = 4.0		# Bailout radius
+	diameter  = 0		# Maximum diameter for orbits, 0 = off
+	tolerance = 1e-10	# Tolerance for orbit calculation
+
+	def __init__(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 4.0):
 		super().__init__(screenWidth, screenHeight, size.real, size.imag)
 
 		self.corner  = corner
 		self.size    = size
 		self.maxIter = maxIter
 		self.limit   = limit
-		self.orbit = [0.0] * self.maxIter
-		# self.orbit = [0.0] * self.radius
 
-	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 8.0):
+		# Allocate array for norm(Z) values
+		self.orbit = [0.0] * self.maxIter
+
+	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 4.0):
 		super().setDimensions(screenWidth, screenHeight, size.real, size.imag)
 		
 		self.corner  = corner
 		self.size    = size
 		self.maxIter = maxIter
 		self.limit   = limit
+
+	def setPeriodicityParameters(self, maxDiameter: int, tolerance: float):
+		self.diameter = maxDiameter
+		self.tolerance = tolerance
 	
+	# Map screen to complex coordinate
 	def mapX(self, x):
 		return self.corner.real + x * self.dx
-	
 	def mapY(self, y):
 		return self.corner.imag + y * self.dy
 	
-	# Find orbit, return radius
+	# Find orbit, return diameter or -1
 	def findOrbit(self, i: int, nZ: float):
-		for n in range(i-1, i-self.radius, -1):
-			if self.orbit[n] == nZ:
+		for n in range(i-1, i-self.diameter, -1):
+			if abs(self.orbit[n] - nZ) < self.tolerance:
 				return i-n
 		return -1
 
+	# Iterate point
 	def iterate(self, x: int, y: int):
 		ca, cb = self.mapXY(x, y)
 		return self.iterateComplex(complex(ca, cb))
 	
 	# Iterate complex point
-	# Return tuple (iterations, Z, radius)
+	# Return tuple (iterations, Z, diameter)
 	def iterateComplex(self, C: complex):
 		Z = C
 		i = 1
@@ -118,26 +126,11 @@ class Mandelbrot(Fractal):
 			Z = Z*Z+C
 			nZ = Fractal.norm(Z)
 
-			if self.radius > 0 and i >= self.radius:
+			if self.diameter > 0 and i >= self.diameter:
 				d = self.findOrbit(i, nZ)
 				if d > -1:
 					return (self.maxIter, Z, d)
 			self.orbit[i] = nZ
-
-			"""
-			if self.radius > 0 and i >= self.radius:
-				pn = i % self.radius
-				if nZ in self.orbit:
-					po = self.orbit.index(nZ)
-					if pn > po:
-						d = pn-po
-					else:
-						d = self.radius-po+pn
-
-					return (self.maxIter, Z, d)
-				else:
-					self.orbit[pn] = nZ
-			"""
 
 			i += 1
 
