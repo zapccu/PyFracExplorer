@@ -7,15 +7,15 @@ class StatusFrame(Frame):
 	fields = []
 
 	def __init__(self, parentWindow: object, width: int, height: int = 50):
-		super.__init__(parentWindow, width, height, padx=0, pady=0)
+		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, bg='yellow')
 
 		self.pack_propagate = False
-		self.pack(side=BOTTOM, expand=False, fill=NONE, anchor='nw')
+		self.pack(side=BOTTOM, expand=False, fill=X, anchor='nw')
 	
 	# Add field to status bar
 	def addField(self, width: int, value: str = "", fg='black', bg='grey'):
-		field = Label(self, width=width, text=value, bg=bg)
-		field.pack(side=LEFT, expand=False, fill=NONE)
+		field = Label(self, text=value, bg=bg, relief=SUNKEN)
+		field.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=5)
 		self.fields.append(field)
 	
 	def setFieldValue(self, fieldIdx: int, value: str, fg='black', bg='grey'):
@@ -28,14 +28,14 @@ class StatusFrame(Frame):
 class DrawFrame(Frame):
 
 	def __init__(self, parentWindow: object, width: int, height: int, bg='black'):
-		super.__init__(parentWindow, width, height, padx=0, pady=0, cursor='CROSS')
+		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, cursor='cross')
 
 		self.pack_propagate(False)
 		self.pack(side=LEFT, expand=False, fill=BOTH, anchor='nw')
 
 		# Scrollbars
-		self.hScroll = Scrollbar(self.drawFrame, orient='horizontal')
-		self.vScroll = Scrollbar(self.drawFrame, orient='vertical')
+		self.hScroll = Scrollbar(self, orient='horizontal')
+		self.vScroll = Scrollbar(self, orient='vertical')
 		self.hScroll.pack(fill=X, side=BOTTOM)
 		self.vScroll.pack(fill=Y, side=RIGHT)
 
@@ -53,11 +53,11 @@ class DrawFrame(Frame):
 		self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
 		self.canvasWidth = width
 		self.canvasHeight = height
-		
+
 class ControlFrame(Frame):
 
 	def __init__(self, parentWindow: object, width: int, height: int, bg='grey'):
-		super.__init__(parentWindow, width, height, padx=0, pady=0, cursor='CROSS')
+		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, bg='blue')
 
 		self.pack_propagate(False)
 		self.pack(side=LEFT, expand=False, fill=Y, anchor='nw')

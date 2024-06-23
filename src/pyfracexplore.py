@@ -38,9 +38,9 @@ class Application:
 		# self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
 		# self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
 
-		self.drawFrame = DrawFrame(self.mainWindow, 800, 800)
-		self.controlFrame = ControlFrame(self.mainWindow, 200, 750)
 		self.statusFrame = StatusFrame(self.mainWindow, 1000, 50)
+		self.drawFrame = DrawFrame(self.mainWindow, 800, 750)
+		self.controlFrame = ControlFrame(self.mainWindow, 200, 750)
 		self.statusFrame.addField(150, value="Status")
 
 		self.graphics = Graphics(self.drawFrame, flipY=True)
@@ -53,8 +53,8 @@ class Application:
 
 		# self.graphics.drawPalette()
 
-		frc = Mandelbrot(800, 800, complex(-2.0, -1.5), complex(3.0, 3.0))
-		self.graphics.drawLineByLine(frc)
+		# frc = Mandelbrot(800, 800, complex(-2.0, -1.5), complex(3.0, 3.0))
+		# self.graphics.drawLineByLine(frc)
 
 		self.mainWindow.mainloop()
 
