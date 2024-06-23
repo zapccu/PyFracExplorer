@@ -1,4 +1,5 @@
 
+from tkinter import *
 from fractal import *
 from colors import *
 from gui import *
@@ -12,7 +13,7 @@ class Graphics:
 	# Flip vertical orientation
 	flipY = False
 
-	# Color palette. Default palette contains 1 color (white)
+	# Color palette. Default palette contains 1 color (white). Default color is black
 	colors = ColorTable()
 
 	# Current color
@@ -23,7 +24,7 @@ class Graphics:
 	y = 0
 
 	# Flip vertical coordinates
-	def flip(self, y):
+	def flip(self, y: int) -> int:
 		if self.flipY:
 			return self.height-y-1
 		else:
@@ -38,12 +39,12 @@ class Graphics:
 		self.setColor(0)
 
 	# Set drawing position
-	def moveTo(self, x, y):
+	def moveTo(self, x: int, y: int):
 		self.x = x
 		self.y = y
 
 	# Set color palette
-	def setColorTable(self, colorTable):
+	def setColorTable(self, colorTable: ColorTable):
 		self.colors = colorTable
 
 	# Set color to palette entry or specified color
@@ -58,21 +59,21 @@ class Graphics:
 
 	# Draw a horizontal line excluding end point
 	# Set drawing position to end point
-	def horzLineTo(self, x):
+	def horzLineTo(self, x: int):
 		if x >= 0 and x != self.x:
 			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(self.y), fill=self.color, width=1)
 			self.x = x
 
 	# Draw vertical line excluding end point
 	# Set drawing position to end point
-	def vertLineTo(self, y):
+	def vertLineTo(self, y: int):
 		if y >= 0 and y != self.y:
 			self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y), fill=self.color, width=1)
 			self.y = y
 
 	# Draw a filled rectangle
 	# Drawing position is not updated
-	def fillRect(self, x1, y1, x2, y2):
+	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
 		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
 
 	def drawPalette(self):
@@ -84,6 +85,8 @@ class Graphics:
 	def drawLineByLine(self, fractal: Fractal):
 		fractal.beginCalc()
 		for y in range(self.height):
+			self.drawFrame.parentWindow.update_idletasks()
+
 			self.moveTo(0, y)
 			r = fractal.iterate(0, y)
 			color = self.colors.getMapColor(r[0], fractal.getMaxValue())

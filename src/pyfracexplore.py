@@ -12,46 +12,32 @@ class Application:
 	width = 800
 	height = 800
 
-	def __init__(self, width = 800, height = 800):
+	def __init__(self, width: int, height: int, title: str):
 		self.width = width
 		self.height = height
+
+		# Main window
 		self.mainWindow = Tk()
-		self.mainWindow.title("PyFracExplore")
+		self.mainWindow.title(title)
 		self.mainWindow.geometry(f"{width}x{height}")
 
-		# Container frame
-		# self.container = Frame(self.mainWindow, width=self.width/2, height=self.height/2)
-		# self.container.pack(expand=True, fill=BOTH)
-
-		# Canvas
-		# self.canvas = Canvas(self.container, width=self.width/2, height=self.height/2, bg='white',
-		#					 scrollregion=(0, 0, self.width, self.height))
-
-		# Scrollbars
-		# hScroll = Scrollbar(self.container, orient='horizontal')
-		# vScroll = Scrollbar(self.container, orient='vertical')
-		# hScroll.pack(fill=X, side=BOTTOM)
-		# vScroll.pack(fill=Y, side=RIGHT)
-		# hScroll.config(command=self.canvas.xview)
-		# vScroll.config(command=self.canvas.yview)
-
-		# self.canvas.config(xscrollcommand=hScroll.set, yscrollcommand=vScroll.set)
-		# self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
-
+		# GUI sections
 		self.statusFrame = StatusFrame(self.mainWindow, 1000, 50)
-		self.drawFrame = DrawFrame(self.mainWindow, 800, 750)
+		self.drawFrame = DrawFrame(self.mainWindow, 800, 750, 800, 800, bg='white')
 		self.controlFrame = ControlFrame(self.mainWindow, 200, 750)
-		self.statusFrame.addField(150, value="Status")
+		self.statusFrame.addField(10, value="Status")
+		self.statusFrame.addField(10, value="TEXT")
 
+		# Initialize graphics
 		self.graphics = Graphics(self.drawFrame, flipY=True)
 
 	def run(self):
 		palette = ColorTable()
 		palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
-
 		self.graphics.setColorTable(palette)
 
 		# self.graphics.drawPalette()
+		self.mainWindow.update()
 
 		frc = Mandelbrot(800, 800, complex(-2.0, -1.5), complex(3.0, 3.0))
 		self.graphics.drawLineByLine(frc)
@@ -59,7 +45,7 @@ class Application:
 		self.mainWindow.mainloop()
 
 def main():
-	app = Application(1000, 800)
+	app = Application(1000, 800, "PyFracExplore")
 	app.run()
 
 if __name__ == "__main__":

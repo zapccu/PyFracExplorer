@@ -42,16 +42,16 @@ class ColorTable:
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
-	def getColor(self, idx):
+	def getColor(self, idx) -> Color:
 		if idx >= len(self.colors) or idx < 0:
 			return self.defColor
 		else:
 			return self.colors[idx]
 
-	def getModColor(self, value):
+	def getModColor(self, value) -> Color:
 		return self.colors[value % len(self.colors)]
 	
-	def getMapColor(self, value, maxValue):
+	def getMapColor(self, value, maxValue) -> Color:
 		if value >= maxValue:
 			return self.defColor
 		else:
@@ -65,6 +65,7 @@ class ColorTable:
 	def setDefColor(self, color: Color):
 		self.defColor = color
 
+	# Append color table
 	def add(self, colorTable):
 		if self.colors[-1] == colorTable.colors[0]:
 			self.colors.append(colorTable.colors[1:])
