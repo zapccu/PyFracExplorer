@@ -31,7 +31,48 @@ class Color:
 	def rgbStr(self) -> str:
 		return '#{:02X}{:02X}{:02X}'.format(int(self.red()), int(self.green()), int(self.blue()))
 
+class ColorLine:
+	counterIndex = -1
+	colorIndex = 0
 
+	line = []
+
+	def __init__(self, color: int = -1):
+		if color != -1:
+			self.line.extend([1, color])
+			self.counterIndex = 0
+			self.colorIndex = 1
+
+	def __iadd__(self, color):
+		if self.line[self.colorIndex] == color:
+			self.line[self.counterIndex] += 1
+		else:
+			self.line.extend([1, color])
+			self.counterIndex += 1
+			self.colorIndex += 1
+		return self
+
+	def __len__(self):
+		return len(self.line)/2
+	
+	def __getitem__(self, index):
+		if index >= 0 and index < len(self.line)/2:
+			return (self.line[index*2], self.line[index*2+1])
+		else:
+			return (0, -1)
+
+	def getColor(self, index: int = 0):
+		if index >= 0 and index < len(self.line)/2:
+			return self.line[index*2+1]
+		else:
+			return -1	
+				
+	def isUnique(self):
+		return len(self.line) == 2
+		
+	def __eq__(self, b):
+		return self.isUnique() and b.isUnique() and self.line[1] == b.line[1]
+	
 class ColorTable:
 
 	colors = [ Color(255, 255, 255) ]

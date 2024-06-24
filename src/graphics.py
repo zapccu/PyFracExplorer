@@ -71,6 +71,12 @@ class Graphics:
 			self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y), fill=self.color, width=1)
 			self.y = y
 
+	def lineTo(self, x: int, y: int):
+		if x >= 0 and y >= 0 and (x != self.x or y != self.y):
+			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(y), fill=self.color, width=1)
+			self.x = x
+			self.y = y
+
 	# Draw a filled rectangle
 	# Drawing position is not updated
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
@@ -82,6 +88,33 @@ class Graphics:
 			self.moveTo(10, 10+i)
 			self.horzLineTo(200)
 
+	def calculateHorzLine(self, fractal: Fractal, x1: int, x2: int, y: int):
+		cLine = ColorLine(fractal.iterate(x1, y))
+		for x in range(x1+1, x2+1):
+			cLine += fractal.iterate(x, y)
+		return cLine
+
+	def calculateVertLine(self, fractal: Fractal, x: int, y1: int, y2: int):
+		cLine = ColorLine(fractal.iterate(x, y1))
+		for y in range(y1+1, y2+1):
+			cLine += fractal.iterate(x, y)
+		return cLine
+	
+	def drawColorLine(self, x: int, y: int, direction: int, cLine: ColorLine):
+		self.moveTo(x, y)
+
+		for i in range(len(cLine)):
+			length, color = cLine[i]
+			self.setColor(color)
+			if direction == 0:
+				self.horzLineTo(self.x+length)
+			else:
+				self.vertLineTo(self.y+length)
+
+	def drawColorRectangle(self, x1: int, y1: int, x2: int, y2: int, cLines):
+		for cLine in ((x1, y1, 0, cLines[0]), (x1, y2, 0, cLines[1]), (x1, y1, 1, cLines[2]), (x2, y1, 1, cLines[3])):
+			self.drawColorLine(cLine[0], cLine[1], cLine[2], cLine[3])
+	
 	def drawLineByLine(self, fractal: Fractal):
 		fractal.beginCalc()
 		for y in range(self.height):
