@@ -99,7 +99,7 @@ class ColorTable:
 			return self.colors[int(len(self.colors)/maxValue*value)]
 	
 	# Return maximum number of colors
-	def maxColors(self) -> int:
+	def __len__(self):
 		return len(self.colors)
 	
 	# Set default color

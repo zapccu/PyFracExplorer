@@ -39,8 +39,8 @@ class Application:
 		# self.graphics.drawPalette()
 		self.mainWindow.update()
 
-		frc = Mandelbrot(800, 800, complex(-2.0, -1.5), complex(3.0, 3.0))
-		self.graphics.drawLineByLine(frc)
+		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		self.graphics.drawLineByLine(frc, 800, 800)
 
 		self.mainWindow.mainloop()
 

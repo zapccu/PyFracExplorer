@@ -31,7 +31,7 @@ class StatusFrame(Frame):
 		
 class DrawFrame(Frame):
 
-	def __init__(self, parentWindow: object, width: int, height: int, canvasWidth: int, canvasHeight: int, bg='black'):
+	def __init__(self, parentWindow: object, width: int, height: int, bg='black'):
 		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, cursor='cross')
 
 		self.parentWindow = parentWindow
@@ -45,9 +45,9 @@ class DrawFrame(Frame):
 		self.hScroll.pack(fill=X, side=BOTTOM)
 		self.vScroll.pack(fill=Y, side=RIGHT)
 
-		self.canvas = Canvas(self, width=canvasWidth, height=canvasHeight, bg=bg, scrollregion=(0, 0, canvasWidth, canvasHeight))
-		self.canvasWidth = canvasWidth
-		self.canvasHeight = canvasHeight
+		self.canvas = Canvas(self, width=canvasWidth, height=canvasHeight, bg=bg, scrollregion=(0, 0, width, height))
+		self.canvasWidth = width
+		self.canvasHeight = height
 
 		self.hScroll.config(command=self.canvas.xview)
 		self.vScroll.config(command=self.canvas.yview)

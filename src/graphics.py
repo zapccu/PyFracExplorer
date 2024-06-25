@@ -23,6 +23,9 @@ class Graphics:
 	x = 0
 	y = 0
 
+	# Flag: True = drawing in progress
+	bDrawing = False
+
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
 		if self.flipY:
@@ -33,10 +36,19 @@ class Graphics:
 	def __init__(self, drawFrame: DrawFrame, flipY = False):
 		self.drawFrame = drawFrame
 		self.canvas = drawFrame.canvas
-		self.width = drawFrame.canvasWidth
-		self.height = drawFrame.canvasHeight
 		self.flipY = flipY
 		self.setColor(0)
+
+	def beginDraw(self, fractal: Fractal, width: int, height: int) -> bool:
+		if self.bDrawing == False:
+			self.drawFrame.setCanvasRes(width, height)
+			fractal.beginCalc(width, height)
+			self.bDrawing = True
+		return self.bDrawing
+
+	def endDraw(self, fractal: Fractal) -> float:
+		self.bDrawing = False
+		return fractal.endCalc()
 
 	# Set drawing position
 	def moveTo(self, x: int, y: int):
@@ -83,7 +95,7 @@ class Graphics:
 		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
 
 	def drawPalette(self):
-		for i in range(self.colors.maxColors()):
+		for i in range(len(self.colors)):
 			self.setColor(i)
 			self.moveTo(10, 10+i)
 			self.horzLineTo(200)
@@ -115,8 +127,10 @@ class Graphics:
 		for cLine in ((x1, y1, 0, cLines[0]), (x1, y2, 0, cLines[1]), (x1, y1, 1, cLines[2]), (x2, y1, 1, cLines[3])):
 			self.drawColorLine(cLine[0], cLine[1], cLine[2], cLine[3])
 	
-	def drawLineByLine(self, fractal: Fractal):
-		fractal.beginCalc()
+	def drawLineByLine(self, fractal: Fractal, width: int, height: int) -> bool:
+		if self.beginDraw(fractal, width, height) == False:
+			return False
+
 		for y in range(self.height):
 			self.drawFrame.parentWindow.update_idletasks()
 
@@ -136,8 +150,10 @@ class Graphics:
 			self.setColor(color)
 			self.horzLineTo(self.width)
 		
-		calcTime = fractal.endCalc()
+		calcTime = self.endDraw(fractal)
 		print(f"{calcTime} seconds")
+
+		return True
 
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
 							colTop: ColorLine, colBottom: ColorLine, colLeft: ColorLine, colRight: ColorLine):
@@ -174,3 +190,7 @@ class Graphics:
 
 			# Recursively call 
 			return self.drawSquareEstimation()
+
+	def splitSquare(self, x1, y1, x2, y2):
+		xm = x1+(x2-x1)/2
+		ym = y1+(y2-y1)/2

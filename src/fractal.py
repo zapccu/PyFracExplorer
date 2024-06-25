@@ -19,18 +19,14 @@ class Fractal:
 	startTime = 0
 	calcTime = 0
 
-	def __init__(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
-		self.setDimensions(screenWidth, screenHeight, fractalWidth, fractalHeight)
+	def __init__(self, fractalWidth: float, fractalHeight: float):
+		self.setDimensions(fractalWidth, fractalHeight)
 
 	def setDimensions(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
-		self.screenWidth = screenWidth
-		self.screenHeight = screenHeight
 		self.fractalWidth = fractalWidth
 		self.fractalHeight = fractalHeight
 		
-		self.dx = self.fractalWidth / self.screenWidth
-		self.dy = self.fractalHeight / self.screenHeight
-		self.mapScreenCoordinates()
+		self.mapScreenCoordinates(screenWidth, screenHeight)
 
 	def mapX(self, x):
 		return x * self.dx
@@ -38,7 +34,13 @@ class Fractal:
 	def mapY(self, y):
 		return y * self.dy
 
-	def mapScreenCoordinates(self):
+	def mapScreenCoordinates(self, screenWidth: int, screenHeight: int):
+		self.screenWidth = screenWidth
+		self.screenHeight = screenHeight
+
+		self.dx = self.fractalWidth / self.screenWidth
+		self.dy = self.fractalHeight / self.screenHeight
+
 		self.dxTab = list(map(self.mapX, range(self.screenWidth)))
 		self.dyTab = list(map(self.mapY, range(self.screenHeight)))
 
@@ -51,8 +53,10 @@ class Fractal:
 	def getMaxValue(self):
 		return 1
 	
-	def beginCalc(self):
+	def beginCalc(self, screenWidth, screenHeight):
 		self.startTime = time.time()
+		self.mapScreenCoordinates(screenWidth, screenHeight)
+
 	def endCalc(self):
 		endTime = time.time()
 		self.calcTime = endTime-self.startTime+1
@@ -73,8 +77,8 @@ class Mandelbrot(Fractal):
 	diameter  = 0		# Maximum diameter for orbits, 0 = off
 	tolerance = 1e-10	# Tolerance for orbit calculation
 
-	def __init__(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 4.0):
-		super().__init__(screenWidth, screenHeight, size.real, size.imag)
+	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
+		super().__init__(size.real, size.imag)
 
 		self.corner  = corner
 		self.size    = size
