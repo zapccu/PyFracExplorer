@@ -7,48 +7,50 @@ from fractal import *
 class Drawer:
 
 	def __init__(self, graphics: Graphics, fractal: Fractal):
-		self.g = graphics
-		self.f = fractal
+		self.graphics = graphics
+		self.fractal = fractal
 
-	def calcHorzLine(self, x1: int, y: int, x2: int) -> ColorLine:
+	# Iterate a line from x, y
+	# orientation: 0 = horizontal, 1 = vertical
+	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
 		cLine = ColorLine()
 
-		for x in range(x1:x2):
-			result = self.f.iterate(x, y)
-			color = self.colors.getMapColor(result[0], self.f.getMaxValue())
+		if orientation == 0:
+			r = range(x, xy)
+		else:
+			r = range(y, xy)
+
+		for v in r:
+			if orientation == 0:
+				result = self.fractal.iterate(v, y)
+			else:
+				result = self.fractal.iterate(x, v)
+			color = self.graphics.colors.getMapColor(result[0], self.fractal.getMaxValue())
 			cLine += color.rgb
 
 		return cLine
 	
-	def calcVertLine(self, x: int, y1: int, y2: int) -> ColorLine:
-		cLine = ColorLine()
-
-		for y in range(y1:xy):
-			result = self.f.iterate(x, y)
-			color = self.colors.getMapColor(result[0], self.f.getMaxValue())
-			cLine += color.rgb
-
-		return cLine
-
-	def drawColorLine(self, cLine: ColorLine, x: int, y: int, mode):
+	# Draw a color line from (x, y)
+	# orientaion: 0 = horizontal, 1 = vertical
+	def drawColorLine(self, cLine: ColorLine, x: int, y: int, orientation: int):
 		self.g.moveTo(x, y)
 		color = cLine[0]
 		d = len(cLine)
 
-		if mode == 0:
+		if orientation == 0:
 			v = x
-			f = self.g.horzLineTo
+			lineTo = self.graphics.horzLineTo
 		else:
 			v = y 
-			f = self.g.vertLineTo
+			lineTo = self.graphics.vertLineTo
 
 		for i in range(1, d):
 			if cLine[i] != color:
-				self.g.setColor(color)
-				f(v + i)
+				self.graphics.setColor(color)
+				lineTo(v + i)
 				color = cLine[i]
 
-		self.g.setColor(color)
-		self.g.horzLineTo(v + d)
+		self.graphics.setColor(color)
+		lineTo(v + d)
 
 

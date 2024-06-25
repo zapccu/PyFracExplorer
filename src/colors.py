@@ -1,9 +1,10 @@
 
+
 class Color:
 	# Color value. Integer encoded as 0x00RRGGBB
 	rgb = 0
 
-	def __init__(self, red, green, blue):
+	def __init__(self, red = 0, green = 0, blue = 0):
 		self.setRGB(red, green, blue)				
 
 	def __repr__(self) -> str:
@@ -32,46 +33,39 @@ class Color:
 		return '#{:02X}{:02X}{:02X}'.format(int(self.red()), int(self.green()), int(self.blue()))
 
 class ColorLine:
-	counterIndex = -1
-	colorIndex = 0
-
+	
+	unique = False
 	line = []
 
-	def __init__(self, color: int = -1):
-		if color != -1:
-			self.line.extend([1, color])
-			self.counterIndex = 0
-			self.colorIndex = 1
+	def __init__(self, color: int, length: int = 0):
+		if length > 0:
+			self.line = [color] * length
+			self.unique = True
 
-	def __iadd__(self, color):
-		if self.line[self.colorIndex] == color:
-			self.line[self.counterIndex] += 1
+	def __iadd__(self, color: int):
+		if len(self.line) == 0:
+			# First entry, unique color
+			self.unique = True
 		else:
-			self.line.extend([1, color])
-			self.counterIndex += 1
-			self.colorIndex += 1
+			if self.unique and color != self.line[0]:
+				self.unique = False
+		self.line.append(color)
 		return self
 
 	def __len__(self):
-		return len(self.line)/2
+		return len(self.line)
 	
 	def __getitem__(self, index):
-		if index >= 0 and index < len(self.line)/2:
-			return (self.line[index*2], self.line[index*2+1])
+		if index >= 0 and index < len(self.line):
+			return self.line[index]
 		else:
-			return (0, -1)
-
-	def getColor(self, index: int = 0):
-		if index >= 0 and index < len(self.line)/2:
-			return self.line[index*2+1]
-		else:
-			return -1	
+			return 0xFFFFFF
 				
 	def isUnique(self):
-		return len(self.line) == 2
+		return self.isUnique
 		
 	def __eq__(self, b):
-		return self.isUnique() and b.isUnique() and self.line[1] == b.line[1]
+		return self.isUnique() and b.isUnique() and self.line[0] == b.line[0]
 	
 class ColorTable:
 
