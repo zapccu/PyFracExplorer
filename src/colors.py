@@ -1,6 +1,9 @@
 
 
 class Color:
+	
+	NOCOLOR = 0xFFFFFF
+
 	# Color value. Integer encoded as 0x00RRGGBB
 	rgb = 0
 
@@ -37,7 +40,7 @@ class ColorLine:
 	unique = False
 	line = []
 
-	def __init__(self, color: int, length: int = 0):
+	def __init__(self, color: int = 0xFFFFFF, length: int = 0):
 		if length > 0:
 			self.line = [color] * length
 			self.unique = True

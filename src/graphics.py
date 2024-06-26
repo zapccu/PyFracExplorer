@@ -10,6 +10,10 @@ class Graphics:
 	# Drawing canvas
 	canvas = None
 
+	# Canvas dimensions
+	width = 0
+	height = 0
+
 	# Flip vertical orientation
 	flipY = False
 
@@ -23,9 +27,6 @@ class Graphics:
 	x = 0
 	y = 0
 
-	# Flag: True = drawing in progress
-	bDrawing = False
-
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
 		if self.flipY:
@@ -35,21 +36,21 @@ class Graphics:
 
 	def __init__(self, drawFrame: DrawFrame, flipY = False):
 		self.drawFrame = drawFrame
-		self.canvas = drawFrame.canvas
-		self.flipY = flipY
+		self.canvas    = drawFrame.canvas
+		self.width     = drawFrame.canvasWidth
+		self.height    = drawFrame.canvasHeight
+		self.flipY     = flipY
 		self.setColor(0)
 
-	def beginDraw(self, fractal: Fractal, width: int, height: int) -> bool:
-		if self.bDrawing == False:
-			self.drawFrame.setCanvasRes(width, height)
-			fractal.beginCalc(width, height)
-			self.bDrawing = True
-		return self.bDrawing
+	def beginDraw(self, width: int, height: int) -> bool:
+		self.drawFrame.setCanvasRes(width, height)
+		self.width = width
+		self.height = height
+		return True
 
-	def endDraw(self, fractal: Fractal) -> float:
-		self.bDrawing = False
-		return fractal.endCalc()
-
+	def endDraw(self):
+		return
+	
 	# Set drawing position
 	def moveTo(self, x: int, y: int):
 		self.x = x
@@ -94,39 +95,14 @@ class Graphics:
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
 		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
 
+	""""
+
 	def drawPalette(self):
 		for i in range(len(self.colors)):
 			self.setColor(i)
 			self.moveTo(10, 10+i)
 			self.horzLineTo(200)
 
-	def calculateHorzLine(self, fractal: Fractal, x1: int, x2: int, y: int):
-		cLine = ColorLine(fractal.iterate(x1, y))
-		for x in range(x1+1, x2+1):
-			cLine += fractal.iterate(x, y)
-		return cLine
-
-	def calculateVertLine(self, fractal: Fractal, x: int, y1: int, y2: int):
-		cLine = ColorLine(fractal.iterate(x, y1))
-		for y in range(y1+1, y2+1):
-			cLine += fractal.iterate(x, y)
-		return cLine
-	
-	def drawColorLine(self, x: int, y: int, direction: int, cLine: ColorLine):
-		self.moveTo(x, y)
-
-		for i in range(len(cLine)):
-			length, color = cLine[i]
-			self.setColor(color)
-			if direction == 0:
-				self.horzLineTo(self.x+length)
-			else:
-				self.vertLineTo(self.y+length)
-
-	def drawColorRectangle(self, x1: int, y1: int, x2: int, y2: int, cLines):
-		for cLine in ((x1, y1, 0, cLines[0]), (x1, y2, 0, cLines[1]), (x1, y1, 1, cLines[2]), (x2, y1, 1, cLines[3])):
-			self.drawColorLine(cLine[0], cLine[1], cLine[2], cLine[3])
-	
 	def drawLineByLine(self, fractal: Fractal, width: int, height: int) -> bool:
 		if self.beginDraw(fractal, width, height) == False:
 			return False
@@ -194,3 +170,5 @@ class Graphics:
 	def splitSquare(self, x1, y1, x2, y2):
 		xm = x1+(x2-x1)/2
 		ym = y1+(y2-y1)/2
+
+	"""

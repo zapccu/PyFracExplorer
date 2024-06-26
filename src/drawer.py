@@ -6,6 +6,12 @@ from fractal import *
 
 class Drawer:
 
+	HORIZONTAL = 0
+	VERTICAL = 1
+
+	# Flag: True = drawing in progress
+	bDrawing = False
+
 	def __init__(self, graphics: Graphics, fractal: Fractal):
 		self.graphics = graphics
 		self.fractal = fractal
@@ -14,17 +20,10 @@ class Drawer:
 	# orientation: 0 = horizontal, 1 = vertical
 	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
 		cLine = ColorLine()
-
-		if orientation == 0:
-			r = range(x, xy)
-		else:
-			r = range(y, xy)
+		r = range(x, xy) if orientation == 0 else range(y, xy)
 
 		for v in r:
-			if orientation == 0:
-				result = self.fractal.iterate(v, y)
-			else:
-				result = self.fractal.iterate(x, v)
+			result = self.fractal.iterate(v, y) if orientation == 0 else self.fractal.iterate(x, v)
 			color = self.graphics.colors.getMapColor(result[0], self.fractal.getMaxValue())
 			cLine += color.rgb
 
@@ -33,7 +32,7 @@ class Drawer:
 	# Draw a color line from (x, y)
 	# orientaion: 0 = horizontal, 1 = vertical
 	def drawColorLine(self, cLine: ColorLine, x: int, y: int, orientation: int):
-		self.g.moveTo(x, y)
+		self.graphics.moveTo(x, y)
 		color = cLine[0]
 		d = len(cLine)
 
@@ -53,4 +52,33 @@ class Drawer:
 		self.graphics.setColor(color)
 		lineTo(v + d)
 
+	def beginDraw(self, width: int, height: int) -> bool:
+		if self.bDrawing == False:
+			if self.graphics.beginDraw(width, height) == False: return False
+			if self.fractal.beginCalc(width, height) == False: return False
+			self.bDrawing = True
+		return self.bDrawing
+	
+	def endDraw(self) -> float:
+		if self.bDrawing == True:
+			calcTime = self.fractal.endCalc()
+			self.graphics.endDraw()
+			self.bDrawing = False
+			return calcTime
+		else:
+			return 0.0
 
+	def drawLineByLine(self, x: int, y: int, width: int, height: int) -> bool:
+		if self.beginDraw(width, height) == False:
+			return False
+
+		print("Line by Line")
+		for y in range(height):
+			print(f"Calculating line {y}")
+			cLine = self.calculateLine(x, y, x+width, Drawer.HORIZONTAL)
+			self.drawColorLine(cLine, x, y, Drawer.HORIZONTAL)
+		
+		calcTime = self.endDraw()
+		print(f"{calcTime} seconds")
+
+		return True

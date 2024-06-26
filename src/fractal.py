@@ -22,11 +22,9 @@ class Fractal:
 	def __init__(self, fractalWidth: float, fractalHeight: float):
 		self.setDimensions(fractalWidth, fractalHeight)
 
-	def setDimensions(self, screenWidth: int, screenHeight: int, fractalWidth: float, fractalHeight: float):
+	def setDimensions(self, fractalWidth: float, fractalHeight: float):
 		self.fractalWidth = fractalWidth
 		self.fractalHeight = fractalHeight
-		
-		self.mapScreenCoordinates(screenWidth, screenHeight)
 
 	def mapX(self, x):
 		return x * self.dx
@@ -53,11 +51,12 @@ class Fractal:
 	def getMaxValue(self):
 		return 1
 	
-	def beginCalc(self, screenWidth, screenHeight):
+	def beginCalc(self, screenWidth, screenHeight) -> bool:
 		self.startTime = time.time()
 		self.mapScreenCoordinates(screenWidth, screenHeight)
+		return True
 
-	def endCalc(self):
+	def endCalc(self) -> float:
 		endTime = time.time()
 		self.calcTime = endTime-self.startTime+1
 		return self.calcTime
@@ -88,8 +87,8 @@ class Mandelbrot(Fractal):
 		# Allocate array for norm(Z) values
 		self.orbit = [0.0] * self.maxIter
 
-	def setParameters(self, screenWidth: int, screenHeight: int, corner: complex, size: complex, maxIter = 100, limit = 4.0):
-		super().setDimensions(screenWidth, screenHeight, size.real, size.imag)
+	def setParameters(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
+		super().setDimensions(size.real, size.imag)
 		
 		self.corner  = corner
 		self.size    = size

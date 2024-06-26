@@ -45,7 +45,7 @@ class DrawFrame(Frame):
 		self.hScroll.pack(fill=X, side=BOTTOM)
 		self.vScroll.pack(fill=Y, side=RIGHT)
 
-		self.canvas = Canvas(self, width=canvasWidth, height=canvasHeight, bg=bg, scrollregion=(0, 0, width, height))
+		self.canvas = Canvas(self, width=width, height=height, bg=bg, scrollregion=(0, 0, width, height))
 		self.canvasWidth = width
 		self.canvasHeight = height
 
@@ -62,11 +62,19 @@ class DrawFrame(Frame):
 
 class ControlFrame(Frame):
 
-	def __init__(self, parentWindow: object, width: int, height: int, bg='grey'):
+	def __init__(self, app: object, parentWindow: object, width: int, height: int, bg='grey'):
 		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, bg='blue')
 
+		self.app = app
 		self.parentWindow = parentWindow
 
 		self.pack_propagate(False)
 		self.pack(side=LEFT, expand=False, fill=Y, anchor='nw')
-		label1 = Label(self, text="TEST").pack()
+
+		self.btnDraw = Button(
+            self,
+            text="Draw",
+            width=8,
+            fg="green",
+            command=lambda: self.app.onDraw(),
+        ).pack()
