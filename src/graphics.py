@@ -46,7 +46,7 @@ class Graphics:
 	def setColor(self, color):
 		if type(color) == int:
 			self.colorIdx = color
-			self.color = self.colors.getColor(color).rgbStr()
+			self.color = self.colors[color].rgbStr()
 		elif type(color) == Color:
 			self.color = color.rgbStr()
 		elif type(color) == str:
@@ -77,13 +77,14 @@ class Graphics:
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
 		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
 
-	""""
 
 	def drawPalette(self):
 		for i in range(len(self.colors)):
 			self.setColor(i)
 			self.moveTo(10, 10+i)
 			self.horzLineTo(200)
+
+	""""
 
 	def drawLineByLine(self, fractal: Fractal, width: int, height: int) -> bool:
 		if self.beginDraw(fractal, width, height) == False:

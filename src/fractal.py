@@ -42,10 +42,7 @@ class Fractal:
 
 	def mapXY(self, x, y):
 		return (self.dxTab[x], self.dyTab[y])
-	
-	def iterate(self, x: int, y: int):
-		return 1
-	
+		
 	def getMaxValue(self):
 		return 1
 	
@@ -109,6 +106,7 @@ class Mandelbrot(Fractal):
 	# Iterate point
 	def iterate(self, x: int, y: int):
 		ca, cb = self.mapXY(x, y)
+		if x == 0: print(f"Iterating {ca}, {cb}")
 		return self.iterateComplex(complex(ca, cb))
 	
 	# Iterate complex point

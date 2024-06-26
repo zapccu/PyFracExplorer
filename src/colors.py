@@ -44,14 +44,14 @@ class ColorLine:
 			self.unique = False
 
 	def __iadd__(self, color: int):
-		if color > 0 and color < Color.MAXCOLOR:
+		if color >= 0 and color <= Color.MAXCOLOR:
 			if len(self.line) == 0:
 				# First entry, unique color
 				self.unique = True
 			else:
 				if self.unique and color != self.line[0]:
 					self.unique = False
-				self.line.append(color)
+			self.line.append(color)
 		return self
 
 	def __len__(self):
