@@ -23,9 +23,9 @@ class Application:
 		self.mainWindow.geometry(f"{width}x{height}")
 
 		# GUI sections
-		self.statusFrame = StatusFrame(self.mainWindow, 1000, 50)
-		self.drawFrame = DrawFrame(self.mainWindow, 800, 750, bg='white')
-		self.controlFrame = ControlFrame(self, self.mainWindow, 200, 750)
+		self.statusFrame = StatusFrame(self.mainWindow, width, 50)
+		self.drawFrame = DrawFrame(self.mainWindow, width-200, height-50, bg='white')
+		self.controlFrame = ControlFrame(self, self.mainWindow, 200, height-50)
 		self.statusFrame.addField(10, value="Status")
 		self.statusFrame.addField(10, value="TEXT")
 
@@ -33,9 +33,6 @@ class Application:
 		self.graphics = Graphics(self.drawFrame, flipY=True)
 
 	def run(self):
-		# self.graphics.drawPalette()
-		# self.mainWindow.update()
-
 		self.mainWindow.mainloop()
 
 	def onDraw(self):
@@ -45,8 +42,7 @@ class Application:
 
 		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
 		draw = Drawer(self.graphics, frc)
-		print("Drawing ...")
-		draw.drawLineByLine(0, 0, 800, 800)
+		draw.drawLineByLine(0, 0, 100, 100)
 
 
 def main():

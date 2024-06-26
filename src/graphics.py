@@ -7,25 +7,15 @@ from gui import *
 
 class Graphics:
 
-	# Drawing canvas
-	canvas = None
-
-	# Canvas dimensions
-	width = 0
-	height = 0
-
-	# Flip vertical orientation
-	flipY = False
-
-	# Color palette. Default palette contains 1 color (white). Default color is black
-	colors = ColorTable()
-
-	# Current color
-	color = '#ffffff'
-
-	# Current drawing position
-	x = 0
-	y = 0
+	def __init__(self, drawFrame: DrawFrame, flipY = False):
+		self.drawFrame = drawFrame
+		self.canvas    = drawFrame.canvas
+		self.width     = drawFrame.canvasWidth
+		self.height    = drawFrame.canvasHeight
+		self.flipY     = flipY
+		self.colors    = ColorTable()
+		self.moveTo(0, 0)
+		self.setColor(0)
 
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
@@ -33,14 +23,6 @@ class Graphics:
 			return self.height-y-1
 		else:
 			return y
-
-	def __init__(self, drawFrame: DrawFrame, flipY = False):
-		self.drawFrame = drawFrame
-		self.canvas    = drawFrame.canvas
-		self.width     = drawFrame.canvasWidth
-		self.height    = drawFrame.canvasHeight
-		self.flipY     = flipY
-		self.setColor(0)
 
 	def beginDraw(self, width: int, height: int) -> bool:
 		self.drawFrame.setCanvasRes(width, height)

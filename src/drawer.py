@@ -9,10 +9,8 @@ class Drawer:
 	HORIZONTAL = 0
 	VERTICAL = 1
 
-	# Flag: True = drawing in progress
-	bDrawing = False
-
 	def __init__(self, graphics: Graphics, fractal: Fractal):
+		self.bDrawing = False
 		self.graphics = graphics
 		self.fractal = fractal
 
@@ -21,6 +19,7 @@ class Drawer:
 	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
 		cLine = ColorLine()
 		r = range(x, xy) if orientation == 0 else range(y, xy)
+		print(f"Calculate line x={x}, y={y}, xy={xy}")
 
 		for v in r:
 			result = self.fractal.iterate(v, y) if orientation == 0 else self.fractal.iterate(x, v)
@@ -35,6 +34,8 @@ class Drawer:
 		self.graphics.moveTo(x, y)
 		color = cLine[0]
 		d = len(cLine)
+
+		print(f"Draw line x={x}, y={y}, d={d}")
 
 		if orientation == 0:
 			v = x

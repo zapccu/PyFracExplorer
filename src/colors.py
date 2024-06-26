@@ -2,10 +2,8 @@
 
 class Color:
 	
-	NOCOLOR = 0xFFFFFF
-
-	# Color value. Integer encoded as 0x00RRGGBB
-	rgb = 0
+	NOCOLOR  = 0xFFFFFFFF
+	MAXCOLOR = 0xFFFFFF
 
 	def __init__(self, red = 0, green = 0, blue = 0):
 		self.setRGB(red, green, blue)				
@@ -36,23 +34,24 @@ class Color:
 		return '#{:02X}{:02X}{:02X}'.format(int(self.red()), int(self.green()), int(self.blue()))
 
 class ColorLine:
-	
-	unique = False
-	line = []
 
-	def __init__(self, color: int = 0xFFFFFF, length: int = 0):
-		if length > 0:
+	def __init__(self, color: int = Color.NOCOLOR, length: int = 0):
+		if length > 0 and color != Color.NOCOLOR:
 			self.line = [color] * length
 			self.unique = True
+		else:
+			self.line = []
+			self.unique = False
 
 	def __iadd__(self, color: int):
-		if len(self.line) == 0:
-			# First entry, unique color
-			self.unique = True
-		else:
-			if self.unique and color != self.line[0]:
-				self.unique = False
-		self.line.append(color)
+		if color > 0 and color < Color.MAXCOLOR:
+			if len(self.line) == 0:
+				# First entry, unique color
+				self.unique = True
+			else:
+				if self.unique and color != self.line[0]:
+					self.unique = False
+				self.line.append(color)
 		return self
 
 	def __len__(self):
@@ -62,7 +61,7 @@ class ColorLine:
 		if index >= 0 and index < len(self.line):
 			return self.line[index]
 		else:
-			return 0xFFFFFF
+			return Color.NOCOLOR
 				
 	def isUnique(self):
 		return self.isUnique
@@ -72,15 +71,13 @@ class ColorLine:
 	
 class ColorTable:
 
-	colors = [ Color(255, 255, 255) ]
-	defColor = Color(0, 0, 0)
-
-	def __init__(self, defColor=Color(0, 0, 0)):
+	def __init__(self, color = Color(255, 255, 255), defColor = Color(0, 0, 0)):
+		self.colors = []
 		self.defColor = defColor
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
-	def getColor(self, idx) -> Color:
+	def __getitem__(self, idx) -> Color:
 		if idx >= len(self.colors) or idx < 0:
 			return self.defColor
 		else:

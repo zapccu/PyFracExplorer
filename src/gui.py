@@ -5,12 +5,11 @@ from tkinter import *
 
 class StatusFrame(Frame):
 
-	fields = []
-
 	def __init__(self, parentWindow: object, width: int, height: int = 50):
 		super().__init__(parentWindow, width=width, height=height, padx=0, pady=0, bg='grey')
 
 		self.parentWindow = parentWindow
+		self.fields = []
 
 		self.pack_propagate = False
 		self.pack(side=BOTTOM, expand=False, fill=X, anchor='nw')

@@ -6,20 +6,18 @@ import time
 
 class Fractal:
 
-	screenWidth  = 0
-	screenHeight = 0
-	fractalWidth  = 0.0
-	fractalHeight = 0.0
-
-	dx = 1.0
-	dy = 1.0
-	dxTab = []
-	dyTab = []
-
-	startTime = 0
-	calcTime = 0
-
 	def __init__(self, fractalWidth: float, fractalHeight: float):
+		self.screenWidth  = 0
+		self.screenHeight = 0
+
+		self.dx = 1.0
+		self.dy = 1.0
+		self.dxTab = []
+		self.dyTab = []
+
+		self.startTime = 0
+		self.calcTime = 0
+
 		self.setDimensions(fractalWidth, fractalHeight)
 
 	def setDimensions(self, fractalWidth: float, fractalHeight: float):
@@ -68,14 +66,6 @@ class Fractal:
 
 class Mandelbrot(Fractal):
 
-	corner  = complex(-2.0, -1.5)
-	size    = complex(3.0, 3.0)
-
-	maxIter   = 100		# Maximum number of iterations
-	limit     = 4.0		# Bailout radius
-	diameter  = 0		# Maximum diameter for orbits, 0 = off
-	tolerance = 1e-10	# Tolerance for orbit calculation
-
 	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
 		super().__init__(size.real, size.imag)
 
@@ -84,8 +74,12 @@ class Mandelbrot(Fractal):
 		self.maxIter = maxIter
 		self.limit   = limit
 
+		self.diameter  = 0		# Maximum diameter for orbits, 0 = off
+		self.tolerance = 1e-10	# Tolerance for orbit calculation
+
 		# Allocate array for norm(Z) values
 		self.orbit = [0.0] * self.maxIter
+		
 
 	def setParameters(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
 		super().setDimensions(size.real, size.imag)
