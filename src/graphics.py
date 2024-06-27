@@ -4,6 +4,9 @@ from fractal import *
 from colors import *
 from gui import *
 
+"""
+Class for graphic operations
+"""
 
 class Graphics:
 
@@ -14,8 +17,9 @@ class Graphics:
 		self.height    = drawFrame.canvasHeight
 		self.flipY     = flipY
 		self.colors    = ColorTable()
+
 		self.moveTo(0, 0)
-		self.setColor(0)
+		self.setColor(idx = 0)
 
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
@@ -43,14 +47,14 @@ class Graphics:
 		self.colors = colorTable
 
 	# Set color to palette entry or specified color
-	def setColor(self, color):
-		if type(color) == int:
-			self.colorIdx = color
-			self.color = self.colors[color].rgbStr()
-		elif type(color) == Color:
-			self.color = color.rgbStr()
-		elif type(color) == str:
-			self.color = color
+	def setColor(self, idx: int = -1, strColor: str = '', intColor: int = Color.NOCOLOR):
+		if idx >= 0:
+			self.colorIdx = idx
+			self.color = Color.rgbStr(self.colors[idx])
+		elif strColor != '':
+			self.color = strColor
+		elif intColor != Color.NOCOLOR:
+			self.color = Color.rgbStr(intColor)
 
 	# Draw a horizontal line excluding end point
 	# Set drawing position to end point
@@ -80,39 +84,11 @@ class Graphics:
 
 	def drawPalette(self):
 		for i in range(len(self.colors)):
-			self.setColor(i)
+			self.setColor(idx = i)
 			self.moveTo(10, 10+i)
 			self.horzLineTo(200)
 
 	""""
-
-	def drawLineByLine(self, fractal: Fractal, width: int, height: int) -> bool:
-		if self.beginDraw(fractal, width, height) == False:
-			return False
-
-		for y in range(self.height):
-			self.drawFrame.parentWindow.update_idletasks()
-
-			self.moveTo(0, y)
-			r = fractal.iterate(0, y)
-			color = self.colors.getMapColor(r[0], fractal.getMaxValue())
-			self.setColor(color)
-
-			for x in range(1, self.width):
-				r = fractal.iterate(x, y)
-				newColor = self.colors.getMapColor(r[0], fractal.getMaxValue())
-				if newColor != color:
-					self.setColor(color)
-					self.horzLineTo(x)
-					color = newColor
-
-			self.setColor(color)
-			self.horzLineTo(self.width)
-		
-		calcTime = self.endDraw(fractal)
-		print(f"{calcTime} seconds")
-
-		return True
 
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
 							colTop: ColorLine, colBottom: ColorLine, colLeft: ColorLine, colRight: ColorLine):

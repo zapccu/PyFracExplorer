@@ -19,7 +19,6 @@ class Drawer:
 	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
 		cLine = ColorLine()
 		r = range(x, xy) if orientation == 0 else range(y, xy)
-		print(f"Calculate line x={x}, y={y}, xy={xy}")
 
 		for v in r:
 			result = self.fractal.iterate(v, y) if orientation == 0 else self.fractal.iterate(x, v)
@@ -32,10 +31,8 @@ class Drawer:
 	# orientaion: 0 = horizontal, 1 = vertical
 	def drawColorLine(self, cLine: ColorLine, x: int, y: int, orientation: int):
 		self.graphics.moveTo(x, y)
-		color = cLine[0]
+		curColor = cLine[0]
 		d = len(cLine)
-
-		print(f"Draw line x={x}, y={y}, d={d}")
 
 		if orientation == 0:
 			v = x
@@ -45,12 +42,12 @@ class Drawer:
 			lineTo = self.graphics.vertLineTo
 
 		for i in range(1, d):
-			if cLine[i] != color:
-				self.graphics.setColor(color)
+			if cLine[i] != curColor:
+				self.graphics.setColor(intColor = curColor)
 				lineTo(v + i)
-				color = cLine[i]
+				curColor = cLine[i]
 
-		self.graphics.setColor(color)
+		self.graphics.setColor(intColor = curColor)
 		lineTo(v + d)
 
 	def beginDraw(self, width: int, height: int) -> bool:
@@ -73,9 +70,7 @@ class Drawer:
 		if self.beginDraw(width, height) == False:
 			return False
 
-		print("Line by Line")
 		for y in range(height):
-			print(f"Calculating line {y}")
 			cLine = self.calculateLine(x, y, x+width, Drawer.HORIZONTAL)
 			self.drawColorLine(cLine, x, y, Drawer.HORIZONTAL)
 		

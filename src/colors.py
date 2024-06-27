@@ -6,12 +6,12 @@ class Color:
 	MAXCOLOR = 0xFFFFFF
 
 	def __init__(self, red = 0, green = 0, blue = 0):
-		self.setRGB(red, green, blue)				
+		self.setRGB(red, green, blue)
 
 	def __repr__(self) -> str:
 		return f"Color({self.red()}, {self.green()}, {self.blue()})"
 	def __str__(self) -> str:
-		return self.rgbStr()
+		return Color.rgbStr(self.rgb)
 	
 	def __eq__(self, value: object) -> bool:
 		return self.rgb == value.rgb
@@ -30,17 +30,23 @@ class Color:
 	def red(self):
 		return (self.rgb >> 16) & 0xFF
 	
-	def rgbStr(self) -> str:
-		return '#{:02X}{:02X}{:02X}'.format(int(self.red()), int(self.green()), int(self.blue()))
+	@staticmethod
+	def rgbStr(value) -> str:
+		if type(value) == Color:
+			return '#{:06X}'.format(value.rgb)
+		elif type(value) == int:
+			return '#{:06X}'.format(value)
+		else:
+			return '#000000'
+
 
 class ColorLine:
 
-	def __init__(self, color: int = Color.NOCOLOR, length: int = 0):
-		if length > 0 and color != Color.NOCOLOR:
-			self.line = [color] * length
-			self.unique = True
+	def __init__(self, colors: list = []):
+		self.line = colors
+		if len(colors) > 0:
+			self.unique = len(set(colors)) == 1
 		else:
-			self.line = []
 			self.unique = False
 
 	def __iadd__(self, color: int):
@@ -64,10 +70,18 @@ class ColorLine:
 			return Color.NOCOLOR
 				
 	def isUnique(self):
-		return self.isUnique
+		return self.unique
 		
 	def __eq__(self, b):
 		return self.isUnique() and b.isUnique() and self.line[0] == b.line[0]
+	
+	# Split a color line into 2 new color lines
+	def split(self):
+		mid = int(len(self.line)/2)
+		if mid > 0:
+			return ColorLine(self.line[:mid]), ColorLine(self.line[mid:])
+		else:
+			return None
 	
 class ColorTable:
 

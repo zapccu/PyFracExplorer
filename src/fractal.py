@@ -106,7 +106,6 @@ class Mandelbrot(Fractal):
 	# Iterate point
 	def iterate(self, x: int, y: int):
 		ca, cb = self.mapXY(x, y)
-		if x == 0: print(f"Iterating {ca}, {cb}")
 		return self.iterateComplex(complex(ca, cb))
 	
 	# Iterate complex point

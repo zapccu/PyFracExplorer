@@ -39,11 +39,11 @@ class Application:
 		palette = ColorTable()
 		palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
 		self.graphics.setColorTable(palette)
-		self.graphics.drawPalette()
+		# self.graphics.drawPalette()
 
 		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
 		draw = Drawer(self.graphics, frc)
-		# draw.drawLineByLine(0, 0, 100, 100)
+		draw.drawLineByLine(0, 0, 800, 800)
 
 
 def main():
