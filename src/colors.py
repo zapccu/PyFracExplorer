@@ -39,7 +39,6 @@ class Color:
 		else:
 			return '#000000'
 
-
 class ColorLine:
 
 	def __init__(self, colors: list = []):
@@ -71,9 +70,15 @@ class ColorLine:
 				
 	def isUnique(self):
 		return self.unique
+	
+	def isEmpty(self):
+		return len(self.line) == 0
 		
 	def __eq__(self, b):
-		return self.isUnique() and b.isUnique() and self.line[0] == b.line[0]
+		return (
+			(self.unique and b.unique and self.line[0] == b.line[0]) or
+			(self.unique == False and b.unique == False)
+		)
 	
 	# Split a color line into 2 new color lines
 	def split(self):
@@ -82,6 +87,7 @@ class ColorLine:
 			return ColorLine(self.line[:mid]), ColorLine(self.line[mid:])
 		else:
 			return None
+		
 	
 class ColorTable:
 

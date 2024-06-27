@@ -78,3 +78,44 @@ class Drawer:
 		print(f"{calcTime} seconds")
 
 		return True
+	
+	def drawSquareEstimation (self, x: int, y: int, width: int, height: int,
+							top: ColorLine, bottom: ColorLine, left: ColorLine, right: ColorLine):
+
+		minLen = min(width, height)
+
+		if minLen < 2:
+			# Nothing more to draw
+			return
+		
+		# Calculate missing color lines of rectangle
+		if len(top) == 0:
+			top = self.calculateLine(x, y, x+width, Drawer.HORIZONTAL)
+		if len(bottom) == 0:
+			bottom = self.calculateLine(x, y+height-1, x+width, Drawer.HORIZONTAL)
+		if len(left) == 0:
+			left = self.calculateLine(x, y, y+height, Drawer.VERTICAL)
+		if len(right) == 0:
+			right = self.calculateLine(x+width-1, y, y+height, Drawer.VERTICAL)
+
+		if minLen < self.maxLen and top.isUnique() and top == bottom and left == right and left == top:
+			# Fill rectangle
+			self.graphics.setColor(intColor = top[0])
+			self.graphics.fillRect(x+1, y+1, x+width-1, y+height-1)
+
+		elif minLen < self.minLen:
+			# Draw line by line
+			return self.drawLineByLine (x+1, y+1, width-1, height-1)
+
+		else:
+			# Split into child squares
+			xMid = x+int(width/2)
+			yMid = y+int(height/2)
+
+			midH = self.calculateLine(x, yMid, x+width)
+			midV = self.calculateLine(xMid, y, y+height)
+
+			# Split color lines
+			
+			# Recursively call 
+			return self.drawSquareEstimation()
