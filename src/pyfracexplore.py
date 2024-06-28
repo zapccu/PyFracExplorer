@@ -43,7 +43,7 @@ class Application:
 
 		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
 		draw = Drawer(self.graphics, frc)
-		draw.drawLineByLine(0, 0, 800, 800)
+		draw.drawFractal(0, 0, 800, 800)
 
 
 def main():

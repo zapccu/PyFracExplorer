@@ -41,10 +41,13 @@ class Color:
 
 class ColorLine:
 
-	def __init__(self, colors: list = []):
-		self.line = colors
-		if len(colors) > 0:
-			self.unique = len(set(colors)) == 1
+	def __init__(self, colors: list = None):
+		if colors is None:
+			self.line = []
+		else:
+			self.line = colors
+		if len(self.line) > 0:
+			self.unique = len(set(self.line)) == 1
 		else:
 			self.unique = False
 

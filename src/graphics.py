@@ -76,11 +76,10 @@ class Graphics:
 			self.x = x
 			self.y = y
 
-	# Draw a filled rectangle
+	# Draw a filled rectangle excluding right and bottom line
 	# Drawing position is not updated
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
-		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, outline=self.color)
-
+		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, wdth=0)
 
 	def drawPalette(self):
 		for i in range(len(self.colors)):
