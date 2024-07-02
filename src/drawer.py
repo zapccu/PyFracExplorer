@@ -3,54 +3,102 @@ from colors import *
 from graphics import *
 from fractal import *
 
-
 class Drawer:
 
 	HORIZONTAL = 0
 	VERTICAL = 1
 
-	def __init__(self, graphics: Graphics, fractal: Fractal, minLen: int = -1, maxLen: int = -1):
+	# Draw methods
+	DRAW_METHOD_LINE = 1
+	DRAW_METHOD_RECT = 2
+
+	# Color mapping modes
+	COLOR_MAPPING_LINEAR = 1	# Linear mapping of iterations to canvas color palette
+	COLOR_MAPPING_MODULO = 2	# Mapping to canvas color palette by modulo division
+	COLOR_MAPPING_RGB    = 2	# Linear mapping of iterations to RGB color space
+
+	def __init__(self, graphics: Graphics, fractal: Fractal, minLen: int = -1, maxLen: int = -1, mapping = 1):
 		self.bDrawing = False
 		self.graphics = graphics
-		self.fractal = fractal
-		self.minLen = minLen
-		self.maxLen = maxLen
+		self.fractal  = fractal
+		self.minLen   = minLen
+		self.maxLen   = maxLen
+		self.mapping  = mapping
+		self.defColor = 0				# Black
+		self.palette  = ColorTable()	# White (1 entry)
 
-	# Iterate a line from x, y
+	# Set drawing color palette
+	def setPalette(self, colors: ColorTable = ColorTable()):
+		self.palette = colors
+
+	# Map iteration result to color	
+	def mapColor(self, result) -> int:
+		color = Color.NOCOLOR
+
+		if self.mapping == Drawer.COLOR_MAPPING_LINEAR:
+			color = self.palette[int(len(self.palette) / result['maxIter'] * result['iterations'])]
+		elif self.mapping == Drawer.COLOR_MAPPING_MODULO:
+			color = self.palette[result['iterations'] % len(self.palette)]
+		elif self.mapping == Drawer.COLOR_MAPPING_RGB:
+			color = int(result['iterations'] * Color.MAXCOLOR / result['maxIter'])
+		
+		return self.defColor if color == Color.NOCOLOR else color
+
+	# Iterate point, return mapped color
+	def caclulatePoint(self, x: int, y: int) -> int:
+		result = self.fractal.iterate(x, y)
+		return self.mapColor(result)
+
+	# Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 	# orientation: 0 = horizontal, 1 = vertical
+	# Calculated line includes endpoint xy
+	# Returns colorline
 	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
-		cLine = ColorLine()
-		r = range(x, xy+1) if orientation == 0 else range(y, xy+1)
-
-		for v in r:
-			result = self.fractal.iterate(v, y) if orientation == 0 else self.fractal.iterate(x, v)
-			color = self.graphics.colors.getMapColor(result[0], self.fractal.getMaxValue())
-			cLine += color.rgb
-
-		return cLine
+		if orientation == Drawer.HORIZONTAL:
+			if (x == 1 and y == 1): print(f"calcCL: {x},{y} -> {xy}")
+			return ColorLine(list(map(
+				lambda v: self.caclulatePoint(v, y), range(x, xy+1)
+			)))
+		else:
+			return ColorLine(list(map(
+				lambda v: self.caclulatePoint(x, v), range(y, xy+1)
+			)))
 	
-	# Draw a color line from (x, y)
+	# Draw a color line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 	# orientaion: 0 = horizontal, 1 = vertical
-	def drawColorLine(self, cLine: ColorLine, x: int, y: int, orientation: int):
+	# Line includes endpoint xy
+	# Returns colorline
+	def drawColorLine(self, x: int, y: int, xy: int, orientation: int, cLine: ColorLine = ColorLine()) -> ColorLine:
+		if cLine.isEmpty():
+			cLine = self.calculateLine(x, y, xy, orientation)
+			if (x == 1 and y == 10):
+				print(f"drawCL: {x},{y} -> {xy}")
 		self.graphics.moveTo(x, y)
 		curColor = cLine[0]
 		d = len(cLine)
+		if x == 1 and y==10:
+			print(f"curColor={curColor}, d={d}")
 
-		if orientation == 0:
+		if orientation == Drawer.HORIZONTAL:
 			v = x
-			lineTo = self.graphics.horzLineTo
+			lineToFnc = self.graphics.horzLineTo
 		else:
 			v = y 
-			lineTo = self.graphics.vertLineTo
+			lineToFnc = self.graphics.vertLineTo
 
 		for i in range(1, d):
 			if cLine[i] != curColor:
 				self.graphics.setColor(intColor = curColor)
-				lineTo(v + i)
+				lineToFnc(v + i)
 				curColor = cLine[i]
 
-		self.graphics.setColor(intColor = curColor)
-		lineTo(v + d)
+		if orientation == Drawer.HORIZONTAL and self.graphics.x <= xy or orientation == Drawer.VERTICAL and self.graphics.y <= xy:
+			if x == 1 and y == 10: print(f"Rest color={curColor}")
+			self.graphics.setColor(intColor = curColor)
+			lineToFnc(xy+1)
+			# lineToFnc(v + d)
+
+		return cLine
 
 	def beginDraw(self, width: int, height: int) -> bool:
 		if self.bDrawing == False:
@@ -68,14 +116,22 @@ class Drawer:
 		else:
 			return 0.0
 
-	def drawFractal(self, x: int, y: int, width: int, height: int):
+	def drawFractal(self, x: int, y: int, width: int, height: int, method: int):
 		self.maxLen = max(int(min(width, height)/2), 16)
-		self.minLen = min(max(int(min(width, height)/8), 16), self.maxLen)
+		self.minLen = min(max(int(min(width, height)/4), 16), self.maxLen)
+		self.maxSplit = int(self.minLen/16)
 
 		if self.beginDraw(width, height) == False:
 			return False
 
-		self.drawLineByLine(x, y, x+width-1, y+width-1)
+		if method == Drawer.DRAW_METHOD_LINE:
+			self.drawLineByLine(x, y, x+width-1, y+width-1)
+		elif method == Drawer.DRAW_METHOD_RECT:
+			self.statFill = 0
+			self.statCalc = 0
+			self.statSplit = 0
+			self.drawSquareEstimation(x, y, x+width-1, y+height-1)
+			print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
 		calcTime = self.endDraw()
 		print(f"{calcTime} seconds")
@@ -83,14 +139,15 @@ class Drawer:
 		return True
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int):
+		if (x1 == 1 and y1 == 10): print(f"lbl: {x1},{y1}-{x2},{y2}")
 		for y in range(y1, y2+1):
-			cLine = self.calculateLine(x1, y, x2, Drawer.HORIZONTAL)
-			self.drawColorLine(cLine, x1, y, Drawer.HORIZONTAL)
-		
+			self.drawColorLine(x1, y, x2, Drawer.HORIZONTAL)
+
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
-							top: ColorLine, bottom: ColorLine, left: ColorLine, right: ColorLine):
+		top: ColorLine = ColorLine(), bottom: ColorLine = ColorLine(),
+		left: ColorLine = ColorLine(), right: ColorLine = ColorLine()):
 
 		width  = x2-x1+1
 		height = y2-y1+1
@@ -99,28 +156,37 @@ class Drawer:
 			return	# Nothing else to draw
 		
 		# Calculate missing color lines of rectangle
-		if len(top)    == 0: top    = self.calculateLine(x1, y1, x2, Drawer.HORIZONTAL)
-		if len(bottom) == 0: bottom = self.calculateLine(x1, y2, x2, Drawer.HORIZONTAL)
-		if len(left)   == 0: left   = self.calculateLine(x1, y1, y2, Drawer.VERTICAL)
-		if len(right)  == 0: right  = self.calculateLine(x2, y1, y2, Drawer.VERTICAL)
+		# Start/end points are calculated twice
+		if len(top)    == 0: top    = self.drawColorLine(x1, y1, x2, Drawer.HORIZONTAL)
+		if len(bottom) == 0: bottom = self.drawColorLine(x1, y2, x2, Drawer.HORIZONTAL)
+		if len(left)   == 0: left   = self.drawColorLine(x1, y1, y2, Drawer.VERTICAL)
+		if len(right)  == 0: right  = self.drawColorLine(x2, y1, y2, Drawer.VERTICAL)
 
 		# Fill rectangle if all sides have the same unique color
 		if minLen < self.maxLen and top.isUnique() and top == bottom and left == right and left == top:
+			self.statFill += 1
 			self.graphics.setColor(intColor = top[0])
-			self.graphics.fillRect(x1+1, y1+1, x2, y2)	# Rectangle doesn't include x2, y2
+			self.graphics.fillRect(x1+1, y1+1, x2, y2)
 
 		elif minLen < self.minLen:
 			# Draw line by line
-			return self.drawLineByLine (x1+1, y1+1, x2-1, y2-1)
+			self.statCalc += 1
+			# Do not draw the surrounding rectangle (already drawn)
+			# self.graphics.setColor(intColor = 0xFF0000)
+			# self.graphics.fillRect(x1+1, y1+1, x2, y2)
+			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1)
 
 		else:
-			# Split into child rectangles
+			# Split rectangle into child rectangles
+			self.statSplit += 1
 
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			midH = self.calculateLine(x1+1, midY, x2-1, Drawer.HORIZONTAL)
-			midV = self.calculateLine(midX, y1+1, y2-1, Drawer.VERTICAL)
+			# midH = self.drawColorLine(x1+1, midY, x2-1, Drawer.HORIZONTAL)
+			# midV = self.drawColorLine(midX, y1+1, y2-1, Drawer.VERTICAL)
+			midH = self.drawColorLine(x1, midY, x2, Drawer.HORIZONTAL)
+			midV = self.drawColorLine(midX, y1, y2, Drawer.VERTICAL)
 
 			# Split color lines
 			#
@@ -136,7 +202,8 @@ class Drawer:
 			#
 			clList = []
 			for cl in (top, bottom, left, right, midH, midV):
-				clList.extend(cl.split())
+				# Mid point belongs to both child lines
+				clList.extend(cl.split(overlap=1))
 			
 			# Coordinates of child rectangles
 			coList = [

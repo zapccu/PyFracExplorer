@@ -59,6 +59,9 @@ class Fractal:
 	@staticmethod
 	def norm(c: complex):
 		return c.real*c.real + c.imag*c.imag
+	
+	def result(self, **kwargs):
+		return kwargs
 
 
 class Mandelbrot(Fractal):
@@ -123,12 +126,12 @@ class Mandelbrot(Fractal):
 			if self.diameter > 0 and i >= self.diameter:
 				d = self.findOrbit(i, nZ)
 				if d > -1:
-					return (self.maxIter, Z, d)
+					return self.result(maxIter=self.maxIter, iterations=self.maxIter, Z=Z, orbit=d)
 			self.orbit[i] = nZ
 
 			i += 1
 
-		return (i, Z, 0)
+		return self.result(maxIter=self.maxIter, iterations=i, Z=Z, orbit=0)
 	
 	def getMaxValue(self):
 		return self.maxIter

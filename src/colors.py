@@ -41,7 +41,7 @@ class Color:
 
 class ColorLine:
 
-	def __init__(self, colors: list = None):
+	def __init__(self, colors: list[int] = None):
 		if colors is None:
 			self.line = []
 		else:
@@ -78,50 +78,37 @@ class ColorLine:
 		return len(self.line) == 0
 		
 	def __eq__(self, b):
+		# 2 colorlines are equal, if both have the same unique color. Length doesn't care
 		return (
 			(self.unique and b.unique and self.line[0] == b.line[0]) or
 			(self.unique == False and b.unique == False)
 		)
 	
 	# Split a color line into 2 new color lines
-	def split(self):
+	def split(self, overlap = 0):
 		mid = int(len(self.line)/2)
 		if mid > 0:
-			return ColorLine(self.line[:mid]), ColorLine(self.line[mid:])
+			return ColorLine(self.line[:mid+overlap]), ColorLine(self.line[mid:])
 		else:
 			return None
 		
 	
 class ColorTable:
 
-	def __init__(self, color = Color(255, 255, 255), defColor = Color(0, 0, 0)):
-		self.colors = []
-		self.defColor = defColor
+	def __init__(self, colors = [ Color(255, 255, 255) ]):
+		self.colors = colors
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
-	def __getitem__(self, idx) -> Color:
+	def __getitem__(self, idx) -> int:
 		if idx >= len(self.colors) or idx < 0:
-			return self.defColor
+			return Color.NOCOLOR
 		else:
-			return self.colors[idx]
-
-	def getModColor(self, value) -> Color:
-		return self.colors[value % len(self.colors)]
-	
-	def getMapColor(self, value, maxValue) -> Color:
-		if value >= maxValue:
-			return self.defColor
-		else:
-			return self.colors[int(len(self.colors)/maxValue*value)]
+			return self.colors[idx].rgb
 	
 	# Return maximum number of colors
 	def __len__(self):
 		return len(self.colors)
-	
-	# Set default color
-	def setDefColor(self, color: Color):
-		self.defColor = color
 
 	# Append color table
 	def add(self, colorTable):

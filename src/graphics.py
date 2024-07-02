@@ -16,10 +16,9 @@ class Graphics:
 		self.width     = drawFrame.canvasWidth
 		self.height    = drawFrame.canvasHeight
 		self.flipY     = flipY
-		self.colors    = ColorTable()
 
 		self.moveTo(0, 0)
-		self.setColor(idx = 0)
+		self.setColor()
 
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
@@ -27,6 +26,13 @@ class Graphics:
 			return self.height-y-1
 		else:
 			return y
+		
+	# Flip coordinates of line or rectangle
+	def flip2(self, y1: int, y2: int) -> list[int]:
+		if self.flipY:
+			return (self.height-y2, self.height-y1)
+		else:
+			return (y1, y2)
 
 	def beginDraw(self, width: int, height: int) -> bool:
 		self.drawFrame.setCanvasRes(width, height)
@@ -42,32 +48,33 @@ class Graphics:
 		self.x = x
 		self.y = y
 
-	# Set color palette
-	def setColorTable(self, colorTable: ColorTable):
-		self.colors = colorTable
-
-	# Set color to palette entry or specified color
-	def setColor(self, idx: int = -1, strColor: str = '', intColor: int = Color.NOCOLOR):
-		if idx >= 0:
-			self.colorIdx = idx
-			self.color = Color.rgbStr(self.colors[idx])
+	# Set drawing color specified color
+	def setColor(self, color: Color = None, strColor: str = '', intColor: int = Color.NOCOLOR):
+		if color is not None:
+			self.color = Color.rgbStr(color)
 		elif strColor != '':
 			self.color = strColor
 		elif intColor != Color.NOCOLOR:
 			self.color = Color.rgbStr(intColor)
+		else:
+			self.color = '#ffffff'
 
 	# Draw a horizontal line excluding end point
 	# Set drawing position to end point
 	def horzLineTo(self, x: int):
 		if x >= 0 and x != self.x:
-			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(self.y), fill=self.color, width=1)
+			y = self.flip(self.y)
+			print(f"horzLine: y={self.y} {self.x} -> {x}, c = {self.color}")
+			self.canvas.create_line(self.x, y, x, y, fill=self.color, width=1)
 			self.x = x
 
 	# Draw vertical line excluding end point
 	# Set drawing position to end point
 	def vertLineTo(self, y: int):
 		if y >= 0 and y != self.y:
-			self.canvas.create_line(self.x, self.flip(self.y), self.x, self.flip(y), fill=self.color, width=1)
+			y1, y2 = self.flip2(self.y, y)
+			print(f"vertLine: x={self.x} {self.y} -> {y} => {y1} -> {y2}")
+			self.canvas.create_line(self.x, y1, self.x, y2, fill=self.color, width=1)
 			self.y = y
 
 	def lineTo(self, x: int, y: int):
@@ -79,7 +86,9 @@ class Graphics:
 	# Draw a filled rectangle excluding right and bottom line
 	# Drawing position is not updated
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
-		self.canvas.create_rectangle(x1, self.flip(y1), x2, self.flip(y2), fill=self.color, wdth=0)
+		y11, y22 = self.flip2(y1, y2)
+		print(f"rect: {x1},{y1} - {x2},{y2} => {x1},{y11} - {x2},{y22}")
+		self.canvas.create_rectangle(x1, y11, x2, y22, fill=self.color, width=0)
 
 	def drawPalette(self):
 		for i in range(len(self.colors)):
