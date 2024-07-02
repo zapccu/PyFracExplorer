@@ -46,7 +46,7 @@ class Application:
 		self.xe = event.x
 		self.ye = event.y
 		self.drawFrame.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
-		self.mainWindow.update_idletasks()
+		self.statusFrame.setFieldValue('screenCoord', f"{self.xs},{self.ys} - {self.xe},{self.ye}", fg='white')
 
 	def onButtonReleased(self, event):
 		self.xe = event.x

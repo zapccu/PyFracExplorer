@@ -38,6 +38,26 @@ class Color:
 			return '#{:06X}'.format(value)
 		else:
 			return '#000000'
+	
+	@staticmethod
+	def strRGB(value: str) -> list[int]:
+		rgb = []
+		if len(value) == 7:
+			for i in range(1, 7, 2):
+				try:
+					numVal = int(value[i:i+2], 16)
+					rgb.append(numVal)
+				except ValueError:
+					rgb.append(0)
+		else:
+			rgb = [0, 0, 0]
+
+		return rgb
+	
+	@staticmethod
+	def intRGB(value: int) -> list[int]:
+		return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+	
 
 class ColorLine:
 
