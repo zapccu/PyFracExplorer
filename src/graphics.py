@@ -2,7 +2,9 @@
 from tkinter import *
 
 import numpy as np
-from PIL import Image, ImageTk
+import PIL
+from PIL import Image as Img
+from PIL import ImageTk
 
 from fractal import *
 from colors import *
@@ -49,9 +51,9 @@ class Graphics:
 
 	def endDraw(self):
 		if self.inMemory:
-			image = Image.fromarray(self.imageMap, 'RGB')
+			image = Img.fromarray(self.imageMap, 'RGB')
 			fractalImage = ImageTk.PhotoImage(image)
-			self.canvas.create_image(0, 0, image=fractalImage, state="normal", anchor=NW)
+			self.canvas.create_image(0, 0, image=fractalImage, anchor='nw')
 		return
 	
 	# Set drawing position

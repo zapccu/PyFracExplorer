@@ -21,11 +21,11 @@ class Application:
 		self.statusFrame = StatusFrame(self, width, 50)
 		self.drawFrame = DrawFrame(self, width-200, height-50, bg='white')
 		self.controlFrame = ControlFrame(self, 200, height-50)
-		self.statusFrame.addField('screenCoord', 10, value="0,0")
+		self.statusFrame.addField('screenCoord', 20, value="0,0")
 		self.statusFrame.addField('complexCoord', 10, value="TEXT")
 
 		# Initialize graphics
-		self.graphics = Graphics(self.drawFrame, flipY=True)
+		self.graphics = Graphics(self.drawFrame, flipY=True, inMemory=True)
 
 	def run(self):
 		self.mainWindow.mainloop()
