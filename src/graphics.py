@@ -18,7 +18,7 @@ class Graphics:
 		self.flipY     = flipY
 
 		self.moveTo(0, 0)
-		self.setColor()
+		self.setColor(intColor = 0xFFFFFF)
 
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
@@ -48,7 +48,7 @@ class Graphics:
 		self.x = x
 		self.y = y
 
-	# Set drawing color specified color
+	# Set drawing color to specified color
 	def setColor(self, color: Color = None, strColor: str = '', intColor: int = Color.NOCOLOR):
 		if color is not None:
 			self.color = Color.rgbStr(color)
@@ -64,8 +64,8 @@ class Graphics:
 	def horzLineTo(self, x: int):
 		if x >= 0 and x != self.x:
 			y = self.flip(self.y)
-			print(f"horzLine: y={self.y} {self.x} -> {x}, c = {self.color}")
-			self.canvas.create_line(self.x, y, x, y, fill=self.color, width=1)
+			# self.canvas.create_line(self.x, y, x, y, fill=self.color, width=1, capstyle=PROJECTING)
+			self.canvas.create_rectangle(self.x, y, x, y, fill=self.color, width=0)
 			self.x = x
 
 	# Draw vertical line excluding end point
@@ -73,13 +73,13 @@ class Graphics:
 	def vertLineTo(self, y: int):
 		if y >= 0 and y != self.y:
 			y1, y2 = self.flip2(self.y, y)
-			print(f"vertLine: x={self.x} {self.y} -> {y} => {y1} -> {y2}")
-			self.canvas.create_line(self.x, y1, self.x, y2, fill=self.color, width=1)
+			# self.canvas.create_line(self.x, y1, self.x, y2, fill=self.color, width=1, capstyle=PROJECTING)
+			self.canvas.create_rectangle(self.x, y1, self.x, y2, fill=self.color, width=0)
 			self.y = y
 
 	def lineTo(self, x: int, y: int):
 		if x >= 0 and y >= 0 and (x != self.x or y != self.y):
-			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(y), fill=self.color, width=1)
+			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(y), fill=self.color, width=1, capstyle=PROJECTING)
 			self.x = x
 			self.y = y
 
@@ -87,7 +87,6 @@ class Graphics:
 	# Drawing position is not updated
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
 		y11, y22 = self.flip2(y1, y2)
-		print(f"rect: {x1},{y1} - {x2},{y2} => {x1},{y11} - {x2},{y22}")
 		self.canvas.create_rectangle(x1, y11, x2, y22, fill=self.color, width=0)
 
 	def drawPalette(self):

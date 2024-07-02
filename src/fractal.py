@@ -4,6 +4,8 @@ import time
 # import numpy as np
 # from numba import jit
 
+from math import *
+
 class Fractal:
 
 	def __init__(self, fractalWidth: float, fractalHeight: float):
@@ -66,12 +68,19 @@ class Fractal:
 
 class Mandelbrot(Fractal):
 
+	AUTO_ITER = -1
+
 	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
 		super().__init__(size.real, size.imag)
 
+		self.zoom    = max(3.0 / size.real, 3.0 / size.imag)
+		print("maxiter = ", int(abs(1000 * log(1 / sqrt(self.zoom)))))
 		self.corner  = corner
 		self.size    = size
-		self.maxIter = maxIter
+		if maxIter == Mandelbrot.AUTO_ITER:
+			self.maxIter = int(abs(1000 * log(1 / sqrt(self.zoom))))
+		else:
+			self.maxIter = maxIter
 		self.limit   = limit
 
 		self.diameter  = 0		# Maximum diameter for orbits, 0 = off

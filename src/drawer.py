@@ -17,15 +17,19 @@ class Drawer:
 	COLOR_MAPPING_MODULO = 2	# Mapping to canvas color palette by modulo division
 	COLOR_MAPPING_RGB    = 2	# Linear mapping of iterations to RGB color space
 
-	def __init__(self, graphics: Graphics, fractal: Fractal, minLen: int = -1, maxLen: int = -1, mapping = 1):
+	def __init__(self, graphics: Graphics, fractal: Fractal, width: int, height: int,
+			  minLen: int = -1, maxLen: int = -1, mapping = 1, debug = False):
 		self.bDrawing = False
 		self.graphics = graphics
 		self.fractal  = fractal
+		self.width    = width
+		self.height   = height
 		self.minLen   = minLen
 		self.maxLen   = maxLen
 		self.mapping  = mapping
 		self.defColor = 0				# Black
 		self.palette  = ColorTable()	# White (1 entry)
+		self.debug    = debug
 
 	# Set drawing color palette
 	def setPalette(self, colors: ColorTable = ColorTable()):
@@ -55,7 +59,6 @@ class Drawer:
 	# Returns colorline
 	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
 		if orientation == Drawer.HORIZONTAL:
-			if (x == 1 and y == 1): print(f"calcCL: {x},{y} -> {xy}")
 			return ColorLine(list(map(
 				lambda v: self.caclulatePoint(v, y), range(x, xy+1)
 			)))
@@ -71,13 +74,9 @@ class Drawer:
 	def drawColorLine(self, x: int, y: int, xy: int, orientation: int, cLine: ColorLine = ColorLine()) -> ColorLine:
 		if cLine.isEmpty():
 			cLine = self.calculateLine(x, y, xy, orientation)
-			if (x == 1 and y == 10):
-				print(f"drawCL: {x},{y} -> {xy}")
 		self.graphics.moveTo(x, y)
 		curColor = cLine[0]
 		d = len(cLine)
-		if x == 1 and y==10:
-			print(f"curColor={curColor}, d={d}")
 
 		if orientation == Drawer.HORIZONTAL:
 			v = x
@@ -93,53 +92,50 @@ class Drawer:
 				curColor = cLine[i]
 
 		if orientation == Drawer.HORIZONTAL and self.graphics.x <= xy or orientation == Drawer.VERTICAL and self.graphics.y <= xy:
-			if x == 1 and y == 10: print(f"Rest color={curColor}")
 			self.graphics.setColor(intColor = curColor)
 			lineToFnc(xy+1)
 			# lineToFnc(v + d)
 
 		return cLine
 
-	def beginDraw(self, width: int, height: int) -> bool:
+	def beginDraw(self) -> bool:
 		if self.bDrawing == False:
-			if self.graphics.beginDraw(width, height) == False: return False
-			if self.fractal.beginCalc(width, height) == False: return False
+			if self.graphics.beginDraw(self.width, self.height) == False: return False
 			self.bDrawing = True
 		return self.bDrawing
 	
-	def endDraw(self) -> float:
+	def endDraw(self):
 		if self.bDrawing == True:
-			calcTime = self.fractal.endCalc()
 			self.graphics.endDraw()
 			self.bDrawing = False
-			return calcTime
-		else:
-			return 0.0
 
 	def drawFractal(self, x: int, y: int, width: int, height: int, method: int):
 		self.maxLen = max(int(min(width, height)/2), 16)
-		self.minLen = min(max(int(min(width, height)/4), 16), self.maxLen)
-		self.maxSplit = int(self.minLen/16)
+		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
+		self.minLen = 4
 
-		if self.beginDraw(width, height) == False:
-			return False
+		x2 = x + width -1
+		y2 = y + width -1
+		
+		if self.beginDraw() == False: return False
+		if self.fractal.beginCalc(width, height) == False: return False
 
 		if method == Drawer.DRAW_METHOD_LINE:
-			self.drawLineByLine(x, y, x+width-1, y+width-1)
+			self.drawLineByLine(x, y, x2, y2)
 		elif method == Drawer.DRAW_METHOD_RECT:
 			self.statFill = 0
 			self.statCalc = 0
 			self.statSplit = 0
-			self.drawSquareEstimation(x, y, x+width-1, y+height-1)
+			self.drawSquareEstimation(x, y, x2, y2)
 			print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
-		calcTime = self.endDraw()
+		calcTime = self.fractal.endCalc()
+		self.endDraw()
 		print(f"{calcTime} seconds")
 
 		return True
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int):
-		if (x1 == 1 and y1 == 10): print(f"lbl: {x1},{y1}-{x2},{y2}")
 		for y in range(y1, y2+1):
 			self.drawColorLine(x1, y, x2, Drawer.HORIZONTAL)
 
@@ -168,7 +164,7 @@ class Drawer:
 			self.graphics.setColor(intColor = top[0])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
 
-		elif minLen < self.minLen:
+		elif minLen < self.minLen or self.debug:
 			# Draw line by line
 			self.statCalc += 1
 			# Do not draw the surrounding rectangle (already drawn)
