@@ -88,16 +88,17 @@ class Selection:
 	POINT = 0
 	AREA  = 1
 
-	def __init__(self, canvas):
+	def __init__(self, canvas, color = 'red', width = 2):
 		self.canvas = canvas
-		self.mode = Selection.POINT
+		self.color  = color
+		self.width  = 2
+		self.mode   = Selection.POINT
+
 		self.selected = False
-		self.active = False
-		self.moving = False
-		self.xs = 0
-		self.ys = 0
-		self.xe = 0
-		self.ye = 0
+		self.active   = False
+		self.moving   = False
+
+		self.xs = self.ys = self.xe = self.ye = 0
 
 	def getPoint(self):
 		return self.xs, self.ys
@@ -105,81 +106,90 @@ class Selection:
 	def getArea(self):
 		return self.xs, self.ys, self.xe, self.ye
 	
-	# Start selection. Called when left button is pressed => Point selected
+	# Start selection. Called when button is pressed => point selected
 	def buttonPressed(self, x: int, y: int):
 		if self.selected and self.mode == Selection.AREA:
+			# Area selected
 			if self.isInside(x, y):
-				self.grab(x, y)
-			else:
-				self.clear()
-		else:
-			self.xs = x
-			self.ys = y
-			self.xe = x
-			self.ye = y
-			self.mode = Selection.POINT
-			self.selected = True
-			self.active = False
-			self.moving = False
+				# If button pressed inside selected area, start dragging of area
+				self.xo, self.yo = x, y
 
-	# Grab a selected area. Called when left button is pressed inside current selection
-	def grab(self, x: int, y: int):
-		if self.mode == Selection.AREA:
-			self.xo = x
-			self.yo = y 
-			self.active = True
-			self.moving = True
-			self.selected = False
-			self.sortPoints()
+				self.active   = True	# select mode active
+				self.moving   = True	# dragging active
+				self.selected = False	# disable selection
+
+				self.canvas.config(cursor='hand')
+
+			else:
+				# If button pressed outside selected area, cancel selection and cleanup
+				self.xs = self.ys = self.xe = self.ye = 0
+
+				self.selected = False
+				self.active   = False
+				self.moving   = False
+
+				# Delete rectangle
+				if self.mode ==  Selection.AREA:
+					self.canvas.delete(self.selection)
+
+		else:
+			# Point selected
+			self.xs, self.ys = x, y
+			self.xe, self.ye = x, y
+
+			self.mode     = Selection.POINT
+			self.selected = True
+			self.active   = False
+			self.moving   = False
 	
+	# Drag with mouse button pressed => select area or move selected area
 	def drag(self, x, y):
 		if self.mode == Selection.POINT and self.selected:
-			self.active = True
-			self.selected = False
-			self.mode = Selection.AREA
-			self.xe = x
-			self.ye = y
-			self.selection = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline='red', width=2)
+			# Point selected, dragging from selected point => change size of area
+			self.active   = True			# select mode active
+			self.selected = False			# disable selection
+			self.mode     = Selection.AREA	# change selection mode
+			self.xe, self.ye = x, y
+
+			# Create selection rectangle
+			self.selection = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.width)
+
 		elif self.mode == Selection.AREA and self.active:
 			if self.moving:
+				# Move selected area, add delta x/y to previous point
 				self.xs += x - self.xo
 				self.ys += y - self.yo
 				self.xe += x - self.xo
 				self.ye += y - self.yo
-				self.xo = x
-				self.yo = y
+				self.xo, self.yo = x, y
+
 			else:
-				self.xe = x
-				self.ye = y
+				# Change size of selected area
+				self.xe, self.ye = x, y
+
+			# Update rectangle
 			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
 
+	# Called when button is released
 	def buttonReleased(self, x: int, y: int):
 		if self.moving:
+			# End of moving of selected area
 			self.moving = False
-		else:
-			xs = self.xs
-			ys = self.ys
-			xe = self.xe
-			ye = self.ye
-			self.xs = min(xs, xe)
-			self.ys = min(ys, ye)
-			self.xe = max(xs, xe)
-			self.ye = max(ys, ye)
-			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
-		if self.active:
-			self.selected = True
-			self.active = False
+			self.canvas.config(cursor='cross')
 
-	def clear(self):
-		self.xs = 0
-		self.ys = 0
-		self.xe = 0
-		self.ye = 0
-		self.selected = False
-		self.active = False
-		self.moving = False
-		if self.mode ==  Selection.AREA:
-			self.canvas.delete(self.selection)
+		elif self.mode == Selection.AREA:
+			# End of area selection, sort points => xs, ys < xe, ye
+			xs, ys = self.xs, self.ys
+			self.xs = min(xs, x)
+			self.ys = min(ys, y)
+			self.xe = max(xs, x)
+			self.ye = max(ys, y)
+			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
+		
+		if self.active:
+			# End of selection
+			self.selected = True
+			self.active   = False
 
 	def isActive(self):
 		return self.active

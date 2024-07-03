@@ -48,17 +48,21 @@ class Application:
 	def onLeftDrag(self, event):
 		self.selection.drag (event.x, event.y)
 		x1, y1, x2, y2 = self.selection.getArea()
-		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
+		w = x2-x1+1
+		h = y2-y1+1
+		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
 
 	def onLeftButtonReleased(self, event):
 		self.selection.buttonReleased(event.x, event.y)
 		if self.selection.isSelected():
 			if self.selection.mode == Selection.POINT:
 				x, y = self.selection.getPoint()
-				self.statusFrame.setFieldValue('screenCoord', f"Selection: {x},{y}", fg='white')
+				self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
 			else:
 				x1, y1, x2, y2 = self.selection.getArea()
-				self.statusFrame.setFieldValue('screenCoord', f"Selection: {x1},{y1} - {x2},{y2}", fg='white')
+				w = x2-x1+1
+				h = y2-y1+1
+				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
 		else:
 			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
 

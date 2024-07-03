@@ -101,7 +101,7 @@ class Graphics:
 			self.y = y
 
 	def lineTo(self, x: int, y: int):
-		if x >= 0 and y >= 0 and (x != self.x or y != self.y):
+		if not self.inMemory and x >= 0 and y >= 0 and (x != self.x or y != self.y):
 			self.canvas.create_line(self.x, self.flip(self.y), x, self.flip(y), fill=self.color, width=1, capstyle=PROJECTING)
 			self.x = x
 			self.y = y
