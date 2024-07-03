@@ -1,12 +1,9 @@
 
 import numpy as np
 
-def modify()
-a = np.array([
-	[ 1, 2, 3 ],
-	[ 4, 5, 6 ],
-	[ 7, 8, 9 ]
-])
+arr = np.array([1, 2, 3])
+scale = lambda x: x * 2
+
+a = list(map(scale, arr))
 
 print(a)
-
