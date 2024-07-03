@@ -21,7 +21,7 @@ class Application:
 		self.statusFrame = StatusFrame(self, width, 50)
 		self.drawFrame = DrawFrame(self, width-200, height-50, bg='white')
 		self.controlFrame = ControlFrame(self, 200, height-50)
-		self.statusFrame.addField('screenCoord', 20, value="0,0")
+		self.statusFrame.addField('screenCoord', 25, value="0,0")
 		self.statusFrame.addField('complexCoord', 10, value="TEXT")
 
 		# Initialize graphics
@@ -48,17 +48,17 @@ class Application:
 	def onLeftDrag(self, event):
 		self.selection.drag (event.x, event.y)
 		x1, y1, x2, y2 = self.selection.getArea()
-		self.statusFrame.setFieldValue('screenCoord', "{x1},{y1} - {x2},{y2}", fg='white')
+		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
 
 	def onLeftButtonReleased(self, event):
 		self.selection.buttonReleased(event.x, event.y)
 		if self.selection.isSelected():
 			if self.selection.mode == Selection.POINT:
 				x, y = self.selection.getPoint()
-				self.statusFrame.setFieldValue('screenCoord', f"selected point {x},{y}")
+				self.statusFrame.setFieldValue('screenCoord', f"Selection: {x},{y}", fg='white')
 			else:
 				x1, y1, x2, y2 = self.selection.getArea()
-				self.statusFrame.setFieldValue('screenCoord', f"selected area {x1},{y1} - {x2},{y2}")
+				self.statusFrame.setFieldValue('screenCoord', f"Selection: {x1},{y1} - {x2},{y2}", fg='white')
 		else:
 			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
 

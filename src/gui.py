@@ -53,7 +53,7 @@ class DrawFrame(Frame):
 		self.canvas.pack(side=LEFT, expand=False, fill=NONE, anchor='nw')
 
 		# Event handler
-		self.canvas.bind('<Motion>', self.app.onMove)
+		# self.canvas.bind('<Motion>', self.app.onMove)
 		self.canvas.bind('<ButtonPress-1>', self.app.onLeftButtonPressed)
 		self.canvas.bind('<B1-Motion>', self.app.onLeftDrag)
 		self.canvas.bind('<ButtonRelease-1>', self.app.onLeftButtonReleased)
@@ -86,7 +86,7 @@ class ControlFrame(Frame):
 class Selection:
 
 	POINT = 0
-	AREA = 1
+	AREA  = 1
 
 	def __init__(self, canvas):
 		self.canvas = canvas
@@ -122,7 +122,7 @@ class Selection:
 			self.active = False
 			self.moving = False
 
-	# Grab a selected area. Called when left button is pressed inside 
+	# Grab a selected area. Called when left button is pressed inside current selection
 	def grab(self, x: int, y: int):
 		if self.mode == Selection.AREA:
 			self.xo = x
@@ -130,6 +130,7 @@ class Selection:
 			self.active = True
 			self.moving = True
 			self.selected = False
+			self.sortPoints()
 	
 	def drag(self, x, y):
 		if self.mode == Selection.POINT and self.selected:
@@ -153,12 +154,21 @@ class Selection:
 			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
 
 	def buttonReleased(self, x: int, y: int):
-		self.xe = x
-		self.ye = y
+		if self.moving:
+			self.moving = False
+		else:
+			xs = self.xs
+			ys = self.ys
+			xe = self.xe
+			ye = self.ye
+			self.xs = min(xs, xe)
+			self.ys = min(ys, ye)
+			self.xe = max(xs, xe)
+			self.ye = max(ys, ye)
+			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
 		if self.active:
 			self.selected = True
-		self.active = False
-		self.moving = False
+			self.active = False
 
 	def clear(self):
 		self.xs = 0
