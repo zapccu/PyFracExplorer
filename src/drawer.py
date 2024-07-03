@@ -17,6 +17,7 @@ class Drawer:
 	COLOR_MAPPING_MODULO = 2	# Mapping to canvas color palette by modulo division
 	COLOR_MAPPING_RGB    = 2	# Linear mapping of iterations to RGB color space
 
+
 	def __init__(self, graphics: Graphics, fractal: Fractal, width: int, height: int,
 			  minLen: int = -1, maxLen: int = -1, mapping = 1, debug = False):
 		self.bDrawing = False
@@ -179,8 +180,6 @@ class Drawer:
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			# midH = self.drawColorLine(x1+1, midY, x2-1, Drawer.HORIZONTAL)
-			# midV = self.drawColorLine(midX, y1+1, y2-1, Drawer.VERTICAL)
 			midH = self.drawColorLine(x1, midY, x2, Drawer.HORIZONTAL)
 			midV = self.drawColorLine(midX, y1, y2, Drawer.VERTICAL)
 
