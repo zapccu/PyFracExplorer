@@ -27,36 +27,48 @@ class Application:
 		# Initialize graphics
 		self.graphics = Graphics(self.drawFrame, flipY=True, inMemory=True)
 
+		# Screen selection
+		self.selection  = Selection(self.drawFrame.canvas)
+
 	def run(self):
 		self.mainWindow.mainloop()
+
+	#
+	# Screen selection handling
+	# 
 
 	def onMove(self, event):
 		x = event.x
 		y = event.y
 		self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
 
-	def onButtonPressed(self, event):
-		self.xs = event.x
-		self.ys = event.y
-		self.xe = event.x
-		self.ye = event.y
-		self.selection = self.drawFrame.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline='red', width=2)
+	def onLeftButtonPressed(self, event):
+		self.selection.buttonPressed(event.x, event.y)
 
-	def onDrag(self, event):
-		self.xe = event.x
-		self.ye = event.y
-		self.drawFrame.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
-		self.statusFrame.setFieldValue('screenCoord', f"{self.xs},{self.ys} - {self.xe},{self.ye}", fg='white')
+	def onLeftDrag(self, event):
+		self.selection.drag (event.x, event.y)
+		x1, y1, x2, y2 = self.selection.getArea()
+		self.statusFrame.setFieldValue('screenCoord', "{x1},{y1} - {x2},{y2}", fg='white')
 
-	def onButtonReleased(self, event):
-		self.xe = event.x
-		self.ye = event.y
-		self.drawFrame.canvas.delete(self.selection)	
+	def onLeftButtonReleased(self, event):
+		self.selection.buttonReleased(event.x, event.y)
+		if self.selection.isSelected():
+			if self.selection.mode == Selection.POINT:
+				x, y = self.selection.getPoint()
+				self.statusFrame.setFieldValue('screenCoord', f"selected point {x},{y}")
+			else:
+				x1, y1, x2, y2 = self.selection.getArea()
+				self.statusFrame.setFieldValue('screenCoord', f"selected area {x1},{y1} - {x2},{y2}")
+		else:
+			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
 
+	#
+	# Command handling
+	#
+	
 	def onDraw(self):
 		palette = ColorTable()
 		palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
-		# self.graphics.drawPalette()
 
 		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
 		draw = Drawer(self.graphics, frc, 800, 800)

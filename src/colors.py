@@ -1,4 +1,5 @@
 
+import numpy as np
 
 class Color:
 	
@@ -55,8 +56,8 @@ class Color:
 		return rgb
 	
 	@staticmethod
-	def intRGB(value: int) -> list[int]:
-		return (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF
+	def intRGB(value: int):
+		return np.asarray(((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF), dtype=np.uint8)
 	
 
 class ColorLine:

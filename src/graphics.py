@@ -47,13 +47,13 @@ class Graphics:
 		self.height = height
 		if self.inMemory:
 			self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
-			print(height, width)
 		return True
 
 	def endDraw(self):
 		if self.inMemory:
 			self.image = Img.fromarray(self.imageMap, 'RGB')
 			self.tkImage = ImageTk.PhotoImage(self.image)
+			self.image.save("test.png", "png")
 			self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
 			self.canvas.update()
 		return
@@ -84,8 +84,7 @@ class Graphics:
 		if x >= 0 and x != self.x:
 			y = self.flip(self.y)
 			if self.inMemory:
-				for x in range(self.x, x):
-					self.imageMap[y, x] = self.rgbColor
+				self.imageMap[y, self.x:x] = self.rgbColor
 			else:
 				self.canvas.create_rectangle(self.x, y, x, y, fill=self.color, width=0)
 			self.x = x
@@ -96,8 +95,7 @@ class Graphics:
 		if y >= 0 and y != self.y:
 			y1, y2 = self.flip2(self.y, y)
 			if self.inMemory:
-				for y in range(y1, y2):
-					self.imageMap[y, self.x] = self.rgbColor
+				self.imageMap[y1:y2, self.x] = self.rgbColor
 			else:
 				self.canvas.create_rectangle(self.x, y1, self.x, y2, fill=self.color, width=0)
 			self.y = y
@@ -113,9 +111,7 @@ class Graphics:
 	def fillRect(self, x1: int, y1: int, x2: int, y2: int):
 		y11, y22 = self.flip2(y1, y2)
 		if self.inMemory:
-			for y in range(y1, y2):
-				for x in range(x1, x2):
-					self.imageMap[y, x] = self.rgbColor
+			self.imageMap[y11:y22, x1:x2] = self.rgbColor
 		else:
 			self.canvas.create_rectangle(x1, y11, x2, y22, fill=self.color, width=0)
 
