@@ -46,14 +46,16 @@ class Graphics:
 		self.width = width
 		self.height = height
 		if self.inMemory:
-			self.imageMap = np.zeros((height, width, 3), dtype=np.uint8)
+			self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
+			print(height, width)
 		return True
 
 	def endDraw(self):
 		if self.inMemory:
-			image = Img.fromarray(self.imageMap, 'RGB')
-			fractalImage = ImageTk.PhotoImage(image)
-			self.canvas.create_image(0, 0, image=fractalImage, anchor='nw')
+			self.image = Img.fromarray(self.imageMap, 'RGB')
+			self.tkImage = ImageTk.PhotoImage(self.image)
+			self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
+			self.canvas.update()
 		return
 	
 	# Set drawing position

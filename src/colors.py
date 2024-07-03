@@ -56,7 +56,7 @@ class Color:
 	
 	@staticmethod
 	def intRGB(value: int) -> list[int]:
-		return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
+		return (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF
 	
 
 class ColorLine:
