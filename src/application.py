@@ -25,7 +25,7 @@ class Application:
 		self.statusFrame.addField('complexCoord', 10, value="TEXT")
 
 		# Initialize graphics
-		self.graphics = Graphics(self.drawFrame, flipY=True, inMemory=True)
+		self.graphics = Graphics(self.drawFrame, flipY=True)
 
 		# Screen selection
 		self.selection  = Selection(self.drawFrame.canvas)

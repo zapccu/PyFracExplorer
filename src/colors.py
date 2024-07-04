@@ -6,124 +6,61 @@ class Color:
 	NOCOLOR  = 0xFFFFFFFF
 	MAXCOLOR = 0xFFFFFF
 
-	def __init__(self, red = 0, green = 0, blue = 0):
-		self.setRGB(red, green, blue)
+	def __init__(self, red = 0, green = 0, blue = 0, intColor: int = NOCOLOR, rgb = None):
+		if intColor != Color.NOCOLOR:
+			self.rgb = np.asarray(((intColor >> 16) & 0xFF, (intColor >> 8) & 0xFF, intColor & 0xFF), dtype=np.uint8)
+		elif rgb is not None:
+			self.rgb = rgb
+		else:
+			self.rgb = np.asarray([ red, green, blue], dtype=np.uint8)
 
 	def __repr__(self) -> str:
-		return f"Color({self.red()}, {self.green()}, {self.blue()})"
+		return f"Color({self.rgb[0]}, {self.rgb[1]}, {self.rgb[2]}"
 	def __str__(self) -> str:
-		return Color.rgbStr(self.rgb)
+		return '#{:02X}{:02X}{:02X}'.format(self.rgb[0], self.rgb[1], self.rgb[2])
+	
+	def __int__(self):
+		return (int(self.rgb[2]) & 0xFF) | ((int(self.rgb[1]) & 0xFF) << 8) | ((int(self.rgb[0]) & 0xFF) << 16)
 	
 	def __eq__(self, value: object) -> bool:
-		return self.rgb == value.rgb
+		return np.array_equal(self.rgb, value)
 	def __ne__(self, value: object) -> bool:
-		return self.rgb != value.rgb
+		return not np.array_equal(self.rgb, value)
 	
 	def setRGB(self, red: int, green: int, blue: int):
-		self.rgb = (int(blue) & 0xFF) | ((int(green) & 0xFF) << 8) | ((int(red) & 0xFF) << 16)
-	def getRGB(self):
-		return(self.red(), self.green(), self.blue())
+		self.rgb = np.asarray([ red, green, blue], dtype=np.uint8)
+	def getRGB(self) -> list[int]:
+		return (self.rgb[0], self.rgb[1], self.rgb[2])
 	
-	def blue(self):
-		return self.rgb & 0xFF
-	def green(self):
-		return (self.rgb >> 8) & 0xFF
-	def red(self):
-		return (self.rgb >> 16) & 0xFF
+	def blue(self) -> int:
+		return self.rgb[2]
+	def green(self) -> int:
+		return self.rgb[1]
+	def red(self) -> int:
+		return self.rgb[0]
 	
 	@staticmethod
 	def rgbStr(value) -> str:
 		if type(value) == Color:
-			return '#{:06X}'.format(value.rgb)
+			return str(value)
 		elif type(value) == int:
 			return '#{:06X}'.format(value)
+		elif type(value) == np.ndarray and len(value) == 3:
+			return '#{:02X}{:02X}{:02X}'.format(value[0], value[1], value[2])
 		else:
 			return '#000000'
 	
-	@staticmethod
-	def strRGB(value: str) -> list[int]:
-		rgb = []
-		if len(value) == 7:
-			for i in range(1, 7, 2):
-				try:
-					numVal = int(value[i:i+2], 16)
-					rgb.append(numVal)
-				except ValueError:
-					rgb.append(0)
-		else:
-			rgb = [0, 0, 0]
-
-		return rgb
-	
-	@staticmethod
-	def intRGB(value: int):
-		return np.asarray(((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF), dtype=np.uint8)
-	
-
-class ColorLine:
-
-	def __init__(self, colors: list[int] = None):
-		if colors is None:
-			self.line = []
-		else:
-			self.line = colors
-		if len(self.line) > 0:
-			self.unique = len(set(self.line)) == 1
-		else:
-			self.unique = False
-
-	def __iadd__(self, color: int):
-		if color >= 0 and color <= Color.MAXCOLOR:
-			if len(self.line) == 0:
-				# First entry, unique color
-				self.unique = True
-			else:
-				if self.unique and color != self.line[0]:
-					self.unique = False
-			self.line.append(color)
-		return self
-
-	def __len__(self):
-		return len(self.line)
-	
-	def __getitem__(self, index):
-		if index >= 0 and index < len(self.line):
-			return self.line[index]
-		else:
-			return Color.NOCOLOR
-				
-	def isUnique(self):
-		return self.unique
-	
-	def isEmpty(self):
-		return len(self.line) == 0
-		
-	def __eq__(self, b):
-		# 2 colorlines are equal, if both have the same unique color. Length doesn't care
-		return (
-			(self.unique and b.unique and self.line[0] == b.line[0]) or
-			(self.unique == False and b.unique == False)
-		)
-	
-	# Split a color line into 2 new color lines
-	def split(self, overlap = 0):
-		mid = int(len(self.line)/2)
-		if mid > 0:
-			return ColorLine(self.line[:mid+overlap]), ColorLine(self.line[mid:])
-		else:
-			return None
-		
-	
 class ColorTable:
 
-	def __init__(self, colors = [ Color(255, 255, 255) ]):
+	def __init__(self, colors = [ Color(255, 255, 255) ], defColor = Color(0, 0, 0)):
 		self.colors = colors
+		self.defColor = defColor
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
 	def __getitem__(self, idx) -> int:
 		if idx >= len(self.colors) or idx < 0:
-			return Color.NOCOLOR
+			return self.defColor
 		else:
 			return self.colors[idx].rgb
 	
