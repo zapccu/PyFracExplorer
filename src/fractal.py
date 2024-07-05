@@ -6,56 +6,70 @@ import time
 
 from math import *
 
+
 class Fractal:
 
-	def __init__(self, fractalWidth: float, fractalHeight: float):
-		self.screenWidth  = 0
-		self.screenHeight = 0
-
-		self.dx = 1.0
-		self.dy = 1.0
-		self.dxTab = []
-		self.dyTab = []
-
-		self.startTime = 0
-		self.calcTime = 0
-
-		self.setDimensions(fractalWidth, fractalHeight)
-
-	def setDimensions(self, fractalWidth: float, fractalHeight: float):
-		self.fractalWidth = fractalWidth
+	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0, flip: bool = False):
+		self.screenWidth   = 100
+		self.screenHeight  = 100
+		self.fractalWidth  = fractalWidth
 		self.fractalHeight = fractalHeight
 
+		self.offsetX = offsetX
+		self.offsetY = offsetY
+
+		self.flip = False
+
+		self.mapScreenCoordinates()
+
+		self.startTime = 0
+		self.calcTime  = 0
+
+	def setDimensions(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
+		self.fractalWidth  = fractalWidth
+		self.fractalHeight = fractalHeight
+		self.offsetX = offsetX
+		self.offsetY = offsetY
+		self.mapScreenCoordinates()
+
+	def setScreen(self, graphics, flip: bool = False):
+		self.screenWidth  = graphics.width
+		self.screenHeight = graphics.height
+		self.flip = flip
+		self.mapScreenCoordinates()
+
 	def mapX(self, x):
-		return x * self.dx
+		return self.offsetX + x * self.dx
 	
 	def mapY(self, y):
-		return y * self.dy
+		return self.offsetY + y * self.dy
 
-	def mapScreenCoordinates(self, screenWidth: int, screenHeight: int):
-		self.screenWidth = screenWidth
-		self.screenHeight = screenHeight
-
+	def mapScreenCoordinates(self):
 		self.dx = self.fractalWidth / self.screenWidth
 		self.dy = self.fractalHeight / self.screenHeight
 
 		self.dxTab = list(map(self.mapX, range(self.screenWidth)))
 		self.dyTab = list(map(self.mapY, range(self.screenHeight)))
 
-	def mapXY(self, x, y):
-		return (self.dxTab[x], self.dyTab[y])
-		
+	def mapXY(self, x, y) -> complex:
+		return complex(self.dxTab[x], self.dyTab[y])
+	
+	def __getitem__(self, index) -> complex:
+		return self.mapXY(*index)
+	
+	def mapWH(self, width: int, height: int) -> complex:
+		return complex(self.dx * width, self.dy * height)
+	
 	def getMaxValue(self):
 		return 1
 	
-	def beginCalc(self, screenWidth, screenHeight) -> bool:
+	def beginCalc(self) -> bool:
 		self.startTime = time.time()
-		self.mapScreenCoordinates(screenWidth, screenHeight)
 		return True
 
 	def endCalc(self) -> float:
-		endTime = time.time()
-		self.calcTime = endTime-self.startTime+1
+		self.endTime = time.time()
+		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
 	
 	@staticmethod
@@ -68,16 +82,18 @@ class Fractal:
 
 class Mandelbrot(Fractal):
 
-	AUTO_ITER = -1
+	defCorner = complex(-2.0, -1.5)
+	defSize   = complex(3.0, 3.0)
 
-	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
-		super().__init__(size.real, size.imag)
+	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0, flip = False):
+		super().__init__(size.real, size.imag, corner.real, corner.imag, flip)
 
-		self.zoom    = max(3.0 / size.real, 3.0 / size.imag)
-		print("maxiter = ", int(abs(1000 * log(1 / sqrt(self.zoom)))))
 		self.corner  = corner
 		self.size    = size
-		if maxIter == Mandelbrot.AUTO_ITER:
+
+		self.zoom = max(self.defSize.real / size.real, self.defSize.imag / size.imag)
+		
+		if maxIter == -1:
 			self.maxIter = int(abs(1000 * log(1 / sqrt(self.zoom))))
 		else:
 			self.maxIter = maxIter
@@ -88,10 +104,9 @@ class Mandelbrot(Fractal):
 
 		# Allocate array for norm(Z) values
 		self.orbit = [0.0] * self.maxIter
-		
 
 	def setParameters(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
-		super().setDimensions(size.real, size.imag)
+		super().setDimensions(size.real, size.imag, corner.real, corner.imag)
 		
 		self.corner  = corner
 		self.size    = size
@@ -102,27 +117,20 @@ class Mandelbrot(Fractal):
 		self.diameter = maxDiameter
 		self.tolerance = tolerance
 	
-	# Map screen to complex coordinate
-	def mapX(self, x):
-		return self.corner.real + x * self.dx
-	def mapY(self, y):
-		return self.corner.imag + y * self.dy
-	
 	# Find orbit, return diameter or -1
-	def findOrbit(self, i: int, nZ: float):
+	def findOrbit(self, i: int, nZ: float) -> int:
 		for n in range(i-1, i-self.diameter, -1):
 			if abs(self.orbit[n] - nZ) < self.tolerance:
 				return i-n
 		return -1
 
-	# Iterate point
-	def iterate(self, x: int, y: int):
-		ca, cb = self.mapXY(x, y)
-		return self.iterateComplex(complex(ca, cb))
+	# Iterate screen point
+	def iterate(self, x: int, y: int) -> dict:
+		return self.iterateComplex(self.mapXY(x, y))
 	
 	# Iterate complex point
-	# Return tuple (iterations, Z, diameter)
-	def iterateComplex(self, C: complex):
+	# Return dictionary with results
+	def iterateComplex(self, C: complex) -> dict:
 		Z = C
 		i = 1
 		nZ = Fractal.norm(Z)

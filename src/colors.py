@@ -53,7 +53,7 @@ class Color:
 class ColorTable:
 
 	def __init__(self, colors = [ Color(255, 255, 255) ], defColor = Color(0, 0, 0)):
-		self.colors = colors
+		self.colors   = colors
 		self.defColor = defColor
 
 	# Return color table entry

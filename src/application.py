@@ -30,6 +30,10 @@ class Application:
 		# Screen selection
 		self.selection  = Selection(self.drawFrame.canvas)
 
+		# Default fractal
+		# self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249))
+
 	def run(self):
 		self.mainWindow.mainloop()
 
@@ -37,14 +41,17 @@ class Application:
 	# Screen selection handling
 	# 
 
+	# Mouse moved
 	def onMove(self, event):
 		x = event.x
 		y = event.y
 		self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
 
+	# Left mouse button pressed
 	def onLeftButtonPressed(self, event):
 		self.selection.buttonPressed(event.x, event.y)
 
+	# Dragging with left mouse button
 	def onLeftDrag(self, event):
 		self.selection.drag (event.x, event.y)
 		x1, y1, x2, y2 = self.selection.getArea()
@@ -52,6 +59,7 @@ class Application:
 		h = y2-y1+1
 		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
 
+	# Left mouse button released
 	def onLeftButtonReleased(self, event):
 		self.selection.buttonReleased(event.x, event.y)
 		if self.selection.isSelected():
@@ -62,7 +70,11 @@ class Application:
 				x1, y1, x2, y2 = self.selection.getArea()
 				w = x2-x1+1
 				h = y2-y1+1
-				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
+				y1, y2 = self.graphics.flip2(y1, y2)
+				c = self.fractal.mapXY(x1, y1)
+				s = self.fractal.mapWH(x2-x1+1, y2-y1+1)
+				print(f"c={c}, s={s}")
+				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
 		else:
 			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
 
@@ -72,11 +84,10 @@ class Application:
 	
 	def onDraw(self):
 		palette = ColorTable()
-		palette.createLinearTable(100, Color(0, 0, 0), Color(255, 255, 255))
+		palette.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255))
 
-		frc = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
-		draw = Drawer(self.graphics, frc, 800, 800)
+		draw = Drawer(self.graphics, self.fractal, 800, 800)
 		draw.setPalette(palette)
 
-		draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_RECT)
-		# draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_LINE)
+		# draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_RECT)
+		draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_LINE)

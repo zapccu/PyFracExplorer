@@ -64,7 +64,7 @@ class Graphics:
 		self.y = y
 
 	# Set drawing color to specified color
-	def setColor(self, color: Color = None, intColor: int = Color.NOCOLOR, rgb = None):
+	def setColor(self, color: Color = None, intColor: int = Color.NOCOLOR, rgb: np.ndarray = None):
 		if intColor != Color.NOCOLOR:
 			color = Color(intColor = intColor)
 		elif rgb is not None:
@@ -75,8 +75,18 @@ class Graphics:
 		self.rgbColor = color.rgb
 
 	# Draw a pixel
-	def setPixelAt(self, x: int, y: int, color: int = Color.NOCOLOR):
-		self.imageMap[y, x] = self.rgbColor if color == Color.NOCOLOR else Color.intRGB(color)
+	def setPixelAt(self, x: int, y: int, color = None):
+		y = self.flip(y)
+		if type(color) == np.ndarray:
+			self.imageMap[y, x] = color
+		elif type(color) == int:
+			self.imageMap[y, x] = Color.intRGB(color)
+		else:
+			self.imageMap[y, x] = self.rgbColor
+
+	def getPixelAt(self, x: int, y: int) -> np.ndarray:
+		y = self.flip(y)
+		return self.imageMap[y, x]
 
 	# Draw a horizontal line excluding end point
 	# Set drawing position to end point

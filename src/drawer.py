@@ -35,45 +35,52 @@ class ColorLine:
 		return self.length
 	
 	# Append color to color line. Consider image dimensions
-	def append(self, color):
+	def append(self, color: np.ndarray):
 		if self.orientation == 0 and self.length < self.graphics.width:
-			self.graphics.imageMap[self.y, self.x+self.length] = color
+			# self.graphics.imageMap[self.y, self.x+self.length] = color
+			self.graphics.setPixelAt(self.x+self.length, self.y, color)
 		elif self.orientation == 1 and self.length < self.graphics.height:
-			self.graphics.imageMap[self.y+self.length, self.x] = color
+			# self.graphics.imageMap[self.y+self.length, self.x] = color
+			self.graphics.setPixelAt(self.x, self.y+self.length, color)
 		else:
 			return
 
 		self.length += 1
-		if self.length > 1 and self.unique == True and not np.array_equal(color, self.graphics.imageMap[self.y, self.x]):
+		if self.length > 1 and self.unique == True and not np.array_equal(color, self.graphics.getPixelAt(self.x, self.y)):
 			self.unique = False
 		elif self.length == 1:
 			self.unique = True
 
 	def __setitem__(self, xy, color):
 		if self.orientation == 0 and xy < self.length:
-			self.graphics.imageMap[self.y, xy] = color
+			self.graphics.imageMap[self.graphics.flip(self.y), xy] = color
 		elif self.orientation == 1 and xy < self.length:
-			self.graphics.imageMap[xy, self.x] = color
+			self.graphics.imageMap[self.graphics.flip(xy), self.x] = color
 
 	# Index operator. xy is an offset to x, y
 	def __getitem__(self, xy):
 		if 0 <= xy <= self.length:
 			if self.orientation == 0:
-				return self.graphics.imageMap[self.y, self.x+xy]
+				y = self.graphics.flip(self.y)
+				return self.graphics.imageMap[y, self.x+xy]
 			else:
-				return self.graphics.imageMap[self.y+xy, self.x]
-
+				y = self.graphics.flip(self.y+xy)
+				return self.graphics.imageMap[y, self.x]
 		return None
 
 	def isUnique(self):
 		if self.orientation == 0:
-			return len(np.unique(self.graphics.imageMap[self.y, self.x:self.x+self.length], axis = 0)) == 1
+			y = self.graphics.flip(self.y)
+			return len(np.unique(self.graphics.imageMap[y, self.x:self.x+self.length], axis = 0)) == 1
 		else:
-			return len(np.unique(self.graphics.imageMap[self.y:self.y+self.length, self.x], axis = 0)) == 1
+			y1, y2 = self.graphics.flip2(self.y, self.y+self.length)
+			return len(np.unique(self.graphics.imageMap[y1:y2, self.x], axis = 0)) == 1
 
 	def __eq__(self, b):
 		# 2 colorlines are equal, if both have the same unique color. Length doesn't care
-		return self.unique and b.unique and np.array_equal(self.graphics.imageMap[self.y, self.x], b.graphics.imageMap[b.y, b.x])
+		ya = self.flip(self.y)
+		yb = self.flip(b.y)
+		return self.unique and b.unique and np.array_equal(self.graphics.imageMap[ya, self.x], b.graphics.imageMap[yb, b.x])
 	
 	# Split a color line into 2 new color lines
 	def split(self):
@@ -121,7 +128,7 @@ class Drawer:
 		self.palette = colors
 
 	# Map iteration result to color, return numpy RGB array	
-	def mapColor(self, result):
+	def mapColor(self, result) -> np.ndarray:
 		if self.mapping == Drawer.COLOR_MAPPING_LINEAR:
 			color = self.palette[int(len(self.palette) / result['maxIter'] * result['iterations'])]
 		elif self.mapping == Drawer.COLOR_MAPPING_MODULO:
@@ -131,10 +138,10 @@ class Drawer:
 		else:
 			color = self.palette.defColor
 
-		return color
+		return color.rgb
 
 	# Iterate point, return mapped color
-	def caclulatePoint(self, x: int, y: int):
+	def caclulatePoint(self, x: int, y: int) -> np.ndarray:
 		result = self.fractal.iterate(x, y)
 		return self.mapColor(result)
 
@@ -151,20 +158,9 @@ class Drawer:
 		else:
 			for v in range(y, xy+1):
 				cLine.append(self.caclulatePoint(x, v))
-		
+
 		return cLine
-
-	def beginDraw(self) -> bool:
-		if self.bDrawing == False:
-			if self.graphics.beginDraw(self.width, self.height) == False: return False
-			self.bDrawing = True
-		return self.bDrawing
 	
-	def endDraw(self):
-		if self.bDrawing == True:
-			self.graphics.endDraw()
-			self.bDrawing = False
-
 	def drawFractal(self, x: int, y: int, width: int, height: int, method: int):
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
@@ -173,9 +169,15 @@ class Drawer:
 
 		x2 = x + width -1
 		y2 = y + width -1
-		
-		if self.beginDraw() == False: return False
-		if self.fractal.beginCalc(width, height) == False: return False
+
+		if self.bDrawing == False:
+			if self.graphics.beginDraw(self.width, self.height) == False: return False
+			self.fractal.setScreen(self.graphics)
+			if self.fractal.beginCalc() == False:
+				return False
+			self.bDrawing = True
+		else:
+			return False
 
 		if method == Drawer.DRAW_METHOD_LINE:
 			self.drawLineByLine(x, y, x2, y2)
@@ -187,7 +189,8 @@ class Drawer:
 			print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
 		calcTime = self.fractal.endCalc()
-		self.endDraw()
+		self.graphics.endDraw()
+		self.bDrawing = False
 		print(f"{calcTime} seconds")
 
 		return True
