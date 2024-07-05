@@ -56,13 +56,35 @@ class ColorTable:
 		self.colors   = colors
 		self.defColor = defColor
 
-	# Return color table entry
+	def getDefColor(self) -> np.ndarray:
+		return self.defColor.rgb
+
+	# Return color table entry as rgb value
 	# If key is out of range, the default color is returned
-	def __getitem__(self, idx) -> int:
+	def __getitem__(self, idx: int) -> np.ndarray:
 		if idx >= len(self.colors) or idx < 0:
 			return self.defColor.rgb
 		else:
 			return self.colors[idx].rgb
+
+	# Return color table entry
+	# If key is out of range, the default color is returned
+	def getColor(self, idx: int) -> Color:
+		if idx >= len(self.colors) or idx < 0:
+			return self.defColor
+		else:
+			return self.colors[idx]
+			
+	def mapValue(self, value: int, idxRange: list[int] = None) -> np.ndarray:
+		if idxRange is None:
+			idxRange = (0, len(self.colors)-1)
+		nIdx = idxRange[1]-idxRange[0]+1
+		if idxRange[0] <= idx <= idxRange[1]:
+			idx = int(idx * len(self.colors) / nIdx) - idxRange[0]
+			idx = min(max(idx, 0), len(self.colors)-1)
+			return self.colors[idx].rgb
+		else:
+			return self.defColor.rgb
 	
 	# Return maximum number of colors (without default color)
 	def __len__(self):

@@ -136,9 +136,9 @@ class Drawer:
 		elif self.mapping == Drawer.COLOR_MAPPING_RGB:
 			color = Color (intColor = int(result['iterations'] * Color.MAXCOLOR / result['maxIter']))
 		else:
-			color = self.palette.defColor
+			color = self.palette.getDefColor()
 
-		return color.rgb
+		return color
 
 	# Iterate point, return mapped color
 	def caclulatePoint(self, x: int, y: int) -> np.ndarray:
