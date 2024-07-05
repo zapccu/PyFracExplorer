@@ -60,11 +60,11 @@ class ColorTable:
 	# If key is out of range, the default color is returned
 	def __getitem__(self, idx) -> int:
 		if idx >= len(self.colors) or idx < 0:
-			return self.defColor
+			return self.defColor.rgb
 		else:
 			return self.colors[idx].rgb
 	
-	# Return maximum number of colors
+	# Return maximum number of colors (without default color)
 	def __len__(self):
 		return len(self.colors)
 
@@ -90,7 +90,7 @@ class ColorTable:
 		)
 
 		for i in range(1, numColors-1):
-			cRed += distRed
+			cRed   += distRed
 			cGreen += distGreen
-			cBlue += distBlue
+			cBlue  += distBlue
 			self.colors[i] = Color(cRed, cGreen, cBlue)
