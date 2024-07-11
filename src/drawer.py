@@ -100,7 +100,7 @@ class Drawer:
 	HORIZONTAL = 0
 	VERTICAL   = 1
 
-	def __init__(self, canvas: object, width: int, height: int):
+	def __init__(self, canvas: object, width: int, height: int, palette: ColorTable = ColorTable):
 		self.bDrawing = False
 		self.graphics = Graphics(canvas, flipY=True)
 		self.width    = width
@@ -110,12 +110,12 @@ class Drawer:
 		self.mapping  = 'ColorMappingLinear'
 		self.drawing  = 'LineByLine'
 		self.defColor = 0				# Black
-		self.palette  = ColorTable()	# White (1 entry), default color = black
+		self.palette  = palette			# White (1 entry), default color = black
 
 		self.colorFnc = {
 			'ColorMappingLinear': self.palette.mapValueLinear,
 			'ColorMappingModulo': self.palette.mapValueModulo,
-			'ColorMappingRGB': self.palette.mapValueRGB
+			'ColorMappingRGB':    self.palette.mapValueRGB
 		}
 
 		self.drawFnc = {
@@ -134,7 +134,7 @@ class Drawer:
 	# Map iteration result to color, return numpy RGB array	
 	def mapColor(self, result) -> np.ndarray:
 		if self.mapping in self.colorFnc:
-			return self.colorFnc[self.mapping](result['iterations'], result['maxIter'])
+			return self.colorFnc[self.mapping](value=result['iterations'], maxValue=result['maxIter'])
 		else:
 			return self.palette.getDefColor()
 

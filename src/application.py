@@ -39,8 +39,7 @@ class Application:
 		# palette.createSinusTable(self.fractal.getMaxValue(), theta=[0, 0, 0])
 		palette.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255))
 
-		draw = Drawer(self.gui.drawFrame.canvas, 800, 800)
-		draw.setPalette(palette)
+		draw = Drawer(self.gui.drawFrame.canvas, 800, 800, palette)
 
 		draw.drawFractal(self.fractal, 0, 0, 800, 800)
 		# draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_LINE)
