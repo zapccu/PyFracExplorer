@@ -83,12 +83,48 @@ class CalcColor:
 	@staticmethod
 	def mapSinus(value: int, maxValue: int, theta = [.85, .0, .15]) -> np.ndarray:
 		f = 1.0/(maxValue-1)
-		x = min(i * f, 1.0)
+		x = min(value * f, 1.0)
 		r = 0.5 + 0.5 * math.sin((x + theta[0]) * 2 * math.pi)
 		g = 0.5 + 0.5 * math.sin((x + theta[1]) * 2 * math.pi)
 		b = 0.5 + 0.5 * math.sin((x + theta[2]) * 2 * math.pi)
 		return np.asarray([int(r*255), int(g*255), int(b*255)], dtype=np.uint8)
-	
+
+	# Blinn Phong shading
+	# Taken from https://github.com/jlesuffleur/gpu_mandelbrot/blob/master/mandelbrot.py
+	@staticmethod
+	def phong(normal: complex, light: list[float]):
+		## Lambert normal shading (diffuse light)
+		normal = normal / abs(normal)    
+    
+		# theta: light angle; phi: light azimuth
+		# light vector: [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
+		# normal vector: [normal.real, normal.imag, 1]
+		# Diffuse light = dot product(light, normal)
+		ldiff = (normal.real * math.cos(light[0]) * math.cos(light[1]) +
+			normal.imag * math.sin(light[0]) * math.cos(light[1]) + 
+			1 * math.sin(light[1]))
+		# Normalization
+		ldiff = ldiff / (1 + 1 * math.sin(light[1]))
+
+		## Specular light: Blinn Phong shading
+		# Phi half: average between phi and pi/2 (viewer azimuth)
+		# Specular light = dot product(phi_half, normal)
+		phi_half = (math.pi / 2 + light[1]) / 2
+		lspec = (normal.real * math.cos(light[0]) * math.sin(phi_half) +
+			normal.imag * math.sin(light[0]) * math.sin(phi_half) +
+			1 * math.cos(phi_half))
+		# Normalization
+		lspec = lspec / (1 + 1 * math.cos(phi_half))
+		#spec_angle = max(0, spec_angle)
+		lspec = lspec ** light[6] # shininess
+
+		## Brightness = ambiant + diffuse + specular
+		bright = light[3] + light[4]*ldiff + light[5]*lspec
+		## Add intensity
+		bright = bright * light[2] + (1-light[2])/2
+
+		return bright
+
 
 class ColorTable:
 

@@ -124,8 +124,8 @@ class Drawer:
 		}
 
 		# Adjust canvas size
-		if width != self.canvas.winfo_width() or height != self.canvas.winfo_height():
-			self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
+		if width != canvas.winfo_reqwidth() or height != canvas.winfo_reqheight():
+			canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
 
 	# Set drawing color palette
 	def setPalette(self, colors: ColorTable = ColorTable()):
@@ -159,7 +159,8 @@ class Drawer:
 
 		return cLine
 	
-	def drawFractal(self, x: int, y: int, width: int, height: int, drawing: str = ""):
+	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, drawing: str = ""):
+		self.fractal = fractal
 		if drawing != "": self.drawing = drawing
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)

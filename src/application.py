@@ -14,8 +14,8 @@ class Application:
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
 
 		# Default fractal
-		# self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
-		self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
+		self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		# self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 	def run(self):
 		self.gui.mainWindow.mainloop()
@@ -36,11 +36,11 @@ class Application:
 	
 	def onDraw(self):
 		palette = ColorTable()
-		palette.createSinusTable(self.fractal.getMaxValue(), theta=[0, 0, 0])
-		# palette.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255))
+		# palette.createSinusTable(self.fractal.getMaxValue(), theta=[0, 0, 0])
+		palette.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255))
 
 		draw = Drawer(self.gui.drawFrame.canvas, 800, 800)
 		draw.setPalette(palette)
 
-		draw.drawFractal(self.fractal, 0, 0, 800, 800, Drawer.DRAW_METHOD_RECT)
+		draw.drawFractal(self.fractal, 0, 0, 800, 800)
 		# draw.drawFractal(0, 0, 800, 800, Drawer.DRAW_METHOD_LINE)

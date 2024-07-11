@@ -156,7 +156,7 @@ class Mandelbrot(Fractal):
 			i += 1
 
 		if self.calcDistance:
-			distance = sqrt(nZ/abs(d)*0.5*log(sqrt(nZ)))
+			distance = sqrt(nZ/abs(distance)*0.5*log(sqrt(nZ)))
 
 		if i < self.maxIter and self.calcPotential:
 			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
