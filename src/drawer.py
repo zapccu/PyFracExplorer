@@ -78,8 +78,8 @@ class ColorLine:
 
 	def __eq__(self, b):
 		# 2 colorlines are equal, if both have the same unique color. Length doesn't care
-		ya = self.flip(self.y)
-		yb = self.flip(b.y)
+		ya = self.graphics.flip(self.y)
+		yb = self.graphics.flip(b.y)
 		return self.unique and b.unique and np.array_equal(self.graphics.imageMap[ya, self.x], b.graphics.imageMap[yb, b.x])
 	
 	# Split a color line into 2 new color lines
@@ -100,28 +100,32 @@ class Drawer:
 	HORIZONTAL = 0
 	VERTICAL   = 1
 
-	# Draw methods
-	DRAW_METHOD_LINE = 1
-	DRAW_METHOD_RECT = 2
-
-	# Color mapping modes
-	COLOR_MAPPING_LINEAR = 1	# Linear mapping of iterations to canvas color palette
-	COLOR_MAPPING_MODULO = 2	# Mapping to canvas color palette by modulo division
-	COLOR_MAPPING_RGB    = 2	# Linear mapping of iterations to RGB color space
-
-
-	def __init__(self, graphics: Graphics, fractal: Fractal, width: int, height: int,
-			  minLen: int = -1, maxLen: int = -1, mapping = 1):
+	def __init__(self, canvas: object, width: int, height: int):
 		self.bDrawing = False
-		self.graphics = graphics
-		self.fractal  = fractal
+		self.graphics = Graphics(canvas, flipY=True)
 		self.width    = width
 		self.height   = height
-		self.minLen   = minLen
-		self.maxLen   = maxLen
-		self.mapping  = mapping
+		self.minLen   = -1
+		self.maxLen   = -1
+		self.mapping  = 'ColorMappingLinear'
+		self.drawing  = 'LineByLine'
 		self.defColor = 0				# Black
 		self.palette  = ColorTable()	# White (1 entry), default color = black
+
+		self.colorFnc = {
+			'ColorMappingLinear': self.palette.mapValueLinear,
+			'ColorMappingModulo': self.palette.mapValueModulo,
+			'ColorMappingRGB': self.palette.mapValueRGB
+		}
+
+		self.drawFnc = {
+			'LineByLine': self.drawLineByLine,
+			'SquareEstimation': self.drawSquareEstimation
+		}
+
+		# Adjust canvas size
+		if width != self.canvas.winfo_width() or height != self.canvas.winfo_height():
+			self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
 
 	# Set drawing color palette
 	def setPalette(self, colors: ColorTable = ColorTable()):
@@ -129,16 +133,10 @@ class Drawer:
 
 	# Map iteration result to color, return numpy RGB array	
 	def mapColor(self, result) -> np.ndarray:
-		if self.mapping == Drawer.COLOR_MAPPING_LINEAR:
-			color = self.palette[int(len(self.palette) / result['maxIter'] * result['iterations'])]
-		elif self.mapping == Drawer.COLOR_MAPPING_MODULO:
-			color = self.palette[result['iterations'] % len(self.palette)]
-		elif self.mapping == Drawer.COLOR_MAPPING_RGB:
-			color = Color (intColor = int(result['iterations'] * Color.MAXCOLOR / result['maxIter']))
+		if self.mapping in self.colorFnc:
+			return self.colorFnc[self.mapping](result['iterations'], result['maxIter'])
 		else:
-			color = self.palette.getDefColor()
-
-		return color
+			return self.palette.getDefColor()
 
 	# Iterate point, return mapped color
 	def caclulatePoint(self, x: int, y: int) -> np.ndarray:
@@ -161,7 +159,8 @@ class Drawer:
 
 		return cLine
 	
-	def drawFractal(self, x: int, y: int, width: int, height: int, method: int):
+	def drawFractal(self, x: int, y: int, width: int, height: int, drawing: str = ""):
+		if drawing != "": self.drawing = drawing
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
 		self.minLen = 8
@@ -171,22 +170,21 @@ class Drawer:
 		y2 = y + width -1
 
 		if self.bDrawing == False:
-			if self.graphics.beginDraw(self.width, self.height) == False: return False
-			self.fractal.setScreen(self.graphics)
-			if self.fractal.beginCalc() == False:
+			if self.graphics.beginDraw() == False:
+				return False
+			if self.fractal.beginCalc(self.width, self.height) == False:
 				return False
 			self.bDrawing = True
 		else:
 			return False
 
-		if method == Drawer.DRAW_METHOD_LINE:
-			self.drawLineByLine(x, y, x2, y2)
-		elif method == Drawer.DRAW_METHOD_RECT:
-			self.statFill = 0
-			self.statCalc = 0
-			self.statSplit = 0
-			self.drawSquareEstimation(x, y, x2, y2)
-			print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
+		self.statFill = 0
+		self.statCalc = 0
+		self.statSplit = 0
+
+		self.drawFnc[self.drawing](x, y, x2, y2)
+
+		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
 		calcTime = self.fractal.endCalc()
 		self.graphics.endDraw()

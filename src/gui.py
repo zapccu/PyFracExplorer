@@ -1,11 +1,13 @@
 
 from tkinter import *
 
+
 class StatusFrame(Frame):
 
-	def __init__(self, app: object, width: int, height: int = 50):
-		super().__init__(app.mainWindow, width=width, height=height, padx=0, pady=0, bg='grey')
+	def __init__(self, gui: object, app: object, width: int, height: int = 50):
+		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg='grey')
 
+		self.gui = gui
 		self.app = app
 		self.field = {}
 
@@ -28,9 +30,10 @@ class StatusFrame(Frame):
 		
 class DrawFrame(Frame):
 
-	def __init__(self, app: object, width: int, height: int, bg='black'):
-		super().__init__(app.mainWindow, width=width, height=height, padx=0, pady=0, cursor='cross')
+	def __init__(self, gui: object, app: object, width: int, height: int, bg='black'):
+		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, cursor='cross')
 
+		self.gui = gui
 		self.app = app
 
 		self.pack_propagate(False)
@@ -42,33 +45,19 @@ class DrawFrame(Frame):
 		self.hScroll.pack(fill=X, side=BOTTOM)
 		self.vScroll.pack(fill=Y, side=RIGHT)
 
-		self.canvas = Canvas(self, width=width, height=height, bg=bg, bd=0, scrollregion=(0, 0, width, height))
-		self.canvasWidth = width
-		self.canvasHeight = height
-
+		# Create drawing canvas and link with scrollbars
+		self.canvas = Canvas(self, width=width, height=height, bg=bg, bd=0, highlightthickness=0, scrollregion=(0, 0, width, height))
 		self.hScroll.config(command=self.canvas.xview)
 		self.vScroll.config(command=self.canvas.yview)
-
 		self.canvas.config(xscrollcommand=self.hScroll.set, yscrollcommand=self.vScroll.set)
 		self.canvas.pack(side=LEFT, expand=False, fill=NONE, anchor='nw')
 
-		# Event handler
-		# self.canvas.bind('<Motion>', self.app.onMove)
-		self.canvas.bind('<ButtonPress-1>', self.app.onLeftButtonPressed)
-		self.canvas.bind('<B1-Motion>', self.app.onLeftDrag)
-		self.canvas.bind('<ButtonRelease-1>', self.app.onLeftButtonReleased)
-
-	def setCanvasRes(self, width: int, height: int):
-		if width != self.canvasWidth or height != self.canvasHeight:
-			self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
-			self.canvasWidth = width
-			self.canvasHeight = height
-
 class ControlFrame(Frame):
 
-	def __init__(self, app: object, width: int, height: int, bg='grey'):
-		super().__init__(app.mainWindow, width=width, height=height, padx=0, pady=0, bg='blue')
+	def __init__(self, gui: object, app: object, width: int, height: int, bg='grey'):
+		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg='blue')
 
+		self.gui = gui
 		self.app = app
 
 		self.pack_propagate(False)
@@ -85,37 +74,58 @@ class ControlFrame(Frame):
 
 class Selection:
 
-	POINT = 0
-	AREA  = 1
+	NOSELECTION = 0
+	POINT       = 1
+	AREA        = 2
+	MOVEAREA    = 3
 
-	def __init__(self, canvas, color = 'red', width = 2):
-		self.canvas = canvas
-		self.color  = color
-		self.width  = 2
-		self.mode   = Selection.POINT
+	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, onPoint = None, onArea = None):
+		self.canvas    = canvas
+		self.color     = color
+		self.rectWidth = width
+		self.mode      = Selection.NOSELECTION
+		self.flipY     = flipY
+
+		self.onPoint = onPoint
+		self.onArea  = onArea
 
 		self.selected = False
 		self.active   = False
-		self.moving   = False
 
 		self.xs = self.ys = self.xe = self.ye = 0
 
 	def getPoint(self):
-		return self.xs, self.ys
+		self.width     = self.canvas.winfo_reqwidth()
+		self.height    = self.canvas.winfo_reqheight()
+		print(f"getPoint {self.width},{self.height}")
+
+		if self.flipY:
+			return self.xs, self.height-self.ys-1
+		else:
+			return self.xs, self.ys
 	
 	def getArea(self):
-		return self.xs, self.ys, self.xe, self.ye
+		self.width     = self.canvas.winfo_reqwidth()
+		self.height    = self.canvas.winfo_reqheight()
+
+		if self.flipY:
+			return self.xs, self.height-self.ye, self.xe, self.height-self.ys
+		else:
+			return self.xs, self.ys, self.xe, self.ye
 	
 	# Start selection. Called when button is pressed => point selected
-	def buttonPressed(self, x: int, y: int):
-		if self.selected and self.mode == Selection.AREA:
+	def onLeftButtonPressed(self, event):
+		x = event.x
+		y = event.y
+
+		if self.selected and (self.mode == Selection.AREA or self.mode == Selection.MOVEAREA):
 			# Area selected
 			if self.isInside(x, y):
 				# If button pressed inside selected area, start dragging of area
 				self.xo, self.yo = x, y
 
+				self.mode     = Selection.MOVEAREA
 				self.active   = True	# select mode active
-				self.moving   = True	# dragging active
 				self.selected = False	# disable selection
 
 				self.canvas.config(cursor='hand')
@@ -124,27 +134,31 @@ class Selection:
 				# If button pressed outside selected area, cancel selection and cleanup
 				self.xs = self.ys = self.xe = self.ye = 0
 
+				self.mode     = Selection.NOSELECTION
 				self.selected = False
 				self.active   = False
-				self.moving   = False
 
 				# Delete rectangle
-				if self.mode ==  Selection.AREA:
-					self.canvas.delete(self.selection)
+				if self.mode == Selection.AREA or self.mode == Selection.MOVEAREA:
+					self.canvas.delete(self.selectRect)
 
 		else:
-			# Point selected
+			# Store start point
 			self.xs, self.ys = x, y
 			self.xe, self.ye = x, y
 
 			self.mode     = Selection.POINT
-			self.selected = True
-			self.active   = False
-			self.moving   = False
+			self.selected = False
+			self.active   = True
+
+		print(f"buttonPressed: mode={self.mode} selected={self.selected} active={self.active}")
 	
 	# Drag with mouse button pressed => select area or move selected area
-	def drag(self, x, y):
-		if self.mode == Selection.POINT and self.selected:
+	def onLeftDrag(self, event):
+		x = event.x
+		y = event.y
+
+		if self.mode == Selection.POINT and not self.selected:
 			# Point selected, dragging from selected point => change size of area
 			self.active   = True			# select mode active
 			self.selected = False			# disable selection
@@ -152,57 +166,141 @@ class Selection:
 			self.xe, self.ye = x, y
 
 			# Create selection rectangle
-			self.selection = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.width)
+			self.selectRect = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.width)
 
 		elif self.mode == Selection.AREA and self.active:
-			if self.moving:
-				# Move selected area, add delta x/y to previous point
-				self.xs += x - self.xo
-				self.ys += y - self.yo
-				self.xe += x - self.xo
-				self.ye += y - self.yo
-				self.xo, self.yo = x, y
+			# Change size of selected area
+			self.xe, self.ye = x, y
 
-			else:
-				# Change size of selected area
-				self.xe, self.ye = x, y
+			# Update selection rectangle
+			self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
 
-			# Update rectangle
-			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
+		elif self.mode == Selection.MOVEAREA and self.active:
+			# Move selected area, add delta x/y to previous point
+			self.xs += x - self.xo
+			self.ys += y - self.yo
+			self.xe += x - self.xo
+			self.ye += y - self.yo
+			self.xo, self.yo = x, y
+
+			# Update selection rectangle
+			self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
 
 	# Called when button is released
-	def buttonReleased(self, x: int, y: int):
-		if self.moving:
-			# End of moving of selected area
-			self.moving = False
-			self.canvas.config(cursor='cross')
-
-		elif self.mode == Selection.AREA:
-			# End of area selection, sort points => xs, ys < xe, ye
-			xs, ys = self.xs, self.ys
-			self.xs = min(xs, x)
-			self.ys = min(ys, y)
-			self.xe = max(xs, x)
-			self.ye = max(ys, y)
-			self.canvas.coords(self.selection, self.xs, self.ys, self.xe, self.ye)
+	def onLeftButtonReleased(self, event):
+		x = event.x
+		y = event.y
 		
 		if self.active:
-			# End of selection
-			self.selected = True
-			self.active   = False
+			if self.mode == Selection.POINT:
+				self.selected = True
+				self.active   = False
+
+			elif self.mode == Selection.AREA or self.mode == Selection.MOVEAREA:
+				if self.mode == Selection.AREA:
+					# End of area selection, sort points => xs, ys < xe, ye
+					xs, ys = self.xs, self.ys
+					self.xs = min(xs, x)
+					self.ys = min(ys, y)
+					self.xe = max(xs, x)
+					self.ye = max(ys, y)
+					self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
+
+				self.active = False
+				self.selected = True
+				self.canvas.config(cursor='cross')
+
+		print(f"buttonReleased: mode={self.mode} selected={self.selected} active={self.active}")
 
 	def isActive(self):
 		return self.active
-	
-	def isMoving(self):
-		return self.moving
 	
 	def isSelected(self):
 		return self.selected
 	
 	def isInside(self, x: int, y: int) -> bool:
-		if self.mode == Selection.AREA and self.selected:
+		if (self.mode == Selection.AREA or self.mode == Selection.MOVEAREA) and self.selected:
 			return self.xs <= x <= self.xe and self.ys <= y <= self.ye
 		else:
 			return self.xs == x and self.ys == y
 	
+class GUI:
+
+	def __init__(self, app, title: str, width: int, height: int):
+		self.app = app
+
+		self.width = width
+		self.height = height
+
+		# Main window
+		self.mainWindow = Tk()
+		self.mainWindow.title(title)
+		self.mainWindow.geometry(f"{width}x{height}")
+
+		# GUI sections
+		self.statusFrame  = StatusFrame(self, self.app, width, 50)
+		self.drawFrame    = DrawFrame(self, self.app, width-200, height-50, bg='white')
+		self.controlFrame = ControlFrame(self, self.app, 200, height-50)
+
+		# Add fields to statusframe
+		self.statusFrame.addField('screenCoord', 25, value="0,0")
+		self.statusFrame.addField('complexCoord', 10, value="TEXT")
+
+		# Screen selection
+		self.selection = Selection(self.drawFrame.canvas, flipY=True)
+
+		# Event handler
+		self.drawFrame.canvas.bind('<Motion>',          self.onMove)
+		self.drawFrame.canvas.bind('<ButtonPress-1>',   self.onLeftButtonPressed)
+		self.drawFrame.canvas.bind('<B1-Motion>',       self.onLeftButtonDrag)
+		self.drawFrame.canvas.bind('<ButtonRelease-1>', self.onLeftButtonReleased)
+
+		# Selection handler
+		self.onPoint = None
+		self.onArea = None
+
+	def setSelectionHandler(self, onPoint = None, onArea = None):
+		self.onPoint = onPoint
+		self.onArea  = onArea
+
+	def onMove(self, event):
+		if not self.selection.isActive():
+			x = event.x
+			y = event.y
+			self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
+
+	def onLeftButtonPressed(self, event):
+		self.selection.onLeftButtonPressed(event)
+
+	def onLeftButtonDrag(self, event):
+		self.selection.onLeftDrag(event)
+		x1, y1, x2, y2 = self.selection.getArea()
+		w = x2 - x1 + 1
+		h = y2 - y1 + 1
+		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
+
+	def onLeftButtonReleased(self, event):
+		self.selection.onLeftButtonReleased(event)
+
+		if self.selection.isSelected():
+			if self.selection.mode == Selection.POINT:
+				x, y = self.selection.getPoint()
+				self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
+
+				if self.onPoint is not None:
+					print("Calling onPoint")
+					self.onPoint(x, y)
+			else:
+				x1, y1, x2, y2 = self.selection.getArea()
+				w = x2-x1+1
+				h = y2-y1+1
+				# c = self.fractal.mapXY(x1, y1)
+				# s = self.fractal.mapWH(x2-x1+1, y2-y1+1)
+				# print(f"c={c}, s={s}")
+				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
+
+				if self.onArea is not None:
+					print("Calling onArea")
+					self.onArea(x1, y1, x2, y2)
+		else:
+			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")

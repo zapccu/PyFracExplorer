@@ -7,9 +7,7 @@ from PIL import Image as Img
 from PIL import ImageTk
 # from skimage.draw import line, line_aa
 
-from fractal import *
 from colors import *
-from gui import *
 
 """
 Class for graphic operations
@@ -17,12 +15,12 @@ Class for graphic operations
 
 class Graphics:
 
-	def __init__(self, drawFrame: DrawFrame, flipY = False):
-		self.drawFrame = drawFrame
-		self.canvas    = drawFrame.canvas
-		self.width     = drawFrame.canvasWidth
-		self.height    = drawFrame.canvasHeight
-		self.flipY     = flipY
+	def __init__(self, canvas: object, flipY = False):
+		self.canvas = canvas
+		self.flipY  = flipY
+
+		self.width  = self.canvas.winfo_width()
+		self.height = self.canvas.winfo_height()
 
 		self.moveTo(0, 0)
 		self.setColor(intColor = 0xFFFFFF)
@@ -42,11 +40,10 @@ class Graphics:
 			return (y1, y2)
 
 	# Initialize drawing environment
-	def beginDraw(self, width: int, height: int) -> bool:
-		self.drawFrame.setCanvasRes(width, height)
-		self.width = width
-		self.height = height
-		self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
+	def beginDraw(self) -> bool:
+		self.width  = self.canvas.winfo_width()
+		self.height = self.canvas.winfo_height()
+		self.imageMap = np.zeros([self.height, self.width, 3], dtype=np.uint8)
 		return True
 
 	# Cleanup drawing environment, update canvas

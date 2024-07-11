@@ -32,12 +32,6 @@ class Fractal:
 		self.offsetY = offsetY
 		self.mapScreenCoordinates()
 
-	def setScreen(self, graphics, flip: bool = False):
-		self.screenWidth  = graphics.width
-		self.screenHeight = graphics.height
-		self.flip = flip
-		self.mapScreenCoordinates()
-
 	def mapX(self, x):
 		return self.offsetX + x * self.dx
 	
@@ -63,7 +57,11 @@ class Fractal:
 	def getMaxValue(self):
 		return 1
 	
-	def beginCalc(self) -> bool:
+	def beginCalc(self, screenWidth: int, screenHeight: int, flip: bool = False) -> bool:
+		self.screenWidth = screenWidth
+		self.screenHeight = screenHeight
+		self.flip = flip
+		self.mapScreenCoordinates()
 		self.startTime = time.time()
 		return True
 
@@ -85,7 +83,7 @@ class Mandelbrot(Fractal):
 	defCorner = complex(-2.0, -1.5)
 	defSize   = complex(3.0, 3.0)
 
-	def __init__(self, corner: complex, size: complex, maxIter = 100, limit = 4.0, flip = False):
+	def __init__(self, corner: complex, size: complex, maxIter = 100, flip = False):
 		super().__init__(size.real, size.imag, corner.real, corner.imag, flip)
 
 		self.corner  = corner
@@ -97,21 +95,22 @@ class Mandelbrot(Fractal):
 			self.maxIter = int(abs(1000 * log(1 / sqrt(self.zoom))))
 		else:
 			self.maxIter = maxIter
-		self.limit   = limit
 
 		self.diameter  = 0		# Maximum diameter for orbits, 0 = off
 		self.tolerance = 1e-10	# Tolerance for orbit calculation
 
+		self.calcDistance = False
+		self.calcPotential = False
+
 		# Allocate array for norm(Z) values
 		self.orbit = [0.0] * self.maxIter
 
-	def setParameters(self, corner: complex, size: complex, maxIter = 100, limit = 4.0):
+	def setParameters(self, corner: complex, size: complex, maxIter = 100):
 		super().setDimensions(size.real, size.imag, corner.real, corner.imag)
 		
 		self.corner  = corner
 		self.size    = size
 		self.maxIter = maxIter
-		self.limit   = limit
 
 	def setPeriodicityParameters(self, maxDiameter: int, tolerance: float):
 		self.diameter = maxDiameter
@@ -133,22 +132,39 @@ class Mandelbrot(Fractal):
 	def iterateComplex(self, C: complex) -> dict:
 		Z = C
 		i = 1
+
+		limit    = 10000.0 if self.calcPotential else 4.0
+		distance = complex(1.0)
+
 		nZ = Fractal.norm(Z)
 		self.orbit[0] = nZ
 
-		while i<self.maxIter and nZ < self.limit:
-			Z = Z*Z+C
+		while i<self.maxIter and nZ < limit:
+			Z = Z * Z + C
+
+			if self.calcDistance:
+				distance = Z * distance * complex(2.0) + complex(1.0)
+
 			nZ = Fractal.norm(Z)
 
 			if self.diameter > 0 and i >= self.diameter:
-				d = self.findOrbit(i, nZ)
-				if d > -1:
-					return self.result(maxIter=self.maxIter, iterations=self.maxIter, Z=Z, orbit=d)
+				diameter = self.findOrbit(i, nZ)
+				if diameter > -1:
+					return self.result(maxIter=self.maxIter, iterations=self.maxIter, Z=Z, orbit=diameter)
+			
 			self.orbit[i] = nZ
-
 			i += 1
 
-		return self.result(maxIter=self.maxIter, iterations=i, Z=Z, orbit=0)
+		if self.calcDistance:
+			distance = sqrt(nZ/abs(d)*0.5*log(sqrt(nZ)))
+
+		if i < self.maxIter and self.calcPotential:
+			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
+		else:
+			potential = 1.0
+
+		return self.result(maxIter=self.maxIter, iterations=i, Z=Z,
+					 orbit=0, distance=distance, potential=potential)
 	
 	def getMaxValue(self):
 		return self.maxIter
