@@ -19,8 +19,8 @@ class Graphics:
 		self.canvas = canvas
 		self.flipY  = flipY
 
-		self.width  = self.canvas.winfo_width()
-		self.height = self.canvas.winfo_height()
+		self.width  = self.canvas.winfo_reqwidth()
+		self.height = self.canvas.winfo_reqheight()
 
 		self.moveTo(0, 0)
 		self.setColor(intColor = 0xFFFFFF)
@@ -41,8 +41,8 @@ class Graphics:
 
 	# Initialize drawing environment
 	def beginDraw(self) -> bool:
-		self.width  = self.canvas.winfo_width()
-		self.height = self.canvas.winfo_height()
+		self.width  = self.canvas.winfo_reqwidth()
+		self.height = self.canvas.winfo_reqheight()
 		self.imageMap = np.zeros([self.height, self.width, 3], dtype=np.uint8)
 		return True
 

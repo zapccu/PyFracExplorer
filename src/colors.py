@@ -158,7 +158,7 @@ class ColorTable:
 
 		return self.colors[idx].rgb
 	
-	# Map value to palette (modulo division)
+	# Map value to palette entry (modulo division)
 	def mapValueModulo(self, value: int, maxValue: int) -> np.ndarray:
 		if value >= maxValue or value < 0:
 			return self.defColor.rgb
@@ -166,7 +166,7 @@ class ColorTable:
 		idx = value % len(self.colors)
 		return self.colors[idx].rgb
 	
-	# Map value to RGB value
+	# Map value to RGB value (palette is ignored)
 	def mapValueRGB(self, value: int, maxValue: int) -> np.ndarray:
 		if value >= maxValue or value < 0:
 			return self.defColor.rgb
@@ -185,11 +185,13 @@ class ColorTable:
 			self.colors.append(colorTable.colors)
 
 	# Create a smooth, linear color table
-	def createLinearTable(self, numColors: int, startColor: Color, endColor: Color, modFlags: Color = Color(1, 1, 1)):
+	@staticmethod
+	def createLinearTable(numColors: int, startColor: Color, endColor: Color, modFlags: Color = Color(1, 1, 1)):
 		numColors = max(numColors, 2)
-		self.colors = [Color(0, 0, 0)] * numColors
-		self.colors[0] = startColor
-		self.colors[-1] = endColor
+		colors = [Color(0, 0, 0)] * numColors
+		colors = [Color(0, 0, 0)] * numColors
+		colors[0] = startColor
+		colors[-1] = endColor
 
 		cRed, cGreen, cBlue = startColor.getRGB()
 		distRed, distGreen, distBlue = (
@@ -202,18 +204,25 @@ class ColorTable:
 			cRed   += distRed
 			cGreen += distGreen
 			cBlue  += distBlue
-			self.colors[i] = Color(cRed, cGreen, cBlue)
+			colors[i] = Color(cRed, cGreen, cBlue)
 
-	def createSinusTable(self, numColors: int, theta = [.85, .0, .15]):
+		return ColorTable(colors)
+
+	@staticmethod
+	def createSinusTable(numColors: int, theta = [.85, .0, .15]):
 		numColors = max(numColors, 2)
-		self.colors = [Color(0, 0, 0)] * numColors
+		colors = [Color(0, 0, 0)] * numColors
 
 		for i in range(0, numColors):
-			self.colors[i] = Color(rgb=CalcColor.mapSinus(i, numColors, theta))
+			colors[i] = Color(rgb=CalcColor.mapSinus(i, numColors, theta))
 
-	def createSinusCosinusTable(self, numColors: int):
+		return ColorTable(colors)
+
+	@staticmethod
+	def createSinusCosinusTable(numColors: int):
 		numColors = max(numColors, 2)
-		self.colors = [Color(0, 0, 0)] * numColors
+		colors = [Color(0, 0, 0)] * numColors
 
 		for i in range(0, numColors):
-			self.colors[i] = Color(rgb=CalcColor.mapSinus(i, numColors))
+			colors[i] = Color(rgb=CalcColor.mapSinus(i, numColors))
+

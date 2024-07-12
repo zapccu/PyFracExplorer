@@ -5,7 +5,7 @@ from fractal import *
 
 class ColorLine:
 
-	def __init__(self, graphics: Graphics, x: int, y: int, length: int, orientation: int):
+	def __init__(self, graphics: Graphics, x: int, y: int, length: int, orientation: int, unique: bool = False):
 		self.graphics = graphics
 
 		self.x = x
@@ -18,7 +18,10 @@ class ColorLine:
 				self.length = min(length, graphics.width)
 			else:
 				self.length = min(length, graphics.height)
-			self.unique = self.isUnique()
+			if unique == False:
+				self.unique = self.isUnique()
+			else:
+				self.unique = True
 		else:
 			self.length = 0
 			self.unique = False
@@ -68,7 +71,7 @@ class ColorLine:
 				return self.graphics.imageMap[y, self.x]
 		return None
 
-	def isUnique(self):
+	def isUnique(self) -> bool:
 		if self.orientation == 0:
 			y = self.graphics.flip(self.y)
 			return len(np.unique(self.graphics.imageMap[y, self.x:self.x+self.length], axis = 0)) == 1
@@ -82,17 +85,20 @@ class ColorLine:
 		yb = self.graphics.flip(b.y)
 		return self.unique and b.unique and np.array_equal(self.graphics.imageMap[ya, self.x], b.graphics.imageMap[yb, b.x])
 	
-	# Split a color line into 2 new color lines
+	# Split a color line into 2 new color lines, return 2 child color lines
 	def split(self):
-		mid = int(self.length/2)
-		if mid > 0:
-			if self.orientation == 0:
-				return ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation), ColorLine(self.graphics, self.x+mid, self.y, length=self.length-mid, orientation=self.orientation)
-			else:
-				return ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation), ColorLine(self.graphics, self.x, self.y+mid, length=self.length-mid, orientation=self.orientation)
-		else:
+		if self.length < 2:
 			# A line of length < 2 cannot be split
 			return None
+		mid = int(self.length/2)
+		if self.orientation == 0:
+			return (
+				ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation, unique=self.unique),
+				ColorLine(self.graphics, self.x+mid, self.y, length=self.length-mid, orientation=self.orientation, unique=self.unique))
+		else:
+			return (
+				ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation, unique=self.unique),
+				ColorLine(self.graphics, self.x, self.y+mid, length=self.length-mid, orientation=self.orientation, unique=self.unique))
 
 class Drawer:
 
@@ -100,17 +106,17 @@ class Drawer:
 	HORIZONTAL = 0
 	VERTICAL   = 1
 
-	def __init__(self, canvas: object, width: int, height: int, palette: ColorTable = ColorTable):
+	def __init__(self, app: object, width: int, height: int):
+		self.app      = app
 		self.bDrawing = False
-		self.graphics = Graphics(canvas, flipY=True)
+		self.cancel   = False
 		self.width    = width
 		self.height   = height
 		self.minLen   = -1
 		self.maxLen   = -1
-		self.mapping  = 'ColorMappingLinear'
-		self.drawing  = 'LineByLine'
-		self.defColor = 0				# Black
-		self.palette  = palette			# White (1 entry), default color = black
+		self.colorMapping  = app.getSetting('colorMapping')
+		self.drawMode      = app.getSetting('drawMode')
+		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 
 		self.colorFnc = {
 			'ColorMappingLinear': self.palette.mapValueLinear,
@@ -123,9 +129,14 @@ class Drawer:
 			'SquareEstimation': self.drawSquareEstimation
 		}
 
+		canvas = app.gui.drawFrame.canvas
+
 		# Adjust canvas size
 		if width != canvas.winfo_reqwidth() or height != canvas.winfo_reqheight():
 			canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
+
+		# Create graphics environment
+		self.graphics = Graphics(canvas, flipY=True)
 
 	# Set drawing color palette
 	def setPalette(self, colors: ColorTable = ColorTable()):
@@ -159,9 +170,10 @@ class Drawer:
 
 		return cLine
 	
-	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, drawing: str = ""):
+	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int):
 		self.fractal = fractal
-		if drawing != "": self.drawing = drawing
+		self.drawMode = self.app.getSetting('drawMode')
+		self.colorMapping = self.app.getSetting('colorMapping')
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
 		self.minLen = 8
@@ -175,6 +187,7 @@ class Drawer:
 				return False
 			if self.fractal.beginCalc(self.width, self.height) == False:
 				return False
+			self.cancel = False
 			self.bDrawing = True
 		else:
 			return False
@@ -183,7 +196,7 @@ class Drawer:
 		self.statCalc = 0
 		self.statSplit = 0
 
-		self.drawFnc[self.drawing](x, y, x2, y2)
+		self.drawFnc[self.drawMode](x, y, x2, y2)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
@@ -196,8 +209,9 @@ class Drawer:
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int):
 		for y in range(y1, y2+1):
+			self.app.update()
+			if self.cancel: break
 			self.calculateLine(x1, y, x2, Drawer.HORIZONTAL)
-
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
@@ -224,11 +238,9 @@ class Drawer:
 
 		elif minLen < self.minLen or self.statSplit >= self.maxSplit:
 			# Draw line by line
-			self.statCalc += 1
 			# Do not draw the surrounding rectangle (already drawn)
-			# self.graphics.setColor(intColor = 0xFF0000)
-			# self.graphics.fillRect(x1+1, y1+1, x2, y2)
 			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1)
+			self.statCalc += 1
 
 		else:
 			# Split rectangle into child rectangles

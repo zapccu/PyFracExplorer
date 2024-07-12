@@ -1,6 +1,6 @@
 
 from tkinter import *
-
+from tkinter.ttk import Combobox, Style
 
 class StatusFrame(Frame):
 
@@ -55,21 +55,111 @@ class DrawFrame(Frame):
 class ControlFrame(Frame):
 
 	def __init__(self, gui: object, app: object, width: int, height: int, bg='grey'):
-		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg='blue')
+		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg=bg)
 
 		self.gui = gui
 		self.app = app
 
+		self.colorMapping = 'Linear'
+
 		self.pack_propagate(False)
 		self.pack(side=LEFT, expand=False, fill=Y, anchor='nw')
 
+		style = Style()
+		style.theme_use('clam')
+		style.configure("TCombobox", fieldbackground= "orange", background= "white")
+		
+		# Draw and Cancel Buttons
 		self.btnDraw = Button(
             self,
             text="Draw",
             width=8,
             fg="green",
+			bg=bg,
+			highlightbackground=bg,
             command=lambda: self.app.onDraw(),
-        ).pack()
+        )
+		self.btnDraw.grid(column=0, row=0, pady=10)
+		self.btnCancel = Button(
+            self,
+            text="Cancel",
+            width=8,
+            fg="green",
+			bg=bg,
+			highlightbackground=bg,
+            command=lambda: self.app.onCancel(),
+        )
+		self.btnCancel.grid(column=1, row=0, pady=10)
+
+		# Color mapping combobox
+		self.lblColorMapping = Label(
+			self,
+			text="Color mapping",
+			width=25,
+			bg=bg,
+			anchor='w'
+		)
+		self.lblColorMapping.grid(columnspan=2, column=0, row=1, pady=0)
+		self.cbColorMapping = Combobox(
+			self,
+			state="readonly",
+			values=app.getSettingValues('colorMapping'),
+			width=22,
+			background=bg
+		)
+		self.cbColorMapping.bind("<<ComboboxSelected>>",
+			lambda event:
+				self.app.setSetting('colorMapping', self.cbColorMapping.get())	
+		)
+		self.cbColorMapping.grid(columnspan=2, column=0, row=2, padx=10, pady=0)
+		self.cbColorMapping.set(self.app.getSetting('colorMapping'))
+
+		# Drawmode combobox
+		self.lblDrawMode = Label(
+			self,
+			text="Draw mode",
+			width=25,
+			background=bg,
+			anchor='w'
+		)
+		self.lblDrawMode.grid(columnspan=2, column=0, row=3, pady=0)
+		self.cbDrawMode = Combobox(
+			self,
+			state="readonly",
+			values=app.getSettingValues('drawMode'),
+			width=22,
+			background=bg
+		)
+		self.cbDrawMode.bind("<<ComboboxSelected>>",
+			lambda event:
+				self.app.setSetting('drawMode', self.cbDrawMode.get())	
+		)
+		self.cbDrawMode.grid(columnspan=2, column=0, row=4, padx=10, pady=0)
+		self.cbDrawMode.set(self.app.getSetting('drawMode'))
+
+		# Color palette combobox
+		self.lblColorPalette = Label(
+			self,
+			text="Color palette",
+			width=25,
+			background=bg,
+			anchor='w'
+		)
+		self.lblColorPalette.grid(columnspan=2, column=0, row=5, pady=0)
+		self.cbColorPalette = Combobox(
+			self,
+			state="readonly",
+			values=app.getSettingValues('colorPalette'),
+			width=22,
+			background=bg
+		)
+		self.cbColorPalette.bind("<<ComboboxSelected>>",
+			lambda event:
+				self.app.setSetting('colorPalette', self.cbColorPalette.get())
+		)
+		self.cbColorPalette.grid(columnspan=2, column=0, row=6, padx=10, pady=0)
+		self.cbColorPalette.set(self.app.getSetting('colorPalette'))
+
 
 
 class Selection:
@@ -226,7 +316,7 @@ class Selection:
 	
 class GUI:
 
-	def __init__(self, app, title: str, width: int, height: int):
+	def __init__(self, app, title: str, width: int, height: int, statusHeight: int = 50, controlWidth: int = 200):
 		self.app = app
 
 		self.width = width
@@ -238,9 +328,9 @@ class GUI:
 		self.mainWindow.geometry(f"{width}x{height}")
 
 		# GUI sections
-		self.statusFrame  = StatusFrame(self, self.app, width, 50)
-		self.drawFrame    = DrawFrame(self, self.app, width-200, height-50, bg='white')
-		self.controlFrame = ControlFrame(self, self.app, 200, height-50)
+		self.statusFrame  = StatusFrame(self, self.app, width, statusHeight)
+		self.drawFrame    = DrawFrame(self, self.app, width-controlWidth, height-statusHeight, bg='white')
+		self.controlFrame = ControlFrame(self, self.app, controlWidth, height-statusHeight)
 
 		# Add fields to statusframe
 		self.statusFrame.addField('screenCoord', 25, value="0,0")
