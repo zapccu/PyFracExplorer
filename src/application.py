@@ -27,14 +27,14 @@ class Application:
 		}
 
 		# GUI
-		self.gui = GUI(self, title, width, height, 50, 250)
+		self.gui = GUI(self, title, width, height, 50, 200)
 
 		# Define selection handler
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
 
 		# Default fractal
-		# self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
-		self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
+		self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		# self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 		self.colorTable = {
 			'Grey': ColorTable.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255)),
@@ -79,8 +79,10 @@ class Application:
 	#
 	
 	def onDraw(self):
+		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
 		self.draw = Drawer(self, 800, 800)
 		self.draw.drawFractal(self.fractal, 0, 0, 800, 800)
+		self.gui.statusFrame.setFieldValue('drawing', "{:.2f} s".format(self.draw.calcTime))
 
 	def onCancel(self):
 		self.draw.cancel = True

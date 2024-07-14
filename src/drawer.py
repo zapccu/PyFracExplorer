@@ -119,9 +119,9 @@ class Drawer:
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 
 		self.colorFnc = {
-			'ColorMappingLinear': self.palette.mapValueLinear,
-			'ColorMappingModulo': self.palette.mapValueModulo,
-			'ColorMappingRGB':    self.palette.mapValueRGB
+			'Linear': self.palette.mapValueLinear,
+			'Modulo': self.palette.mapValueModulo,
+			'RGB':    self.palette.mapValueRGB
 		}
 
 		self.drawFnc = {
@@ -144,8 +144,8 @@ class Drawer:
 
 	# Map iteration result to color, return numpy RGB array	
 	def mapColor(self, result) -> np.ndarray:
-		if self.mapping in self.colorFnc:
-			return self.colorFnc[self.mapping](value=result['iterations'], maxValue=result['maxIter'])
+		if self.colorMapping in self.colorFnc:
+			return self.colorFnc[self.colorMapping](value=result['iterations'], maxValue=result['maxIter'])
 		else:
 			return self.palette.getDefColor()
 
@@ -196,14 +196,16 @@ class Drawer:
 		self.statCalc = 0
 		self.statSplit = 0
 
+		print(fractal.parameters)
+
 		self.drawFnc[self.drawMode](x, y, x2, y2)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
-		calcTime = self.fractal.endCalc()
+		self.calcTime = self.fractal.endCalc()
 		self.graphics.endDraw()
 		self.bDrawing = False
-		print(f"{calcTime} seconds")
+		print(f"{self.calcTime} seconds")
 
 		return True
 

@@ -52,6 +52,7 @@ class DrawFrame(Frame):
 		self.canvas.config(xscrollcommand=self.hScroll.set, yscrollcommand=self.vScroll.set)
 		self.canvas.pack(side=LEFT, expand=False, fill=NONE, anchor='nw')
 
+
 class ControlFrame(Frame):
 
 	def __init__(self, gui: object, app: object, width: int, height: int, bg='grey'):
@@ -63,78 +64,38 @@ class ControlFrame(Frame):
 		self.colorMapping = 'Linear'
 
 		self.pack_propagate(False)
-		self.pack(side=LEFT, expand=False, fill=Y, anchor='nw')
+		self.pack(side=RIGHT, expand=False, fill=Y, anchor='ne')
 
 		style = Style()
 		style.theme_use('clam')
 		style.configure("TCombobox", fieldbackground= "orange", background= "white")
 		
 		# Draw and Cancel Buttons
-		self.btnDraw = Button(
-            self,
-            text="Draw",
-            width=8,
-            fg="green",
-			bg=bg,
-			highlightbackground=bg,
-            command=lambda: self.app.onDraw(),
-        )
-		self.btnDraw.grid(column=0, row=0, pady=10)
-		self.btnCancel = Button(
-            self,
-            text="Cancel",
-            width=8,
-            fg="green",
-			bg=bg,
-			highlightbackground=bg,
-            command=lambda: self.app.onCancel(),
-        )
+		self.btnDraw   = Button(self, text="Draw",   width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onDraw())
+		self.btnCancel = Button(self, text="Cancel", width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onCancel())
+		self.btnDraw.grid(column=0, row=0, padx=5, pady=10)
 		self.btnCancel.grid(column=1, row=0, pady=10)
 
 		# Color mapping combobox
-		self.lblColorMapping = Label(
-			self,
-			text="Color mapping",
-			width=25,
-			bg=bg,
-			anchor='w'
-		)
-		self.lblColorMapping.grid(columnspan=2, column=0, row=1, pady=0)
-		self.cbColorMapping = Combobox(
-			self,
-			state="readonly",
-			values=app.getSettingValues('colorMapping'),
-			width=22,
-			background=bg
-		)
+		self.lblColorMapping = Label(self, text="Color mapping", justify='left', bg=bg, anchor='w')
+		self.cbColorMapping = Combobox(self, state="readonly", values=app.getSettingValues('colorMapping'), width=22, background=bg)
 		self.cbColorMapping.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('colorMapping', self.cbColorMapping.get())	
 		)
-		self.cbColorMapping.grid(columnspan=2, column=0, row=2, padx=10, pady=0)
+		self.lblColorMapping.grid(sticky='W', columnspan=2, column=0, row=1, padx=5, pady=0)
+		self.cbColorMapping.grid(sticky='W', columnspan=2, column=0, row=2, padx=5, pady=0)
 		self.cbColorMapping.set(self.app.getSetting('colorMapping'))
 
 		# Drawmode combobox
-		self.lblDrawMode = Label(
-			self,
-			text="Draw mode",
-			width=25,
-			background=bg,
-			anchor='w'
-		)
-		self.lblDrawMode.grid(columnspan=2, column=0, row=3, pady=0)
-		self.cbDrawMode = Combobox(
-			self,
-			state="readonly",
-			values=app.getSettingValues('drawMode'),
-			width=22,
-			background=bg
-		)
+		self.lblDrawMode = Label(self, text="Draw mode", background=bg, anchor='w')
+		self.cbDrawMode = Combobox(self, state="readonly", values=app.getSettingValues('drawMode'), width=22, background=bg)
 		self.cbDrawMode.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('drawMode', self.cbDrawMode.get())	
 		)
-		self.cbDrawMode.grid(columnspan=2, column=0, row=4, padx=10, pady=0)
+		self.lblDrawMode.grid(sticky='W', columnspan=2, column=0, row=3, padx=5, pady=0)
+		self.cbDrawMode.grid(sticky='W', columnspan=2, column=0, row=4, padx=5, pady=0)
 		self.cbDrawMode.set(self.app.getSetting('drawMode'))
 
 		# Color palette combobox
@@ -160,6 +121,11 @@ class ControlFrame(Frame):
 		self.cbColorPalette.grid(columnspan=2, column=0, row=6, padx=10, pady=0)
 		self.cbColorPalette.set(self.app.getSetting('colorPalette'))
 
+		# Iterations
+		self.lblIterations = Label(self, text="Iterations:", justify='left', background=bg, anchor='w')
+		self.lblIterations.grid(sticky='E', column=0, row=7, pady=5)
+		self.entIterations = Entry(self)
+		self.entIterations.grid(sticky='W', column=1, row=7, pady=5)
 
 
 class Selection:
@@ -335,6 +301,7 @@ class GUI:
 		# Add fields to statusframe
 		self.statusFrame.addField('screenCoord', 25, value="0,0")
 		self.statusFrame.addField('complexCoord', 10, value="TEXT")
+		self.statusFrame.addField('drawing', 15, value="Idle")
 
 		# Screen selection
 		self.selection = Selection(self.drawFrame.canvas, flipY=True)
@@ -378,7 +345,6 @@ class GUI:
 				self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
 
 				if self.onPoint is not None:
-					print("Calling onPoint")
 					self.onPoint(x, y)
 			else:
 				x1, y1, x2, y2 = self.selection.getArea()
@@ -390,7 +356,6 @@ class GUI:
 				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
 
 				if self.onArea is not None:
-					print("Calling onArea")
 					self.onArea(x1, y1, x2, y2)
 		else:
 			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
