@@ -2,7 +2,7 @@
 import time
 
 # import numpy as np
-# from numba import jit
+from numba import jit
 
 from math import *
 
@@ -92,8 +92,7 @@ class Fractal:
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
 	
-	@staticmethod
-	def norm(c: complex):
+	def norm(self, c: complex):
 		return c.real*c.real + c.imag*c.imag
 	
 	def result(self, **kwargs):
@@ -149,6 +148,7 @@ class Mandelbrot(Fractal):
 		return complex(self.dxTab[x], self.dyTab[y])
 	
 	# Find orbit, return diameter or -1
+	# @jit
 	def findOrbit(self, i: int, nZ: float) -> int:
 		for n in range(i-1, i-self.par('orbits.diameter'), -1):
 			if abs(self.orbit[n] - nZ) < self.par('orbits.tolerance'):
@@ -156,11 +156,13 @@ class Mandelbrot(Fractal):
 		return -1
 
 	# Iterate screen point
+	# @jit(nopython=True)
 	def iterate(self, x: int, y: int) -> dict:
 		return self.iterateComplex(self.mapXY(x, y))
 	
 	# Iterate complex point
 	# Return dictionary with results
+	# @jit(nopython=True)
 	def iterateComplex(self, C: complex) -> dict:
 		Z = C
 		i = 1
@@ -171,7 +173,7 @@ class Mandelbrot(Fractal):
 
 		distance = complex(1.0)
 
-		nZ = Fractal.norm(Z)
+		nZ = self.norm(Z)
 		self.orbit[0] = nZ
 
 		while i<maxIter and nZ < bailout:
@@ -180,7 +182,7 @@ class Mandelbrot(Fractal):
 			if self.par('calcDistance', default=False):
 				distance = Z * distance * 2.0 + 1
 
-			nZ = Fractal.norm(Z)
+			nZ = self.norm(Z)
 
 			if self.par('orbits.diameter') > 0 and i >= self.par('orbits.diameter'):
 				diameter = self.findOrbit(i, nZ)

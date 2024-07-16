@@ -2,6 +2,18 @@
 from tkinter import *
 from tkinter.ttk import Combobox, Style
 
+"""
+GUI
+
+Classes:
+
+  StatusFrame    - Status frame with text labels at the bottom side of the window
+  DrawFrame      - Drawing frame with canvas and scrollbars at the top/left side of the window
+  ControlFrame   - Control frame with parameter widgets at the right side of the window
+  Selection      - Handle selection of points or areas inside the drawing frame canvas
+
+"""
+
 class StatusFrame(Frame):
 
 	def __init__(self, gui: object, app: object, width: int, height: int = 50):
@@ -87,7 +99,7 @@ class ControlFrame(Frame):
 		self.cbColorMapping.grid(sticky='W', columnspan=2, column=0, row=2, padx=5, pady=0)
 		self.cbColorMapping.set(self.app.getSetting('colorMapping'))
 
-		# Drawmode combobox
+		# Drawmode combobox with label
 		self.lblDrawMode = Label(self, text="Draw mode", background=bg, anchor='w')
 		self.cbDrawMode = Combobox(self, state="readonly", values=app.getSettingValues('drawMode'), width=22, background=bg)
 		self.cbDrawMode.bind("<<ComboboxSelected>>",
@@ -98,22 +110,10 @@ class ControlFrame(Frame):
 		self.cbDrawMode.grid(sticky='W', columnspan=2, column=0, row=4, padx=5, pady=0)
 		self.cbDrawMode.set(self.app.getSetting('drawMode'))
 
-		# Color palette combobox
-		self.lblColorPalette = Label(
-			self,
-			text="Color palette",
-			width=25,
-			background=bg,
-			anchor='w'
-		)
+		# Color palette combobox with label
+		self.lblColorPalette = Label(self, text="Color palette", width=25, background=bg, anchor='w')
 		self.lblColorPalette.grid(columnspan=2, column=0, row=5, pady=0)
-		self.cbColorPalette = Combobox(
-			self,
-			state="readonly",
-			values=app.getSettingValues('colorPalette'),
-			width=22,
-			background=bg
-		)
+		self.cbColorPalette = Combobox(self, state="readonly", values=app.getSettingValues('colorPalette'), width=22, background=bg)
 		self.cbColorPalette.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('colorPalette', self.cbColorPalette.get())
