@@ -1,6 +1,6 @@
 
 from tkinter import *
-from tkinter.ttk import Combobox, Style
+from tkinter.ttk import Combobox, Style, Progressbar
 
 """
 GUI
@@ -32,7 +32,18 @@ class StatusFrame(Frame):
 		field.pack_propagate(False)
 		field.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
 		self.field[name] = field
-	
+
+	def addProgressbar(self, length):
+		self.bar = Progressbar(length=length)
+		self.bar.pack_propagate(False)
+		self.bar.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
+
+	def initProgressbar(self, maxValue):
+		self.bar.configure(maximum=maxValue)
+
+	def setProgress(self, value):
+		self.bar.step(value)
+
 	def setFieldValue(self, name: str, value: str, fg='black', bg='grey'):
 		if name not in self.field:
 			return False
@@ -43,7 +54,7 @@ class StatusFrame(Frame):
 class DrawFrame(Frame):
 
 	def __init__(self, gui: object, app: object, width: int, height: int, bg='black'):
-		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, cursor='cross')
+		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, cursor='arrow')
 
 		self.gui = gui
 		self.app = app
@@ -139,21 +150,38 @@ class Selection:
 		self.canvas    = canvas
 		self.color     = color
 		self.rectWidth = width
-		self.mode      = Selection.NOSELECTION
 		self.flipY     = flipY
 		self.keepAR    = keepAR
+		self.onPoint   = onPoint
+		self.onArea    = onArea
 
-		self.onPoint = onPoint
-		self.onArea  = onArea
+		self.selectRect = None
 
+		self.reset()
+
+	def enable(self):
+		self.canvas.config(cursor='cross')
+		self.enabled = True
+	
+	def disable(self):
+		self.canvas.config(cursor='arrow')
+		self.enabled = False
+
+	def reset(self):
+		if self.selectRect is not None:
+			self.canvas.delete(self.selectRect)
+			self.selectRect = None
+		
+		self.disable()
+
+		self.mode = Selection.NOSELECTION
 		self.selected = False
 		self.active   = False
-
 		self.xs = self.ys = self.xe = self.ye = 0
 
 	def getPoint(self):
-		self.width     = self.canvas.winfo_reqwidth()
-		self.height    = self.canvas.winfo_reqheight()
+		self.width  = self.canvas.winfo_reqwidth()
+		self.height = self.canvas.winfo_reqheight()
 		print(f"getPoint {self.width},{self.height}")
 
 		if self.flipY:
@@ -162,16 +190,29 @@ class Selection:
 			return self.xs, self.ys
 	
 	def getArea(self):
-		self.width     = self.canvas.winfo_reqwidth()
-		self.height    = self.canvas.winfo_reqheight()
+		self.width  = self.canvas.winfo_reqwidth()
+		self.height = self.canvas.winfo_reqheight()
 
 		if self.flipY:
 			return self.xs, self.height-self.ye, self.xe, self.height-self.ys
 		else:
 			return self.xs, self.ys, self.xe, self.ye
-	
+		
+	def keepAspectRatio(self, xe: int, ye: int):
+		if self.keepAR:
+			w = xe-self.xs
+			h = ye-self.ys
+			if abs(w) < abs(h):
+				return self.xs+h, ye
+			elif abs(w) > abs(h):
+				return xe, self.ys+w
+		return xe, ye
+
 	# Start selection. Called when button is pressed => point selected
-	def onLeftButtonPressed(self, event):
+	def onLeftButtonPressed(self, event) -> bool:
+		if not self.enabled:
+			return False
+		
 		x = event.x
 		y = event.y
 
@@ -189,15 +230,7 @@ class Selection:
 
 			else:
 				# If button pressed outside selected area, cancel selection and cleanup
-				self.xs = self.ys = self.xe = self.ye = 0
-
-				self.mode     = Selection.NOSELECTION
-				self.selected = False
-				self.active   = False
-
-				# Delete rectangle
-				if self.mode == Selection.AREA or self.mode == Selection.MOVEAREA:
-					self.canvas.delete(self.selectRect)
+				self.reset()
 
 		else:
 			# Store start point
@@ -208,10 +241,19 @@ class Selection:
 			self.selected = False
 			self.active   = True
 
+			self.width  = self.canvas.winfo_reqwidth()
+			self.height = self.canvas.winfo_reqheight()
+			self.aspectRatio = max(self.width, self.height)/min(self.width, self.height)
+
+
 		print(f"buttonPressed: mode={self.mode} selected={self.selected} active={self.active}")
+		return True
 	
 	# Drag with mouse button pressed => select area or move selected area
-	def onLeftDrag(self, event):
+	def onLeftDrag(self, event) -> bool:
+		if not self.enabled:
+			return False
+
 		x = event.x
 		y = event.y
 
@@ -220,14 +262,15 @@ class Selection:
 			self.active   = True			# select mode active
 			self.selected = False			# disable selection
 			self.mode     = Selection.AREA	# change selection mode
-			self.xe, self.ye = x, y
+
+			self.xe, self.ye = self.keepAspectRatio(x, y)
 
 			# Create selection rectangle
 			self.selectRect = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.rectWidth)
 
 		elif self.mode == Selection.AREA and self.active:
 			# Change size of selected area
-			self.xe, self.ye = x, y
+			self.xe, self.ye = self.keepAspectRatio(x, y)
 
 			# Update selection rectangle
 			self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
@@ -243,8 +286,13 @@ class Selection:
 			# Update selection rectangle
 			self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
 
+		return True
+
 	# Called when button is released
-	def onLeftButtonReleased(self, event):
+	def onLeftButtonReleased(self, event) -> bool:
+		if not self.enabled:
+			return False
+
 		x = event.x
 		y = event.y
 		
@@ -256,6 +304,7 @@ class Selection:
 			elif self.mode == Selection.AREA or self.mode == Selection.MOVEAREA:
 				if self.mode == Selection.AREA:
 					# End of area selection, sort points => xs, ys < xe, ye
+					x, y = self.keepAspectRatio(x, y)
 					xs, ys = self.xs, self.ys
 					self.xs = min(xs, x)
 					self.ys = min(ys, y)
@@ -268,7 +317,12 @@ class Selection:
 				self.canvas.config(cursor='cross')
 
 		print(f"buttonReleased: mode={self.mode} selected={self.selected} active={self.active}")
+		return True
 
+	# Check if selection mode is enabled
+	def isEnabled(self) -> bool:
+		return self.enabled
+	
 	# Check if selection is in progress
 	def isActive(self) -> bool:
 		return self.active
@@ -306,6 +360,7 @@ class GUI:
 		self.statusFrame.addField('screenCoord', 25, value="0,0")
 		self.statusFrame.addField('complexCoord', 10, value="TEXT")
 		self.statusFrame.addField('drawing', 15, value="Idle")
+		self.statusFrame.addProgressbar(100)
 
 		# Screen selection
 		self.selection = Selection(self.drawFrame.canvas, flipY=True)
@@ -334,32 +389,28 @@ class GUI:
 		self.selection.onLeftButtonPressed(event)
 
 	def onLeftButtonDrag(self, event):
-		self.selection.onLeftDrag(event)
-		x1, y1, x2, y2 = self.selection.getArea()
-		w = x2 - x1 + 1
-		h = y2 - y1 + 1
-		self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
+		if self.selection.onLeftDrag(event):
+			x1, y1, x2, y2 = self.selection.getArea()
+			w = x2 - x1 + 1
+			h = y2 - y1 + 1
+			self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
 
 	def onLeftButtonReleased(self, event):
-		self.selection.onLeftButtonReleased(event)
+		if self.selection.onLeftButtonReleased(event):
+			if self.selection.isSelected():
+				if self.selection.mode == Selection.POINT:
+					x, y = self.selection.getPoint()
+					self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
 
-		if self.selection.isSelected():
-			if self.selection.mode == Selection.POINT:
-				x, y = self.selection.getPoint()
-				self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
+					if self.onPoint is not None:
+						self.onPoint(x, y)
+				else:
+					x1, y1, x2, y2 = self.selection.getArea()
+					w = x2-x1+1
+					h = y2-y1+1
+					self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
 
-				if self.onPoint is not None:
-					self.onPoint(x, y)
+					if self.onArea is not None:
+						self.onArea(x1, y1, x2, y2)
 			else:
-				x1, y1, x2, y2 = self.selection.getArea()
-				w = x2-x1+1
-				h = y2-y1+1
-				# c = self.fractal.mapXY(x1, y1)
-				# s = self.fractal.mapWH(x2-x1+1, y2-y1+1)
-				# print(f"c={c}, s={s}")
-				self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
-
-				if self.onArea is not None:
-					self.onArea(x1, y1, x2, y2)
-		else:
-			self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
+				self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")

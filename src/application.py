@@ -83,10 +83,14 @@ class Application:
 	#
 	
 	def onDraw(self):
+		self.gui.selection.reset()
+
 		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
 		self.draw = Drawer(self, 800, 800)
 		self.draw.drawFractal(self.fractal, 0, 0, 800, 800)
 		self.gui.statusFrame.setFieldValue('drawing', "{:.2f} s".format(self.draw.calcTime))
+		
+		self.gui.selection.enable()
 
 	def onCancel(self):
 		self.draw.cancel = True
