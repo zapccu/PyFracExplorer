@@ -31,17 +31,26 @@ class Test(Base):
 	@staticmethod
 	@jit(nopython=True)
 	def calc1(p):
-		return p['var1'] * p['var2']
+		r1 = p['var1'] * p['var2']
+		r2 = p['var1'] + p['var2']
+		a = 0
+		if a:
+			return createDict(['r1', 'r2', 'a'], [r1, r2, a])
+		else:
+			return createDict(['r1', 'r2'], [r1, r2])
+
 
 	@staticmethod
 	@jit(nopython=True)
 	def calc2(p):
-		return p['var1'] + p['var2']
+		r1 = p['var1'] * p['var2']
+		r2 = p['var1'] + p['var2']
+		return createDict(['r1', 'r2'], [r1, r2])
 
 
 t = Test(2.0, 3.0, 4.0)
 
 p = createDict(list(t.p.keys()), list(t.p.values()))
-r = t.fnc[1](p)
+r = t.fnc[0](p)
 print(r)
 print(type(r))
