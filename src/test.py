@@ -15,16 +15,15 @@ def norm(c: complex):
 	return c.real*c.real + c.imag*c.imag
 
 @jit
-def result(**kwargs):
+def result(keys, values):
 	d = Dict.empty(
 		key_type=types.unicode_type,
 		value_type=types.float64
 	)
-	for key, value in kwargs.items():
-		print(f"{key} = {value}")
-		d[key] = value
+	for i in range(len(keys)):
+		d[keys[i]] = float(values[i])
 	return d
-	
+
 class Mandelbrot:
 
 	defMaxIter = 100
@@ -155,7 +154,6 @@ class Mandelbrot:
 		return -1
 
 	# Iterate screen point
-	# @jit(nopython=True)
 	def iterate(self, x: int, y: int):
 		d = Dict.empty(
     		key_type=types.unicode_type,
@@ -186,7 +184,7 @@ class Mandelbrot:
 			nZ = norm(Z)
 			i += 1
 
-		return result(iterations=float64(i)) 
+		return result(['iterations', 'Z'], [ i, 0.5 ]) 
 	
 	def getMaxValue(self):
 		return self.par('maxIter')

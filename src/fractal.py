@@ -3,9 +3,21 @@ import time
 
 # import numpy as np
 from numba import jit
+from numba import types
+from numba.typed import Dict
 
 from math import *
 
+# Convert key-value-pairs to numba dictionary
+@jit(nopython=True)
+def createDict(keys, values):
+	d = Dict.empty(
+		key_type=types.unicode_type,
+		value_type=types.float64
+	)
+	for i in range(len(keys)):
+		d[keys[i]] = float(values[i])
+	return d
 
 class Fractal:
 
