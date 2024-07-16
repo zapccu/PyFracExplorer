@@ -135,12 +135,13 @@ class Selection:
 	AREA        = 2
 	MOVEAREA    = 3
 
-	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, onPoint = None, onArea = None):
+	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, onPoint = None, onArea = None, keepAR: bool = True):
 		self.canvas    = canvas
 		self.color     = color
 		self.rectWidth = width
 		self.mode      = Selection.NOSELECTION
 		self.flipY     = flipY
+		self.keepAR    = keepAR
 
 		self.onPoint = onPoint
 		self.onArea  = onArea
@@ -222,7 +223,7 @@ class Selection:
 			self.xe, self.ye = x, y
 
 			# Create selection rectangle
-			self.selectRect = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.width)
+			self.selectRect = self.canvas.create_rectangle(self.xs, self.ys, self.xe, self.ye, outline=self.color, width=self.rectWidth)
 
 		elif self.mode == Selection.AREA and self.active:
 			# Change size of selected area
@@ -268,12 +269,15 @@ class Selection:
 
 		print(f"buttonReleased: mode={self.mode} selected={self.selected} active={self.active}")
 
-	def isActive(self):
+	# Check if selection is in progress
+	def isActive(self) -> bool:
 		return self.active
 	
-	def isSelected(self):
+	# Check if either point or area is selected
+	def isSelected(self) -> bool:
 		return self.selected
 	
+	# Check if point is inside the currently selected area or is matching the currently selected point
 	def isInside(self, x: int, y: int) -> bool:
 		if (self.mode == Selection.AREA or self.mode == Selection.MOVEAREA) and self.selected:
 			return self.xs <= x <= self.xe and self.ys <= y <= self.ye

@@ -131,8 +131,6 @@ class Mandelbrot(Fractal):
 			'size': size
 		})
 
-		
-
 	def setDimensions(self, corner: complex, size: complex):
 		super().setDimensions(size.real, size.imag, corner.real, corner.imag)
 		self.updateParameters({

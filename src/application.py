@@ -73,6 +73,10 @@ class Application:
 
 	def onAreaSelected(self, x1, y1, x2, y2):
 		print(f"Selected area: {x1},{y1} - {x2},{y2}")
+		width, height = self.fractal.mapWH(x2-x1+1, y2-y1+1)
+		corner = self.fractal.mapXY(x1, y1)
+		print(f"Complex = {corner} {width},{height}")
+		self.fractal = Mandelbrot(corner, complex(width, height))
 
 	#
 	# Command handling
