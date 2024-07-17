@@ -100,6 +100,7 @@ class Application:
 	# Event handling
 	#
 
+	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):
 		if 'drawing' in statusInfo:
 			self.gui.statusFrame.setFieldValue('drawing', statusInfo['drawing'])
