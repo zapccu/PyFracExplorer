@@ -105,6 +105,7 @@ class Application:
 		if 'drawing' in statusInfo:
 			self.gui.statusFrame.setFieldValue('drawing', statusInfo['drawing'])
 		if 'progress' in statusInfo:
-			self.gui.statusFrame.setProgress(statusInfo['progress'])
+			self.gui.statusFrame.setFieldValue('progress', statusInfo['progress'])
+			# self.gui.statusFrame.setProgress(statusInfo['progress'])
 		if 'update' not in statusInfo or statusInfo['update'] == True:
 			self.gui.statusFrame.update()

@@ -27,29 +27,29 @@ class StatusFrame(Frame):
 		self.pack(side=BOTTOM, expand=False, fill=X, anchor='nw')
 
 	# Add field to status bar
-	def addField(self, name: str, hSize: int, value: str = "", fg='black', bg='grey'):
+	def addLabel(self, name: str, hSize: int, value: str = "", fg='black', bg='grey'):
 		field = Label(self, width=hSize, text=value, bg=bg, relief=SUNKEN)
 		field.pack_propagate(False)
 		field.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
 		self.field[name] = field
 
-	def addProgressbar(self, length):
-		self.bar = Progressbar(self, length=length)
-		self.bar.pack_propagate(False)
-		self.bar.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
+	def addProgressbar(self, name, length, maximum=100):
+		bar = Progressbar(self, length=length)
+		bar.pack_propagate(False)
+		bar.configure(maximum=maximum)
+		bar.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
+		self.field[name] = bar
 
-	def initProgressbar(self, maxValue):
-		self.bar.configure(maximum=maxValue)
-
-	def setProgress(self, value):
-		self.bar['value'] = value
-		# self.bar.step(value)
-
-	def setFieldValue(self, name: str, value: str, fg='black', bg='grey'):
+	def setFieldValue(self, name: str, value, fg='white', bg='grey'):
 		if name not in self.field:
 			return False
 		else:
-			self.field[name].config(text=value, fg=fg, bg=bg)
+			if isinstance(self.field[name], Label):
+				self.field[name].config(text=value, fg=fg, bg=bg)
+			elif isinstance(self.field[name], Progressbar):
+				self.field[name]['value'] = value
+			else:
+				return False
 			return True
 		
 class DrawFrame(Frame):
@@ -365,10 +365,10 @@ class GUI:
 		self.controlFrame = ControlFrame(self, self.app, controlWidth, height-statusHeight)
 
 		# Add fields to statusframe
-		self.statusFrame.addField('screenCoord', 25, value="0,0")
-		self.statusFrame.addField('complexCoord', 10, value="TEXT")
-		self.statusFrame.addField('drawing', 15, value="Idle")
-		self.statusFrame.addProgressbar(100)
+		self.statusFrame.addLabel('screenCoord', 25, value="0,0")
+		self.statusFrame.addLabel('complexCoord', 10, value="TEXT")
+		self.statusFrame.addLabel('drawing', 15, value="Idle")
+		self.statusFrame.addProgressbar('progress', 100)
 
 		# Screen selection
 		self.selection = Selection(self.drawFrame.canvas, flipY=True)
