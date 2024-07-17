@@ -25,7 +25,7 @@ class StatusFrame(Frame):
 
 		self.pack_propagate = False
 		self.pack(side=BOTTOM, expand=False, fill=X, anchor='nw')
-	
+
 	# Add field to status bar
 	def addField(self, name: str, hSize: int, value: str = "", fg='black', bg='grey'):
 		field = Label(self, width=hSize, text=value, bg=bg, relief=SUNKEN)
@@ -34,7 +34,7 @@ class StatusFrame(Frame):
 		self.field[name] = field
 
 	def addProgressbar(self, length):
-		self.bar = Progressbar(length=length)
+		self.bar = Progressbar(self, length=length)
 		self.bar.pack_propagate(False)
 		self.bar.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
 
@@ -42,7 +42,8 @@ class StatusFrame(Frame):
 		self.bar.configure(maximum=maxValue)
 
 	def setProgress(self, value):
-		self.bar.step(value)
+		self.bar['value'] = value
+		# self.bar.step(value)
 
 	def setFieldValue(self, name: str, value: str, fg='black', bg='grey'):
 		if name not in self.field:
@@ -146,7 +147,7 @@ class Selection:
 	AREA        = 2
 	MOVEAREA    = 3
 
-	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, onPoint = None, onArea = None, keepAR: bool = True):
+	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, keepAR: bool = True, onPoint = None, onArea = None):
 		self.canvas    = canvas
 		self.color     = color
 		self.rectWidth = width
@@ -159,26 +160,31 @@ class Selection:
 
 		self.reset()
 
+	# Enable selection
 	def enable(self):
 		self.canvas.config(cursor='cross')
 		self.enabled = True
 	
+	# Disable selection
 	def disable(self):
 		self.canvas.config(cursor='arrow')
 		self.enabled = False
 
-	def reset(self):
+	# Reset everything, selection is disabled
+	def reset(self, enabled: bool = False):
 		if self.selectRect is not None:
 			self.canvas.delete(self.selectRect)
 			self.selectRect = None
 		
-		self.disable()
+		if not enabled:
+			self.disable()
 
 		self.mode = Selection.NOSELECTION
 		self.selected = False
 		self.active   = False
 		self.xs = self.ys = self.xe = self.ye = 0
 
+	# Return selected point
 	def getPoint(self):
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
@@ -189,6 +195,7 @@ class Selection:
 		else:
 			return self.xs, self.ys
 	
+	# Return selected area
 	def getArea(self):
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
@@ -198,6 +205,7 @@ class Selection:
 		else:
 			return self.xs, self.ys, self.xe, self.ye
 		
+	# Adjust coordinates to keep aspect ratio
 	def keepAspectRatio(self, xe: int, ye: int):
 		if self.keepAR:
 			w = xe-self.xs
@@ -208,7 +216,7 @@ class Selection:
 				return xe, self.ys+w
 		return xe, ye
 
-	# Start selection. Called when button is pressed => point selected
+	# Start selection. Called when left button is pressed => point selected
 	def onLeftButtonPressed(self, event) -> bool:
 		if not self.enabled:
 			return False
@@ -229,8 +237,8 @@ class Selection:
 				self.canvas.config(cursor='hand')
 
 			else:
-				# If button pressed outside selected area, cancel selection and cleanup
-				self.reset()
+				# If button pressed outside selected area, cancel current selection and cleanup. Selection mode stays enabled
+				self.reset(enabled=True)
 
 		else:
 			# Store start point

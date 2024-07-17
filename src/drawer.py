@@ -170,8 +170,9 @@ class Drawer:
 
 		return cLine
 	
-	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int):
+	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
+		self.onStatus = onStatus
 		self.drawMode = self.app.getSetting('drawMode')
 		self.colorMapping = self.app.getSetting('colorMapping')
 		self.maxLen = max(int(min(width, height)/2), 16)
@@ -198,7 +199,7 @@ class Drawer:
 
 		print(fractal.parameters)
 
-		self.drawFnc[self.drawMode](x, y, x2, y2)
+		self.drawFnc[self.drawMode](x, y, x2, y2, updateProgress=True)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit}")
 
@@ -209,16 +210,22 @@ class Drawer:
 
 		return True
 
-	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int):
+	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, updateProgress: bool = False):
+		progress = 0
 		for y in range(y1, y2+1):
-			self.app.update()
+			if updateProgress and self.onStatus is not None:
+				newProgress = int(y/(y2-y1)*100)
+				if newProgress > progress+2:
+					progress = newProgress
+					self.onStatus({ 'progress': progress })
 			if self.cancel: break
 			self.calculateLine(x1, y, x2, Drawer.HORIZONTAL)
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
 		top: ColorLine = None, bottom: ColorLine = None,
-		left: ColorLine = None, right: ColorLine = None):
+		left: ColorLine = None, right: ColorLine = None,
+		updateProgress=False):
 
 		width  = x2-x1+1
 		height = y2-y1+1
@@ -292,4 +299,7 @@ class Drawer:
 				self.drawSquareEstimation(*coList[cr],
 					clList[clRectIdx[cr][0]], clList[clRectIdx[cr][1]], clList[clRectIdx[cr][2]], clList[clRectIdx[cr][3]]
 				)
+				progress = (cr+1)*25
+				if updateProgress and self.onStatus is not None:
+					self.onStatus({ 'progress': progress })
 

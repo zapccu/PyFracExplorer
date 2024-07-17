@@ -86,11 +86,24 @@ class Application:
 		self.gui.selection.reset()
 
 		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
+		self.onStatusUpdate({'drawing': 'Drawing ...'})
 		self.draw = Drawer(self, 800, 800)
-		self.draw.drawFractal(self.fractal, 0, 0, 800, 800)
-		self.gui.statusFrame.setFieldValue('drawing', "{:.2f} s".format(self.draw.calcTime))
+		self.draw.drawFractal(self.fractal, 0, 0, 800, 800, onStatus=self.onStatusUpdate)
+		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
 		
 		self.gui.selection.enable()
 
 	def onCancel(self):
 		self.draw.cancel = True
+
+	#
+	# Event handling
+	#
+
+	def onStatusUpdate(self, statusInfo: dict):
+		if 'drawing' in statusInfo:
+			self.gui.statusFrame.setFieldValue('drawing', statusInfo['drawing'])
+		if 'progress' in statusInfo:
+			self.gui.statusFrame.setProgress(statusInfo['progress'])
+		if 'update' not in statusInfo or statusInfo['update'] == True:
+			self.gui.statusFrame.update()
