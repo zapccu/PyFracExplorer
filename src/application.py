@@ -2,6 +2,7 @@
 from tkinter import *
 from gui import *
 from drawer import *
+from coloreditor import *
 
 class Application:
 
@@ -95,6 +96,10 @@ class Application:
 
 	def onCancel(self):
 		self.draw.cancel = True
+
+	def onColorEdit(self):
+		ce = ColorEditor(self.gui.mainWindow)
+		return
 
 	#
 	# Event handling

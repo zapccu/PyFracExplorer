@@ -124,20 +124,22 @@ class ControlFrame(Frame):
 
 		# Color palette combobox with label
 		self.lblColorPalette = Label(self, text="Color palette", width=25, background=bg, anchor='w')
-		self.lblColorPalette.grid(columnspan=2, column=0, row=5, pady=0)
 		self.cbColorPalette = Combobox(self, state="readonly", values=app.getSettingValues('colorPalette'), width=22, background=bg)
 		self.cbColorPalette.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('colorPalette', self.cbColorPalette.get())
 		)
-		self.cbColorPalette.grid(columnspan=2, column=0, row=6, padx=10, pady=0)
+		self.lblColorPalette.grid(sticky='W', columnspan=2, column=0, row=5, padx=5, pady=0)
+		self.cbColorPalette.grid(sticky='W', columnspan=2, column=0, row=6, padx=5, pady=0)
 		self.cbColorPalette.set(self.app.getSetting('colorPalette'))
+		self.btnColor = Button(self, text="Edit colors", width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onColorEdit())
+		self.btnColor.grid(column=0, row=7, pady=10)
 
 		# Iterations
 		self.lblIterations = Label(self, text="Iterations:", justify='left', background=bg, anchor='w')
-		self.lblIterations.grid(sticky='E', column=0, row=7, pady=5)
 		self.entIterations = Entry(self)
-		self.entIterations.grid(sticky='W', column=1, row=7, pady=5)
+		self.lblIterations.grid(sticky='E', column=0, row=8, pady=5)
+		self.entIterations.grid(sticky='W', column=1, row=9, pady=5)
 
 
 class Selection:
