@@ -101,6 +101,7 @@ class ColorLine:
 				ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation, unique=self.unique),
 				ColorLine(self.graphics, self.x, self.y+mid, length=self.length-mid, orientation=self.orientation, unique=self.unique))
 
+
 class Drawer:
 
 	# Drawing directions
@@ -170,7 +171,7 @@ class Drawer:
 				cLine.append(self.caclulatePoint(x, v))
 
 		return cLine
-	
+
 	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
 		self.onStatus = onStatus

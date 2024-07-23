@@ -107,7 +107,7 @@ class Mandelbrot(Fractal):
 		'maxIter': 256,
 		'corner': complex(-2.0, -1.5),
 		'size': complex(3.0, 3.0),
-		'orbits.diameter': 0,
+		'orbits.diameter': 3,
 		'orbits.tolerance': 1e-10,
 		'calcPotential': False,
 		'calcDistance': False
@@ -169,6 +169,8 @@ class Mandelbrot(Fractal):
 		nZ = self.norm(Z)
 		orbit[0] = nZ
 		distance = complex(1.0)
+		maxDiameter = self.par('orbits.diameter')
+		tolerance = self.par('orbits.tolerance')
 
 		while i<maxIter and nZ < bailout:
 			Z = Z * Z + C
@@ -178,10 +180,11 @@ class Mandelbrot(Fractal):
 
 			nZ = self.norm(Z)
 
-			if self.par('orbits.diameter') > 0 and i >= self.par('orbits.diameter'):
-				for n in range(i-1, i-self.par('orbits.diameter'), -1):
-					if abs(self.orbit[n] - nZ) < self.par('orbits.tolerance'):
+			if maxDiameter > 0 and i >= maxDiameter:
+				for n in range(i-1, i-maxDiameter, -1):
+					if abs(orbit[n] - nZ) < tolerance:
 						diameter = i-n
+						i = maxIter-1
 						break
 			
 			orbit[i] = nZ
@@ -199,7 +202,7 @@ class Mandelbrot(Fractal):
 			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
 
 		return self.result(maxIter=maxIter, iterations=i, Z=Z,
-					 orbit=diameter, distance=dst, potential=potential)
+			orbit=diameter, distance=dst, potential=potential)
 	
 	def getMaxValue(self):
 		return self.par('maxIter')

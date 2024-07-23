@@ -4,6 +4,7 @@ from gui import *
 from drawer import *
 from coloreditor import *
 
+
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
@@ -38,7 +39,7 @@ class Application:
 		# self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 		self.colorTable = {
-			'Grey': ColorTable.createLinearTable(self.fractal.getMaxValue(), Color(0, 0, 0), Color(255, 255, 255)),
+			'Grey': ColorTable.createLinearTable(self.fractal.getMaxValue(), Color(30, 30, 30), Color(255, 255, 255)),
 			'Sinus': ColorTable.createSinusTable(self.fractal.getMaxValue(), theta=[0, 0, 0]),
 			'SinusCosinus': ColorTable.createSinusCosinusTable(self.fractal.getMaxValue())
 		}
