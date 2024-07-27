@@ -103,14 +103,14 @@ class Mandelbrot(Fractal):
 	AUTO_ITER = -1	# Estimate maximum iterations
 
 	defaults = {
-		'bailout': 2.0,
-		'maxIter': 256,
-		'corner': complex(-2.0, -1.5),
-		'size': complex(3.0, 3.0),
-		'orbits.diameter': 3,
+		'bailout':          2.0,
+		'maxIter':          256,
+		'corner':           complex(-2.0, -1.5),
+		'size':             complex(3.0, 3.0),
+		'orbits.diameter':  3,
 		'orbits.tolerance': 1e-10,
-		'calcPotential': False,
-		'calcDistance': False
+		'calcPotential':    False,
+		'calcDistance':     False
 	}
 
 	def __init__(self, corner: complex, size: complex, maxIter: int = 0, flip = False):
@@ -166,19 +166,20 @@ class Mandelbrot(Fractal):
 		# Set initial values for calculation
 		Z = C
 		i = 1
+
 		nZ = self.norm(Z)
 		orbit[0] = nZ
-		distance = complex(1.0)
+
+		distance    = complex(1.0)
 		maxDiameter = self.par('orbits.diameter')
-		tolerance = self.par('orbits.tolerance')
+		tolerance   = self.par('orbits.tolerance')
 
 		while i<maxIter and nZ < bailout:
 			Z = Z * Z + C
+			nZ = self.norm(Z)
 
 			if self.par('calcDistance', default=False):
 				distance = Z * distance * 2.0 + 1
-
-			nZ = self.norm(Z)
 
 			if maxDiameter > 0 and i >= maxDiameter:
 				for n in range(i-1, i-maxDiameter, -1):
