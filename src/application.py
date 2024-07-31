@@ -85,6 +85,7 @@ class Application:
 	#
 	
 	def onDraw(self):
+		self.gui.drawFrame.clearCanvas()
 		self.gui.selection.reset()
 
 		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
@@ -114,4 +115,4 @@ class Application:
 			self.gui.statusFrame.setFieldValue('progress', statusInfo['progress'])
 			# self.gui.statusFrame.setProgress(statusInfo['progress'])
 		if 'update' not in statusInfo or statusInfo['update'] == True:
-			self.gui.statusFrame.update()
+			self.gui.mainWindow.update()

@@ -21,6 +21,7 @@ class Graphics:
 
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
+		self.imageMap = np.zeros([self.height, self.width, 3], dtype=np.uint8)
 
 		self.moveTo(0, 0)
 		self.setColor(intColor = 0xFFFFFF)
@@ -41,16 +42,13 @@ class Graphics:
 
 	# Initialize drawing environment
 	def beginDraw(self) -> bool:
-		self.width  = self.canvas.winfo_reqwidth()
-		self.height = self.canvas.winfo_reqheight()
-		self.imageMap = np.zeros([self.height, self.width, 3], dtype=np.uint8)
 		return True
 
 	# Cleanup drawing environment, update canvas
 	def endDraw(self):
 		self.image = Img.fromarray(self.imageMap, 'RGB')
 		self.tkImage = ImageTk.PhotoImage(self.image)
-		self.image.save("test.png", "png")
+		# self.image.save("test.png", "png")
 		self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
 		self.canvas.update()
 		return
@@ -85,6 +83,14 @@ class Graphics:
 		y = self.flip(y)
 		return self.imageMap[y, x]
 
+	def isUnique(self, x1: int, y1: int, x2: int, y2: int) -> bool:
+		if y1 == y2:
+			y1 = self.flip(y1)
+			return len(np.unique(self.imageMap[y1, x1:x2], axis = 0)) == 1
+		else:
+			y1, y2 = self.flip2(y1, y2)
+			return len(np.unique(self.imageMap[y1:y2, x1], axis = 0)) == 1
+		
 	# Draw a horizontal line excluding end point
 	# Set drawing position to end point
 	def horzLineTo(self, x: int):

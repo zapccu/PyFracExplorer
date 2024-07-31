@@ -14,9 +14,25 @@ Classes:
 
 """
 
+class ProgressBar:
+
+	def __init__(self, parentFrame, maxWidth: int, maxValue: int = 100):
+		self.parentFrame = parentFrame
+		self.maxWidth = maxWidth
+		self.maxValue = maxValue
+		self.delta = maxWidth/maxValue
+		self.canvas = Canvas(parentFrame, width=maxWidth, height=16)
+		self.canvas.pack_propagate(False)
+		self.canvas.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=4)
+		self.bar = self.canvas.create_rectangle(0, 0, 1, 16, fill="#ff0000", width=0)
+
+	def setValue(self, value):
+		newValue = int(self.delta * value)
+		self.canvas.coords(self.bar, 0, 0, newValue, 20)
+
 class StatusFrame(Frame):
 
-	def __init__(self, gui: object, app: object, width: int, height: int = 50):
+	def __init__(self, gui: object, app: object, width: int, height: int = 25):
 		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg='grey')
 
 		self.gui = gui
@@ -33,12 +49,8 @@ class StatusFrame(Frame):
 		field.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
 		self.field[name] = field
 
-	def addProgressbar(self, name, length, maximum=100):
-		bar = Progressbar(self, length=length)
-		bar.pack_propagate(False)
-		bar.configure(maximum=maximum)
-		bar.pack(side=LEFT, expand=False, fill=NONE, anchor="w", padx=2, pady=2)
-		self.field[name] = bar
+	def addProgressbar(self, name, length):
+		self.field[name] = ProgressBar(self, length)
 
 	def setFieldValue(self, name: str, value, fg='white', bg='grey'):
 		if name not in self.field:
@@ -46,8 +58,8 @@ class StatusFrame(Frame):
 		else:
 			if isinstance(self.field[name], Label):
 				self.field[name].config(text=value, fg=fg, bg=bg)
-			elif isinstance(self.field[name], Progressbar):
-				self.field[name]['value'] = value
+			elif isinstance(self.field[name], ProgressBar):
+				self.field[name].setValue(value)
 			else:
 				return False
 			return True
@@ -75,6 +87,10 @@ class DrawFrame(Frame):
 		self.vScroll.config(command=self.canvas.yview)
 		self.canvas.config(xscrollcommand=self.hScroll.set, yscrollcommand=self.vScroll.set)
 		self.canvas.pack(side=LEFT, expand=False, fill=NONE, anchor='nw')
+
+	def clearCanvas(self):
+		self.canvas.delete("all")
+		self.update()
 
 
 class ControlFrame(Frame):

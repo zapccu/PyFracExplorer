@@ -135,6 +135,9 @@ class ColorTable:
 	def getDefColor(self) -> np.ndarray:
 		return self.defColor.rgb
 
+	def __str__(self) -> str:
+		return ','.join(map(str, self.colors))
+	
 	# Return color table entry as rgb value
 	# If key is out of range, the default color is returned
 	def __getitem__(self, idx: int) -> np.ndarray:
@@ -142,11 +145,11 @@ class ColorTable:
 
 	# Return color table entry
 	# If key is out of range, the default color is returned
-	def getColor(self, idx: int) -> Color:
+	def getColor(self, idx: int) -> np.ndarray:
 		if idx >= len(self.colors) or idx < 0:
-			return self.defColor
+			return self.defColor.rgb
 		else:
-			return self.colors[idx]
+			return self.colors[idx].rgb
 	
 	# Map value to palette entry (linear)
 	def mapValueLinear(self, value: int, maxValue: int) -> np.ndarray:

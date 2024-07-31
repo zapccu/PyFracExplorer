@@ -1,10 +1,15 @@
 
 import time
 
-# import numpy as np
+import numpy as np
 
+from numba import jit
 from math import *
 
+"""
+statCalc=0 statFill=0 statSplit=0 statOrbits=79818
+1.8109090328216553 seconds
+"""
 
 class Fractal:
 
@@ -25,6 +30,33 @@ class Fractal:
 		self.calcTime  = 0
 
 		self.parameters = { }	# Parameters depend on fractal type
+
+	def getDefaults(self):
+		return ()
+	
+	def getParameterNames(self):
+		return ()
+
+	def _getParIndex(self, parName: str) -> int:
+		parNames = self.getParameterNames()
+		try:
+			i = parNames.index(parName)
+			return i
+		except ValueError:
+			return -1
+
+	def setDefaults(self):
+		defaultValues = self.getDefaults()
+		for default in defaultValues:
+			setattr(self, default[0], default[1])
+
+	def getDefaultValue(self, parName: str):
+		i = self._getParIndex(parName)
+		if i >= 0:
+			defValues = self.getDefaults()
+			return defValues[i][1]
+		else:
+			return None
 
 	def setDimensions(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
 		self.fractalWidth  = fractalWidth
@@ -49,25 +81,7 @@ class Fractal:
 
 	def mapXY(self, x, y):
 		return self.dxTab[x], self.dyTab[y]
-	
-	# Overwrite existing parameters
-	def setParameters(self, parameters: dict):
-		self.parameters = parameters
-
-	# Merge parameters
-	def updateParameters(self, parameters: dict):
-		self.parameters |= parameters
-
-	# Set or query single parameter
-	def par(self, name: str, value = None, default = None):
-		if value is None:
-			if name in self.parameters:
-				return self.parameters[name]
-			else:
-				return default
-		else:
-			self.parameters[name] = value
-	
+		
 	# Map screen coordinates to fractal coordinates
 	def __getitem__(self, index):
 		return self.mapXY(*index)
@@ -90,99 +104,103 @@ class Fractal:
 		self.endTime = time.time()
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
-	
-	def norm(self, c: complex):
-		return c.real*c.real + c.imag*c.imag
-	
-	def result(self, **kwargs):
-		return kwargs
 
 
 class Mandelbrot(Fractal):
 
-	AUTO_ITER = -1	# Estimate maximum iterations
+	_defaults = (
+		('calcPotential', False),
+		('calcDistance', False),
+		('bailout', 2.0),
+		('maxIter', 256),
+		('corner', complex(-2.0, -1.5)),
+		('size', complex(3.0, 3.0)),
+		('maxDiameter', 3),
+		('tolerance', 1e-10),
+	)
 
-	defaults = {
-		'bailout':          2.0,
-		'maxIter':          256,
-		'corner':           complex(-2.0, -1.5),
-		'size':             complex(3.0, 3.0),
-		'orbits.diameter':  3,
-		'orbits.tolerance': 1e-10,
-		'calcPotential':    False,
-		'calcDistance':     False
-	}
+	_parameterNames = ( 'calcPotential', 'calcDistance', 'bailout', 'maxIter', 'corner', 'size', 'maxDiameter' )
+	_resultNames    = ( 'maxIter', 'iterations', 'Z', 'distance', 'potential' )
 
-	def __init__(self, corner: complex, size: complex, maxIter: int = 0, flip = False):
+	def __init__(self, corner: complex = complex(-2.0, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256, flip = False):
 		super().__init__(size.real, size.imag, corner.real, corner.imag, flip)
 
-		# Zoom factor
-		self.zoom = max(Mandelbrot.defaults['size'].real / size.real, Mandelbrot.defaults['size'].imag / size.imag)
+		self.calcDistance  = False
+		self.calcPotential = False
+		self.bailout       = 2.0
+		self.maxDiameter   = 10
+		self.tolerance     = 1e-10
+
+		# Calculate zoom factor
+		defSize = self.getDefaultValue('size')
+		self.zoom = max(defSize.real / size.real, defSize.imag / size.imag)
 
 		if maxIter == -1:
-			maxIter = max(int(abs(1000 * log(1 / sqrt(self.zoom)))), Mandelbrot.defaults['maxIter'])
-		elif maxIter == 0:
-			maxIter = self.defaults['maxIter']
+			self.maxIter = max(int(abs(1000 * log(1 / sqrt(self.zoom)))), 256)
+		else:
+			self.maxIter = maxIter
 
-		self.setParameters(Mandelbrot.defaults)
-		self.updateParameters({
-			'maxIter': maxIter,
-			'corner': corner,
-			'size': size
-		})
-
-	def setDimensions(self, corner: complex, size: complex):
-		super().setDimensions(size.real, size.imag, corner.real, corner.imag)
-		self.updateParameters({
-			'corner': corner,
-			'size': size
-		})
-
-	def setPeriodicityParameters(self, maxDiameter: int, tolerance: float):
-		self.updateParameters({
-			'orbits.diameter': maxDiameter,
-			'orbits.tolerance': tolerance
-		})
+	def getDefaults(self) -> tuple:
+		return Mandelbrot._defaults
+	
+	def getParameterNames(self) -> tuple:
+		return Mandelbrot._parameterNames
 
 	def mapXY(self, x, y):
 		return complex(self.dxTab[x], self.dyTab[y])
 
+	def beginCalc(self, screenWidth: int, screenHeight: int, flip: bool = False) -> bool:
+		maxIter = 4096 if self.calcDistance else self.maxIter
+		bailout = 100.0 if self.calcPotential else self.bailout
+
+		self.calcParameters = (
+			self.calcPotential,
+			self.calcDistance,
+			bailout*bailout,
+			maxIter,
+			self.maxDiameter,
+			self.tolerance
+		)
+
+		#self.orbit = np.zeros(maxIter, dtype=np.float64)
+
+		return super().beginCalc(screenWidth, screenHeight, flip)
+	
 	# Iterate screen point
-	def iterate(self, x: int, y: int) -> dict:
-		return self.iterateComplex(self.mapXY(x, y))
+	def iterate(self, x: int, y: int):
+		return self.iterateComplex((self.mapXY(x, y),), self.calcParameters)
 	
 	# Iterate complex point
-	# Return dictionary with results
-	def iterateComplex(self, C: complex) -> dict:
-		bailout = 100.0 if self.par('calcPotential', default=False) else self.par('bailout')
-		bailout *= bailout
-		maxIter = 4096 if self.par('calcDistance', default=False) else self.par('maxIter')
-		orbit = [0.0] * maxIter
+	# Return tuple with results
+	@staticmethod
+	@jit(nopython=True, cache=True)
+	def iterateComplex(initValues: tuple, calcPars: tuple):
 
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
 		potential = 1.0		# Default potential
 
 		# Set initial values for calculation
+		distance  = complex(1.0)
+		C = initValues[0]
+		calcPotential, calcDistance, bailout, maxIter, maxDiameter, tolerance = calcPars
 		Z = C
 		i = 1
 
-		nZ = self.norm(Z)
+		orbit = np.zeros(maxIter, dtype=np.float64)
+		nZ = Z.real*Z.real+Z.imag*Z.imag
 		orbit[0] = nZ
-
-		distance    = complex(1.0)
-		maxDiameter = self.par('orbits.diameter')
-		tolerance   = self.par('orbits.tolerance')
 
 		while i<maxIter and nZ < bailout:
 			Z = Z * Z + C
-			nZ = self.norm(Z)
+			nZ = Z.real*Z.real+Z.imag*Z.imag
 
-			if self.par('calcDistance', default=False):
+			if calcDistance:
 				distance = Z * distance * 2.0 + 1
 
-			if maxDiameter > 0 and i >= maxDiameter:
-				for n in range(i-1, i-maxDiameter, -1):
+			first = max(i-maxDiameter, -1)
+			if maxDiameter > 0:
+				for n in range(i-1, first, -1):
 					if abs(orbit[n] - nZ) < tolerance:
 						diameter = i-n
 						i = maxIter-1
@@ -191,7 +209,7 @@ class Mandelbrot(Fractal):
 			orbit[i] = nZ
 			i += 1
 
-		if self.par('calcDistance', default=False):
+		if calcDistance:
 			aZ = abs(Z)
 			dst = sqrt(aZ / abs(distance)) * 0.5 * log(aZ)
 			# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
@@ -199,12 +217,11 @@ class Mandelbrot(Fractal):
 			# Convert to value between 0 and 1:
 			# np.tanh(distance*resolution/size)
 
-		if i < maxIter and self.par('calcPotential', default=False):
+		if i < maxIter and calcPotential:
 			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
 
-		return self.result(maxIter=maxIter, iterations=i, Z=Z,
-			orbit=diameter, distance=dst, potential=potential)
+		return maxIter, i, Z, diameter, dst, potential
 	
 	def getMaxValue(self):
-		return self.par('maxIter')
+		return self.maxIter
 
