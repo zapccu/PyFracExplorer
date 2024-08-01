@@ -29,8 +29,6 @@ class Fractal:
 		self.startTime = 0
 		self.calcTime  = 0
 
-		self.parameters = { }	# Parameters depend on fractal type
-
 	def getDefaults(self):
 		return ()
 	
@@ -76,8 +74,8 @@ class Fractal:
 		self.dx = self.fractalWidth / (self.screenWidth - 1)
 		self.dy = self.fractalHeight / (self.screenHeight - 1)
 
-		self.dxTab = list(map(self.mapX, range(self.screenWidth)))
-		self.dyTab = list(map(self.mapY, range(self.screenHeight)))
+		self.dxTab = np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth)
+		self.dyTab = np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight)
 
 	def mapXY(self, x, y):
 		return self.dxTab[x], self.dyTab[y]
@@ -162,19 +160,17 @@ class Mandelbrot(Fractal):
 			self.tolerance
 		)
 
-		#self.orbit = np.zeros(maxIter, dtype=np.float64)
-
 		return super().beginCalc(screenWidth, screenHeight, flip)
 	
 	# Iterate screen point
-	def iterate(self, x: int, y: int):
-		return self.iterateComplex((self.mapXY(x, y),), self.calcParameters)
+	# def iterate(self, x: int, y: int):
+	#	return self.iterateComplex((self.mapXY(x, y),), self.calcParameters)
 	
 	# Iterate complex point
 	# Return tuple with results
 	@staticmethod
 	@jit(nopython=True, cache=True)
-	def iterateComplex(initValues: tuple, calcPars: tuple):
+	def iterate(initValues: tuple, calcPars: tuple):
 
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
@@ -198,15 +194,16 @@ class Mandelbrot(Fractal):
 			if calcDistance:
 				distance = Z * distance * 2.0 + 1
 
-			first = max(i-maxDiameter, -1)
 			if maxDiameter > 0:
-				for n in range(i-1, first, -1):
+				orbIdx = i % maxDiameter
+				startIdx = maxDiameter-1 if i>= maxDiameter else orbIdx-1
+				for n in range(startIdx, -1, -1):
 					if abs(orbit[n] - nZ) < tolerance:
-						diameter = i-n
+						diameter = orbIdx-n if orbIdx > n else orbIdx+maxDiameter-n
 						i = maxIter-1
 						break
-			
-			orbit[i] = nZ
+				orbit[i] = nZ
+
 			i += 1
 
 		if calcDistance:
