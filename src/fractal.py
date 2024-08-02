@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from numba import jit
+from numba import jit, prange
 from math import *
 
 """
@@ -29,11 +29,19 @@ class Fractal:
 		self.startTime = 0
 		self.calcTime  = 0
 
+		self.calcParameters = []
+
 	def getDefaults(self):
 		return ()
 	
 	def getParameterNames(self):
 		return ()
+	
+	def getParameters(self) -> list:
+		return self.parameters
+	
+	def getCalcParameters(self) -> list:
+		return []
 
 	def _getParIndex(self, parName: str) -> int:
 		parNames = self.getParameterNames()
@@ -143,6 +151,9 @@ class Mandelbrot(Fractal):
 	
 	def getParameterNames(self) -> tuple:
 		return Mandelbrot._parameterNames
+	
+	def getCalcParameters(self) -> list:
+		return [ self.calcPotential, self.calcDistance, self.bailout, self.maxIter, self.maxDiameter, self.tolerance ]
 
 	def mapXY(self, x, y):
 		return complex(self.dxTab[x], self.dyTab[y])
@@ -151,26 +162,47 @@ class Mandelbrot(Fractal):
 		maxIter = 4096 if self.calcDistance else self.maxIter
 		bailout = 100.0 if self.calcPotential else self.bailout
 
-		self.calcParameters = (
-			self.calcPotential,
-			self.calcDistance,
-			bailout*bailout,
-			maxIter,
-			self.maxDiameter,
-			self.tolerance
-		)
+		self.calcParameters = self.getCalcParameters()
 
 		return super().beginCalc(screenWidth, screenHeight, flip)
-	
-	# Iterate screen point
-	# def iterate(self, x: int, y: int):
-	#	return self.iterateComplex((self.mapXY(x, y),), self.calcParameters)
-	
+
+	@jit(nopython=True, cache=True, parallel=True):
+	def calculatePoint(imageMap, x: int, y: int,)
+	@jit(nopython=True, cache=True, parallel=True):
+	def calculateLine(imageMap, x: int, y: int, xy: int, orientation: int,
+				   fncMapCoordindates, fncIterate, fncMapColor,
+				   corner: complex, delta: complex, calcParameter):
+		C = corner
+		lineColor = None
+		uniqueColor = False
+		if orientation == 0:
+			for v in prange(x, xy+1):
+				C = fncMapCoordindates(v, y)
+				maxIter, i, Z, diameter, dst, potential = fncIterate(, *calcParameter)
+				color = fncMapColor(i, maxIter)
+				if lineColor is None:
+					lineColor = color
+					uniqueColor = True
+				else:
+					if not np.array_equal(lineColor, color):
+						uniqueColor = False
+				imageMap[y, v] = color
+				corner += complex(delta.real, 0)
+		else:
+			for v in range(y, xy+1):
+				maxIter, i, Z, diameter, dst, potential = Mandelbrot.iterate(
+					C, calcPotential: bool, calcDistance: bool, bailout: float, maxIter: int, maxDiameter: int, tolerance: float)
+				color = mapColor(i, maxIter)
+				imageMap[v, x] = color
+				corner += complex(0, delta.imag)
+
+		return x, y, uniqueColor, lineColor
+
 	# Iterate complex point
 	# Return tuple with results
 	@staticmethod
 	@jit(nopython=True, cache=True)
-	def iterate(initValues: tuple, calcPars: tuple):
+	def iterate(C: complex, calcPotential: bool, calcDistance: bool, bailout: float, maxIter: int, maxDiameter: int, tolerance: float) -> tuple:
 
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
@@ -178,8 +210,8 @@ class Mandelbrot(Fractal):
 
 		# Set initial values for calculation
 		distance  = complex(1.0)
-		C = initValues[0]
-		calcPotential, calcDistance, bailout, maxIter, maxDiameter, tolerance = calcPars
+		# C = initValues[0]
+		# calcPotential, calcDistance, bailout, maxIter, maxDiameter, tolerance = calcPars
 		Z = C
 		i = 1
 

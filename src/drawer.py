@@ -160,10 +160,8 @@ class Drawer:
 
 	# Iterate point, return mapped color
 	def calculatePoint(self, x: int, y: int) -> np.ndarray:
-		maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(
-			(self.fractal.mapXY(x, y),),
-			self.fractal.calcParameters
-		)
+		maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x, y), *self.fractal.calcParameters)
+
 		if diameter >= 0:
 			self.statOrbits += 1
 			self.minDiameter = min(self.minDiameter, diameter)
