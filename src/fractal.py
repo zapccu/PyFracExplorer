@@ -202,7 +202,7 @@ class Mandelbrot(Fractal):
 	# Return tuple with results
 	@staticmethod
 	@jit(nopython=True, cache=True)
-	def iterate(C: complex, calcPotential: bool, calcDistance: bool, bailout: float, maxIter: int, maxDiameter: int, tolerance: float) -> tuple:
+	def iterate(initValues: tuple, calcPars: tuple):
 
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
