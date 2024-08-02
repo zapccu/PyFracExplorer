@@ -175,17 +175,37 @@ class Drawer:
 	# orientation: 0 = horizontal, 1 = vertical
 	# Calculated line includes endpoint xy
 	# Returns colorline
-	def calculateLine(self, x: int, y: int, xy: int, orientation: int) -> ColorLine:
-		cLine = ColorLine(self.graphics, x, y, length=0, orientation=orientation)
+	def calculateLine(self, x1: int, y1: int, x2: int, y2: int, detectColor: bool = False) -> tuple:
 
-		if orientation == HORIZONTAL:
-			for v in range(x, xy+1):
-				cLine.append(self.calculatePoint(v, y))
+		# cLine = ColorLine(self.graphics, x, y, length=0)
+		bUnique = False
+		
+		if y1 == y2:
+			for x in range(x1, x2+1):
+				maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x, y1), *self.fractal.calcParameters)
+				self.graphics.imageMap[y1, x] = self.mapColor(maxIter, i)
+
+				# cLine.append(self.calculatePoint(v, y))
+			if detectColor and len(np.unique(self.graphics.imageMap[y1:y2, x1], axis = 0)) == 1: bUnique = True
 		else:
-			for v in range(y, xy+1):
-				cLine.append(self.calculatePoint(x, v))
+			for y in range(y1, y2+1):
+				maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x1, y), *self.fractal.calcParameters)
+				self.graphics.imageMap[y, x1] = self.mapColor(maxIter, i)
 
-		return cLine
+				# cLine.append(self.calculatePoint(x, v))
+			if detectColor and len(np.unique(self.graphics.imageMap[y1, x1:x2], axis = 0)) == 1: bUnique = True
+
+		return bUnique, self.graphics.imageMap[y1, x1]
+	
+	@staticmethod
+	def getLineColor(coordinates, imageMap) -> tuple:
+		x1, y1, x2, y2 = coordinates
+		bUnique = False
+		if y1 == y2 and len(np.unique(imageMap[y1, x1:x2+1], axis = 0)) == 1:
+			bUnique = True
+		elif x1 == x2 and len(np.unique(imageMap[y1:y2+1, x1], axis = 0)) == 1:
+			bUnique = True
+		return bUnique, imageMap[x1, y1]
 
 	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
@@ -239,13 +259,11 @@ class Drawer:
 					progress = newProgress
 					self.onStatus({ 'progress': progress })
 			if self.cancel: break
-			self.calculateLine(x1, y, x2, HORIZONTAL)
+			self.calculateLine(x1, y, x2, y)
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
-		top: ColorLine = None, bottom: ColorLine = None,
-		left: ColorLine = None, right: ColorLine = None,
-		updateProgress=False):
+			top = [], bottom = [], left = [], right = [], updateProgress=False):
 
 		width  = x2-x1+1
 		height = y2-y1+1
@@ -254,13 +272,13 @@ class Drawer:
 		
 		# Calculate missing color lines of rectangle
 		# Start/end points are calculated twice
-		if top is None:    top    = self.calculateLine(x1, y1, x2, HORIZONTAL)
-		if bottom is None: bottom = self.calculateLine(x1, y2, x2, HORIZONTAL)
-		if left is None:   left   = self.calculateLine(x1, y1, y2, VERTICAL)
-		if right is None:  right  = self.calculateLine(x2, y1, y2, VERTICAL)
+		if len(top) == 0:    top    = self.calculateLine(x1, y1, x2, y1, detectColor=True)
+		if len(bottom) == 0: bottom = self.calculateLine(x1, y2, x2, y2, detectColor=True)
+		if len(left) == 0:   left   = self.calculateLine(x1, y1, x1, y2, detectColor=True)
+		if len(right) == 0:  right  = self.calculateLine(x2, y1, x2, y2, detectColor=True)
 
 		# Fill rectangle if all sides have the same unique color
-		if minLen < self.maxLen and top == bottom and left == right and left == top:
+		if minLen < self.maxLen and len(top) > 0 and np.array_equal(top, bottom) and np.array_equal(left, right) and np.array_equal(left, top):
 			self.statFill += 1
 			self.graphics.setColor(rgb=top[0])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
@@ -278,8 +296,8 @@ class Drawer:
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			midH = self.calculateLine(x1, midY, x2, HORIZONTAL)
-			midV = self.calculateLine(midX, y1, y2, VERTICAL)
+			self.calculateLine(x1, midY, x2, midY, detectColor=False)
+			self.calculateLine(midX, y1, midX, y2, detectColor=False)
 
 			# Split color lines
 			#
@@ -293,30 +311,43 @@ class Drawer:
 			#  |       |       |
 			#  +---2---+---3---+
 			#
-			clList = []
-			for cl in (top, bottom, left, right, midH, midV):
-				# Mid point belongs to both child lines
-				clList.extend(cl.split())
+			# Line coordinates
+			lcoList = np.array([
+				[x1, y1, midX, y1],
+				[midX, y1, x2, y1],
+				[x1, y2, midX, y2],
+				[midX, y2, x2, y2],
+				[x1, y1, x1, midY],
+				[x1, midY, x1, y2],
+				[x2, y1, x2, midY],
+				[x2, midY, x2, y2],
+				[x1, midY, midX, midY],
+				[midX, midY, x2, midY],
+				[midX, y1, midX, midY],
+				[midX, midY, midX, y2]
+			])
+
+			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap)
 			
 			# Coordinates of child rectangles
-			coList = [
+			rcoList = np.array([
 				[ x1, y1, midX, midY ],	# R1
 				[ midX, y1, x2, midY ],	# R2
 				[ x1, midY, midX, y2 ],	# R3
 				[ midX, midY, x2, y2 ]	# R4
-			]
+			])
 
 			# Color line indices for child rectangles
-			clRectIdx = [
+			clRectIdx = np.array([
 				[ 0, 8, 4, 10 ],	# R1
 				[ 1, 9, 10, 6 ],	# R2
 				[ 8, 2, 5, 11 ],	# R3
 				[ 9, 3, 11, 7 ]		# R4
-			]
+			])
 
 			# Recursively call the function for R1-4
 			for cr in range(0, 4):
-				self.drawSquareEstimation(*coList[cr],
+				self.drawSquareEstimation(*rcoList[cr],
 					clList[clRectIdx[cr][0]], clList[clRectIdx[cr][1]], clList[clRectIdx[cr][2]], clList[clRectIdx[cr][3]]
 				)
 				progress = (cr+1)*25

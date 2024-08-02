@@ -11,6 +11,9 @@ statCalc=0 statFill=0 statSplit=0 statOrbits=79818
 1.8109090328216553 seconds
 """
 
+_F_POTENTIAL = 1
+_F_DISTANCE  = 2
+
 class Fractal:
 
 	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0, flip: bool = False):
@@ -23,6 +26,7 @@ class Fractal:
 		self.offsetY = offsetY
 
 		self.flip = False
+		self.flags = 0
 
 		self.mapScreenCoordinates()
 
@@ -103,6 +107,7 @@ class Fractal:
 		self.screenHeight = screenHeight
 		self.flip = flip
 		self.mapScreenCoordinates()
+		self.calcParameters = self.getCalcParameters()
 		self.startTime = time.time()
 		return True
 
@@ -111,12 +116,36 @@ class Fractal:
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
 
+	@staticmethod
+	@jit(nopython=True, cache=True, parallel=True)
+	def calculatePoint(imageMap, C, fncIterate, calcParameter):
+		return fncIterate(C, *calcParameter)
+
+	@staticmethod
+	@jit(nopython=True, cache=True, parallel=True)
+	def calculateLine(imageMap, x1: int, y1: int, x2: int, y2: int, 
+			fncIterate, fncMapColor, corner: complex, delta: complex, calcParameter):
+		C = corner
+		
+		if y1 == y2:
+			for x in prange(x1, x2+1):
+				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameter)
+				imageMap[y1, x] = fncMapColor(i, maxIter)
+				C += complex(delta.real, 0)
+			bUnique = len(np.unique(imageMap[y1:y2, x1], axis = 0)) == 1
+		else:
+			for y in range(y1, y2+1):
+				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameter)
+				imageMap[y, x1] = fncMapColor(i, maxIter)
+				C += complex(0, delta.imag)
+			bUnique = len(np.unique(imageMap[y1, x1:x2], axis = 0)) == 1
+
+		return imageMap[y1, x1] if bUnique else None
 
 class Mandelbrot(Fractal):
 
 	_defaults = (
-		('calcPotential', False),
-		('calcDistance', False),
+		('flags', 0),
 		('bailout', 2.0),
 		('maxIter', 256),
 		('corner', complex(-2.0, -1.5)),
@@ -125,14 +154,12 @@ class Mandelbrot(Fractal):
 		('tolerance', 1e-10),
 	)
 
-	_parameterNames = ( 'calcPotential', 'calcDistance', 'bailout', 'maxIter', 'corner', 'size', 'maxDiameter' )
+	_parameterNames = ( 'flags', 'bailout', 'maxIter', 'corner', 'size', 'maxDiameter' )
 	_resultNames    = ( 'maxIter', 'iterations', 'Z', 'distance', 'potential' )
 
 	def __init__(self, corner: complex = complex(-2.0, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256, flip = False):
 		super().__init__(size.real, size.imag, corner.real, corner.imag, flip)
 
-		self.calcDistance  = False
-		self.calcPotential = False
 		self.bailout       = 2.0
 		self.maxDiameter   = 10
 		self.tolerance     = 1e-10
@@ -153,56 +180,18 @@ class Mandelbrot(Fractal):
 		return Mandelbrot._parameterNames
 	
 	def getCalcParameters(self) -> list:
-		return [ self.calcPotential, self.calcDistance, self.bailout, self.maxIter, self.maxDiameter, self.tolerance ]
+		maxIter = 4096 if self.flags & _F_DISTANCE else self.maxIter
+		bailout = 100.0 if self.flags & _F_POTENTIAL else self.bailout
+		return [ self.flags, bailout, maxIter, self.maxDiameter, self.tolerance ]
 
 	def mapXY(self, x, y):
 		return complex(self.dxTab[x], self.dyTab[y])
-
-	def beginCalc(self, screenWidth: int, screenHeight: int, flip: bool = False) -> bool:
-		maxIter = 4096 if self.calcDistance else self.maxIter
-		bailout = 100.0 if self.calcPotential else self.bailout
-
-		self.calcParameters = self.getCalcParameters()
-
-		return super().beginCalc(screenWidth, screenHeight, flip)
-
-	# @jit(nopython=True, cache=True, parallel=True):
-	# def calculatePoint(imageMap, x: int, y: int,)
-	@jit(nopython=True, cache=True, parallel=True)
-	def calculateLine(imageMap, x: int, y: int, xy: int, orientation: int,
-				   fncMapCoordindates, fncIterate, fncMapColor,
-				   corner: complex, delta: complex, calcParameter):
-		C = corner
-		lineColor = None
-		uniqueColor = False
-		if orientation == 0:
-			for v in prange(x, xy+1):
-				C = fncMapCoordindates(v, y)
-				maxIter, i, Z, diameter, dst, potential = fncIterate(, *calcParameter)
-				color = fncMapColor(i, maxIter)
-				if lineColor is None:
-					lineColor = color
-					uniqueColor = True
-				else:
-					if not np.array_equal(lineColor, color):
-						uniqueColor = False
-				imageMap[y, v] = color
-				corner += complex(delta.real, 0)
-		else:
-			for v in range(y, xy+1):
-				maxIter, i, Z, diameter, dst, potential = Mandelbrot.iterate(
-					C, calcPotential: bool, calcDistance: bool, bailout: float, maxIter: int, maxDiameter: int, tolerance: float)
-				color = mapColor(i, maxIter)
-				imageMap[v, x] = color
-				corner += complex(0, delta.imag)
-
-		return x, y, uniqueColor, lineColor
 
 	# Iterate complex point
 	# Return tuple with results
 	@staticmethod
 	@jit(nopython=True, cache=True)
-	def iterate(initValues: tuple, calcPars: tuple):
+	def iterate(C, flags, bailout, maxIter, maxDiameter, tolerance):
 
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
@@ -210,20 +199,19 @@ class Mandelbrot(Fractal):
 
 		# Set initial values for calculation
 		distance  = complex(1.0)
-		# C = initValues[0]
-		# calcPotential, calcDistance, bailout, maxIter, maxDiameter, tolerance = calcPars
 		Z = C
 		i = 1
 
-		orbit = np.zeros(maxIter, dtype=np.float64)
 		nZ = Z.real*Z.real+Z.imag*Z.imag
-		orbit[0] = nZ
+		if maxDiameter > 0:
+			orbit = np.zeros(maxIter, dtype=np.float64)
+			orbit[0] = nZ
 
 		while i<maxIter and nZ < bailout:
 			Z = Z * Z + C
 			nZ = Z.real*Z.real+Z.imag*Z.imag
 
-			if calcDistance:
+			if flags & _F_DISTANCE:
 				distance = Z * distance * 2.0 + 1
 
 			if maxDiameter > 0:
@@ -238,7 +226,7 @@ class Mandelbrot(Fractal):
 
 			i += 1
 
-		if calcDistance:
+		if flags & _F_DISTANCE:
 			aZ = abs(Z)
 			dst = sqrt(aZ / abs(distance)) * 0.5 * log(aZ)
 			# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
@@ -246,7 +234,7 @@ class Mandelbrot(Fractal):
 			# Convert to value between 0 and 1:
 			# np.tanh(distance*resolution/size)
 
-		if i < maxIter and calcPotential:
+		if i < maxIter and flags & _F_POTENTIAL:
 			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
 
 		return maxIter, i, Z, diameter, dst, potential
