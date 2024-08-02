@@ -166,9 +166,9 @@ class Mandelbrot(Fractal):
 
 		return super().beginCalc(screenWidth, screenHeight, flip)
 
-	@jit(nopython=True, cache=True, parallel=True):
-	def calculatePoint(imageMap, x: int, y: int,)
-	@jit(nopython=True, cache=True, parallel=True):
+	# @jit(nopython=True, cache=True, parallel=True):
+	# def calculatePoint(imageMap, x: int, y: int,)
+	@jit(nopython=True, cache=True, parallel=True)
 	def calculateLine(imageMap, x: int, y: int, xy: int, orientation: int,
 				   fncMapCoordindates, fncIterate, fncMapColor,
 				   corner: complex, delta: complex, calcParameter):
