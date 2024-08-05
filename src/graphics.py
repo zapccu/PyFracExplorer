@@ -7,7 +7,7 @@ from PIL import Image as Img
 from PIL import ImageTk
 # from skimage.draw import line, line_aa
 
-from colors import *
+import colors as col
 
 """
 Class for graphic operations
@@ -36,7 +36,7 @@ class Graphics:
 	# Flip coordinates of line or rectangle
 	def flip2(self, y1: int, y2: int) -> list[int]:
 		if self.flipY:
-			return (self.height-y2, self.height-y1)
+			return (self.height-y2-1, self.height-y1-1)
 		else:
 			return (y1, y2)
 
@@ -59,25 +59,14 @@ class Graphics:
 		self.y = y
 
 	# Set drawing color to specified color
-	def setColor(self, color: Color = None, intColor: int = Color.NOCOLOR, rgb: np.ndarray = None):
-		if intColor != Color.NOCOLOR:
-			color = Color(intColor = intColor)
-		elif rgb is not None:
-			color = Color(rgb = rgb)
-		elif color is None:
-			color = Color(255, 255, 255)
-		self.color    = str(color)
-		self.rgbColor = color.rgb
+	def setColor(self, rgb: np.ndarray):
+		self.color    = col.rgbToStr(rgb)
+		self.rgbColor = rgb
 
 	# Draw a pixel
-	def setPixelAt(self, x: int, y: int, color = None):
+	def setPixelAt(self, x: int, y: int, rgb: np.ndarray | None = None):
 		y = self.flip(y)
-		if type(color) == np.ndarray:
-			self.imageMap[y, x] = color
-		elif type(color) == int:
-			self.imageMap[y, x] = Color.intRGB(color)
-		else:
-			self.imageMap[y, x] = self.rgbColor
+		self.imageMap[y, x] = self.rgbColor if rgb is None else rgb
 
 	def getPixelAt(self, x: int, y: int) -> np.ndarray:
 		y = self.flip(y)
@@ -117,10 +106,3 @@ class Graphics:
 		y11, y22 = self.flip2(y1, y2)
 		self.imageMap[y11:y22, x1:x2] = self.rgbColor
 
-	"""
-	def drawPalette(self):
-		for i in range(len(self.colors)):
-			self.setColor(idx = i)
-			self.moveTo(10, 10+i)
-			self.horzLineTo(200)
-	"""

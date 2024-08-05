@@ -1,7 +1,8 @@
 
 from numba import jit
 
-from colors import *
+import colors as col
+
 from graphics import *
 from fractal import *
 
@@ -21,9 +22,9 @@ class Drawer:
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 
 		self.colorFnc = {
-			'Linear': self.palette.mapValueLinear,
-			'Modulo': self.palette.mapValueModulo,
-			'RGB':    self.palette.mapValueRGB
+			'Linear': col.mapValueLinear,
+			'Modulo': col.mapValueModulo,
+			'RGB':    col.mapValueRGB
 		}
 
 		self.drawFnc = {
@@ -41,8 +42,8 @@ class Drawer:
 		self.graphics = Graphics(canvas, flipY=True)
 
 	# Set drawing color palette
-	def setPalette(self, colors: ColorTable = ColorTable()):
-		self.palette = colors
+	def setPalette(self, palette: np.ndarray):
+		self.palette = palette
 
 	# Map iteration result to color, return numpy RGB array	
 	def mapColor(self, maxIter, i) -> np.ndarray:
@@ -68,7 +69,7 @@ class Drawer:
 	# orientation: 0 = horizontal, 1 = vertical
 	# Calculated line includes endpoint xy
 	# Returns colorline
-	def calculateLine(self, imageMap, fncIterate,
+	def calculateLine(self, imageMap, fncIterate, fncMapColor, palette,
 			x1: int, y1: int, x2: int, y2: int,
 			flipY: bool = False, detectColor: bool = False) -> np.ndarray:
 
@@ -93,7 +94,7 @@ class Drawer:
 			for y in range(y1, y2+1):
 				maxIter, i, Z, diameter, dst, potential = fncIterate(self.fractal.mapXY(x1, y), *self.fractal.calcParameters)
 				yy = h-y-1 if flipY else y
-				imageMap[yy, x1] = self.mapColor(maxIter, i)
+				imageMap[yy, x1] = fncMapColor(palette, maxIter, i)
 			if detectColor and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
 
 		# Return [ red, green, blue, bUnique ] of start point of line

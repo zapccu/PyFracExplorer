@@ -1,6 +1,10 @@
 
 from graphics import *
 
+"""
+This module is no longer used
+"""
+
 class ColorLine:
 
 	def __init__(self, graphics: Graphics, x: int, y: int, length: int, orientation: int, unique: bool = False):
