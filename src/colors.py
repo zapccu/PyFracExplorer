@@ -192,7 +192,6 @@ class ColorTable:
 	def createLinearTable(numColors: int, startColor: Color, endColor: Color, modFlags: Color = Color(1, 1, 1)):
 		numColors = max(numColors, 2)
 		colors = [Color(0, 0, 0)] * numColors
-		colors = [Color(0, 0, 0)] * numColors
 		colors[0] = startColor
 		colors[-1] = endColor
 
@@ -229,3 +228,48 @@ class ColorTable:
 		for i in range(0, numColors):
 			colors[i] = Color(rgb=CalcColor.mapSinus(i, numColors))
 
+
+# Create a smooth, linear color table
+def createLinearColorTable(numColors: int, startColor: tuple, endColor: tuple) -> np.ndarray:
+	return np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8)
+
+def createRGBColorTable(numColors: int, startColor: tuple, endColor: tuple) -> np.ndarray:
+	return np.array([startColor, endColor])
+
+def createSinusTable(numColors: int, thetas: list = [.85, .0, .15]) -> np.ndarray:
+	numColors = max(numColors, 2)
+	colors = np.linspace(0, 1, numColors)
+	y = np.column_stack(((
+		colors + thetas[0]) * 2 * math.pi,
+		(colors + thetas[1]) * 2 * math.pi,
+		(colors + thetas[2]) * 2 * math.pi)
+	)
+	return ((0.5 + 0.5*np.sin(y)) * 255).astype(np.uint8, copy=False)
+
+def createSinusCosinusTable(numColors: int):
+	colors = np.arange(0, numColors)
+	y = np.column_stack((
+		colors/(numColors-1),
+		(np.cos(colors * 0.1) + 1.0) * 0.5,
+		(np.sin(colors * 0.01) + 1.0) * 0.5)
+	)
+	return (y * 255).astype(np.uint8, copy=False)
+
+# Map value to palette entry (linear)
+def mapValueLinear(palette: np.ndarray, value: int, maxValue: int, defColor: tuple = (0, 0, 0)):
+	if value >= maxValue or value < 0:
+		return defColor
+	idx = value if len(palette) == maxValue else int(len(palette)/maxValue*value)
+	return palette[idx]
+	
+# Map value to palette entry (modulo division)
+def mapValueModulo(palette: np.ndarray, value: int, maxValue: int, defColor: tuple = (0, 0, 0)):
+	if value >= maxValue or value < 0:
+		return defColor
+	idx = value if len(palette) == maxValue else value % len(palette)
+	return palette[idx]
+
+def mapValueRGB(palette: np.ndarray, value: int, maxValue: int, defColor: tuple = (0, 0, 0)):
+	if value >= maxValue or value < 0 or len(palette) < 2:
+		return defColor
+	return [int(palette[0,i]+(palette[1,i]-palette[0,i]+1)/maxValue*value) for i in range(3)]

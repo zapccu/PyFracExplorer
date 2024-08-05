@@ -5,113 +5,6 @@ from colors import *
 from graphics import *
 from fractal import *
 
-HORIZONTAL = 0
-VERTICAL = 1
-
-class ColorLine:
-
-	def __init__(self, graphics: Graphics, x: int, y: int, length: int, orientation: int, unique: bool = False):
-		self.graphics = graphics
-
-		self.x = x
-		self.y = y
-
-		self.orientation = orientation
-
-		if length > 0:
-			if orientation == 0:
-				self.length = min(length, graphics.width)
-			else:
-				self.length = min(length, graphics.height)
-
-			self.checkUnique()
-		else:
-			self.length = 0
-			self.unique = False
-
-	def __repr__(self) -> str:
-		if self.orientation == 0:
-			x2 = self.x+self.length-1
-			return f"H: {self.x},{self.y} -> {self.length} -> {x2},{self.y}"
-		else:
-			y2 = self.y+self.length-1
-			return f"V: {self.x},{self.y} -> {self.length} -> {self.x},{y2}"
-
-	def __len__(self):
-		return self.length
-	
-	# Append color to color line. Consider image dimensions
-	def append(self, color: np.ndarray):
-		if self.orientation == 0 and self.length < self.graphics.width:
-			# self.graphics.imageMap[self.y, self.x+self.length] = color
-			self.graphics.setPixelAt(self.x+self.length, self.y, color)
-		elif self.orientation == 1 and self.length < self.graphics.height:
-			# self.graphics.imageMap[self.y+self.length, self.x] = color
-			self.graphics.setPixelAt(self.x, self.y+self.length, color)
-		else:
-			return
-
-		self.length += 1
-		if self.length > 1 and self.unique == True and not np.array_equal(color, self.graphics.getPixelAt(self.x, self.y)):
-			self.unique = False
-		elif self.length == 1:
-			self.unique = True
-
-	def __setitem__(self, xy, color):
-		if self.orientation == 0 and xy < self.length:
-			self.graphics.imageMap[self.graphics.flip(self.y), xy] = color
-
-		elif self.orientation == 1 and xy < self.length:
-			self.graphics.imageMap[self.graphics.flip(xy), self.x] = color
-
-	# Index operator. xy is an offset to x, y
-	def __getitem__(self, xy):
-		if 0 <= xy <= self.length:
-			if self.orientation == 0:
-				y = self.graphics.flip(self.y)
-				return self.graphics.imageMap[y, self.x+xy]
-			else:
-				y = self.graphics.flip(self.y+xy)
-				return self.graphics.imageMap[y, self.x]
-		return None
-
-	# Check if line has unique color
-	def checkUnique(self) -> bool:
-		if self.length > 0:
-			if self.orientation == 0:
-				self.unique = self.graphics.isUnique(self.x, self.y, self.x+self.length, self.y)
-				# y = self.graphics.flip(self.y)
-				# return len(np.unique(self.graphics.imageMap[y, self.x:self.x+self.length], axis = 0)) == 1
-			else:
-				self.unique = self.graphics.isUnique(self.x, self.y, self.x, self.y+self.length)
-				# y1, y2 = self.graphics.flip2(self.y, self.y+self.length)
-				# return len(np.unique(self.graphics.imageMap[y1:y2, self.x], axis = 0)) == 1
-		else:
-			self.unique = False
-		return self.unique
-
-	def __eq__(self, b):
-		# 2 colorlines are equal, if both have the same unique color. Length doesn't care
-		return self.unique and b.unique and np.array_equal(self.graphics.getPixelAt(self.x, self.y), self.graphics.getPixelAt(b.x, b.y))
-		ya = self.graphics.flip(self.y)
-		yb = self.graphics.flip(b.y)
-		return self.unique and b.unique and np.array_equal(self.graphics.imageMap[ya, self.x], b.graphics.imageMap[yb, b.x])
-		
-	# Split a color line into 2 new color lines, return 2 child color lines
-	def split(self):
-		if self.length < 2:
-			# A line of length < 2 cannot be split
-			return None
-		mid = int(self.length/2)
-		if self.orientation == 0:
-			return (
-				ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation, unique=self.unique),
-				ColorLine(self.graphics, self.x+mid, self.y, length=self.length-mid, orientation=self.orientation, unique=self.unique))
-		else:
-			return (
-				ColorLine(self.graphics, self.x, self.y, length=mid+1, orientation=self.orientation, unique=self.unique),
-				ColorLine(self.graphics, self.x, self.y+mid, length=self.length-mid, orientation=self.orientation, unique=self.unique))
-
 
 class Drawer:
 
@@ -175,37 +68,55 @@ class Drawer:
 	# orientation: 0 = horizontal, 1 = vertical
 	# Calculated line includes endpoint xy
 	# Returns colorline
-	def calculateLine(self, x1: int, y1: int, x2: int, y2: int, detectColor: bool = False) -> tuple:
+	def calculateLine(self, imageMap, fncIterate,
+			x1: int, y1: int, x2: int, y2: int,
+			flipY: bool = False, detectColor: bool = False) -> np.ndarray:
 
-		# cLine = ColorLine(self.graphics, x, y, length=0)
-		bUnique = False
+		w, h, d = self.graphics.imageMap.shape
+		bUnique = 2   # Color not unique
+		y11 = y1
+		y21 = y2
 		
+		# Flip start and end point of vertical line
+		if flipY:
+			y11 = h-y2-1
+			y21 = h-y1-1
+
 		if y1 == y2:
+			# Horizontal line
 			for x in range(x1, x2+1):
-				maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x, y1), *self.fractal.calcParameters)
-				self.graphics.imageMap[y1, x] = self.mapColor(maxIter, i)
-
-				# cLine.append(self.calculatePoint(v, y))
-			if detectColor and len(np.unique(self.graphics.imageMap[y1:y2, x1], axis = 0)) == 1: bUnique = True
-		else:
+				maxIter, i, Z, diameter, dst, potential = fncIterate(self.fractal.mapXY(x, y1), *self.fractal.calcParameters)
+				imageMap[y11, x] = self.mapColor(maxIter, i)
+			if detectColor and all(np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
+		elif x1 == x2:
+			# Vertical line
 			for y in range(y1, y2+1):
-				maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x1, y), *self.fractal.calcParameters)
-				self.graphics.imageMap[y, x1] = self.mapColor(maxIter, i)
+				maxIter, i, Z, diameter, dst, potential = fncIterate(self.fractal.mapXY(x1, y), *self.fractal.calcParameters)
+				yy = h-y-1 if flipY else y
+				imageMap[yy, x1] = self.mapColor(maxIter, i)
+			if detectColor and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
 
-				# cLine.append(self.calculatePoint(x, v))
-			if detectColor and len(np.unique(self.graphics.imageMap[y1, x1:x2], axis = 0)) == 1: bUnique = True
-
-		return bUnique, self.graphics.imageMap[y1, x1]
+		# Return [ red, green, blue, bUnique ] of start point of line
+		return np.append(self.graphics.imageMap[y21, x1], bUnique)
 	
 	@staticmethod
-	def getLineColor(coordinates, imageMap) -> tuple:
+	def getLineColor(coordinates: np.ndarray, imageMap: np.ndarray, flipY: bool = False) -> np.ndarray:
 		x1, y1, x2, y2 = coordinates
-		bUnique = False
-		if y1 == y2 and len(np.unique(imageMap[y1, x1:x2+1], axis = 0)) == 1:
-			bUnique = True
-		elif x1 == x2 and len(np.unique(imageMap[y1:y2+1, x1], axis = 0)) == 1:
-			bUnique = True
-		return bUnique, imageMap[x1, y1]
+		y11 = y1
+		y21 = y2
+		if flipY:
+			w, h, d = imageMap.shape
+			y11 = h-y2-1
+			y21 = h-y1-1
+
+		bUnique = 2
+		if y1 == y2 and all(np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:], axis = 1)):
+			bUnique = 1
+		if x1 == x2 and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)):
+			bUnique = 1
+		
+		# Return [ red, green, blue, bUnique ] of start point of line
+		return np.append(imageMap[y21, x1], bUnique)
 
 	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
@@ -214,7 +125,7 @@ class Drawer:
 		self.colorMapping = self.app.getSetting('colorMapping')
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
-		self.minLen = 8
+		self.minLen = 16
 		self.maxSplit = 10000
 
 		x2 = x + width -1
@@ -259,28 +170,53 @@ class Drawer:
 					progress = newProgress
 					self.onStatus({ 'progress': progress })
 			if self.cancel: break
-			self.calculateLine(x1, y, x2, y)
+			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, x1, y, x2, y, flipY=True)
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
-			top = [], bottom = [], left = [], right = [], updateProgress=False):
+			colors = np.zeros((4, 4), dtype=np.uint8), updateProgress=False):
 
 		width  = x2-x1+1
 		height = y2-y1+1
 		minLen = min(width, height)
 		if minLen < 2: return	# Nothing else to draw
 		
+		# if self.statSplit == 3: return
+
 		# Calculate missing color lines of rectangle
 		# Start/end points are calculated twice
-		if len(top) == 0:    top    = self.calculateLine(x1, y1, x2, y1, detectColor=True)
-		if len(bottom) == 0: bottom = self.calculateLine(x1, y2, x2, y2, detectColor=True)
-		if len(left) == 0:   left   = self.calculateLine(x1, y1, x1, y2, detectColor=True)
-		if len(right) == 0:  right  = self.calculateLine(x2, y1, x2, y2, detectColor=True)
+
+		"""
+		clcoList = np.array([
+			[ x1, y1, x2, y1 ],
+			[ x1, y2, x2, y2 ],
+			[ x1, y1, x1, y2 ],
+			[ x2, y1, x2, y2 ]
+		], dtype=int)
+		"""
+		clcoList = [
+			[ x1, y1, x2, y1 ],
+			[ x1, y2, x2, y2 ],
+			[ x1, y1, x1, y2 ],
+			[ x2, y1, x2, y2 ]
+		]
+
+		i = 0
+		# print("******* Initial rectangle *******")
+		for c in colors:
+			if c[3] == 0:
+				colors[i] = self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, *clcoList[i], flipY=True, detectColor=True)
+			i += 1
+
+		# print(f"Rectanlge colors {x1},{y1} - {x2},{y2}")
+		# print(colors)
 
 		# Fill rectangle if all sides have the same unique color
-		if minLen < self.maxLen and len(top) > 0 and np.array_equal(top, bottom) and np.array_equal(left, right) and np.array_equal(left, top):
+		# if minLen < self.maxLen and len(top) > 0 and np.array_equal(top, bottom) and np.array_equal(left, right) and np.array_equal(left, top):
+		if minLen < self.maxLen and colors[0,3] == 1 and all(np.all(colors == colors[0,:], axis = 1)):
+			# print(f"Fill {x1},{y1} - {x2},{y2} color={colors[0,0:3]}")
 			self.statFill += 1
-			self.graphics.setColor(rgb=top[0])
+			self.graphics.setColor(rgb=colors[0,0:3])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
 
 		elif minLen < self.minLen or self.statSplit >= self.maxSplit:
@@ -296,8 +232,9 @@ class Drawer:
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			self.calculateLine(x1, midY, x2, midY, detectColor=False)
-			self.calculateLine(midX, y1, midX, y2, detectColor=False)
+			# print("Mid lines")
+			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, x1, midY, x2, midY, flipY=True, detectColor=False)
+			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, midX, y1, midX, y2, flipY=True, detectColor=False)
 
 			# Split color lines
 			#
@@ -312,6 +249,7 @@ class Drawer:
 			#  +---2---+---3---+
 			#
 			# Line coordinates
+			"""
 			lcoList = np.array([
 				[x1, y1, midX, y1],
 				[midX, y1, x2, y1],
@@ -325,32 +263,51 @@ class Drawer:
 				[midX, midY, x2, midY],
 				[midX, y1, midX, midY],
 				[midX, midY, midX, y2]
-			])
+			], dtype=int)
 
-			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap)
+			# print("get line colors")
+			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap, flipY=True)
+			"""
 			
+			lcoList = [
+				[x1, y1, midX, y1],
+				[midX, y1, x2, y1],
+				[x1, y2, midX, y2],
+				[midX, y2, x2, y2],
+				[x1, y1, x1, midY],
+				[x1, midY, x1, y2],
+				[x2, y1, x2, midY],
+				[x2, midY, x2, y2],
+				[x1, midY, midX, midY],
+				[midX, midY, x2, midY],
+				[midX, y1, midX, midY],
+				[midX, midY, midX, y2]
+			]
+
+			clList = [[0, 0, 0, 0]] * 12
+			i = 0
+			for lco in lcoList:
+				clList[i] = Drawer.getLineColor(lco, self.graphics.imageMap, flipY=True)
+				i += 1
+			
+			"""
 			# Coordinates of child rectangles
 			rcoList = np.array([
-				[ x1, y1, midX, midY ],	# R1
-				[ midX, y1, x2, midY ],	# R2
-				[ x1, midY, midX, y2 ],	# R3
-				[ midX, midY, x2, y2 ]	# R4
-			])
+				[ x1, y1, midX, midY, 0, 8, 4, 10 ],	# R1
+				[ midX, y1, x2, midY, 1, 9, 10, 6 ],	# R2
+				[ x1, midY, midX, y2, 8, 2, 5, 11 ],	# R3
+				[ midX, midY, x2, y2, 9, 3, 11, 7 ]		# R4
+			], dtype=int)
+			"""
 
-			# Color line indices for child rectangles
-			clRectIdx = np.array([
-				[ 0, 8, 4, 10 ],	# R1
-				[ 1, 9, 10, 6 ],	# R2
-				[ 8, 2, 5, 11 ],	# R3
-				[ 9, 3, 11, 7 ]		# R4
-			])
+			rcoList = [
+				[ x1, y1, midX, midY, 0, 8, 4, 10 ],	# R1
+				[ midX, y1, x2, midY, 1, 9, 10, 6 ],	# R2
+				[ x1, midY, midX, y2, 8, 2, 5, 11 ],	# R3
+				[ midX, midY, x2, y2, 9, 3, 11, 7 ]		# R4
+			]			
 
 			# Recursively call the function for R1-4
-			for cr in range(0, 4):
-				self.drawSquareEstimation(*rcoList[cr],
-					clList[clRectIdx[cr][0]], clList[clRectIdx[cr][1]], clList[clRectIdx[cr][2]], clList[clRectIdx[cr][3]]
-				)
-				progress = (cr+1)*25
-				if updateProgress and self.onStatus is not None:
-					self.onStatus({ 'progress': progress })
-
+			for cr in rcoList:
+				self.drawSquareEstimation(*cr[0:4], np.array([clList[i] for i in cr[4:8]]))
+				# self.drawSquareEstimation(*cr[0:4], clList[cr[4:8]])
