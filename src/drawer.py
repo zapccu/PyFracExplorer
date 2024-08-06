@@ -1,7 +1,7 @@
 
 from typing import Type
 
-from numba import jit, prange
+from numba import njit, prange
 
 import colors as col
 
@@ -51,7 +51,7 @@ class Drawer:
 		self.palette = palette
 
 	@staticmethod
-	@jit(nopython=True, cache=True)
+	@njit(nopython=True, cache=True)
 	def getLineColor(x1, y1, x2, y2, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
 		y11 = y1
 		y21 = y2

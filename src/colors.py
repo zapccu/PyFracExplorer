@@ -3,7 +3,7 @@ import numpy as np
 import math
 import colorsys
 
-from numba import jit, prange
+from numba import njit, prange
 
 
 #
@@ -115,7 +115,7 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 #
 
 # Map value to palette entry (linear)
-@jit(nopython=True, cache=True)
+@njit(nopython=True, cache=True)
 def mapValueLinear(palette: np.ndarray, value: int, maxValue: int):
 	pLen = len(palette)-1
 	if value >= maxValue or value < 0:
@@ -124,7 +124,7 @@ def mapValueLinear(palette: np.ndarray, value: int, maxValue: int):
 	return palette[idx]
 	
 # Map value to palette entry (modulo division)
-@jit(nopython=True, cache=True)
+@njit(nopython=True, cache=True)
 def mapValueModulo(palette: np.ndarray, value: int, maxValue: int):
 	pLen = len(palette)-1
 	if value >= maxValue or value < 0:
@@ -132,7 +132,7 @@ def mapValueModulo(palette: np.ndarray, value: int, maxValue: int):
 	idx = value if pLen == maxValue else value % pLen
 	return palette[idx]
 
-@jit(nopython=True, cache=True)
+@njit(nopython=True, cache=True)
 def mapValueRGB(palette: np.ndarray, value: int, maxValue: int):
 	if value >= maxValue or value < 0:
 		return palette[2]

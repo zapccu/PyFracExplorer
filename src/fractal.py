@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from numba import jit, prange
+from numba import njit, prange
 from math import *
 
 """
@@ -118,7 +118,7 @@ class Fractal:
 	# Calculated line includes endpoint xy
 	# Returns colorline
 	@staticmethod
-	@jit(nopython=True, cache=True, parallel=True)
+	@njit(nopython=True, cache=True, parallel=True)
 	def calculateLine(imageMap: np.ndarray, fncIterate, fncMapColor, palette: np.ndarray,
 			x1: int, y1: int, x2: int, y2: int, dxTab: np.ndarray, dyTab: np.ndarray, calcParameters: tuple,
 			flipY: bool = True, detectColor: bool = False) -> np.ndarray:
@@ -200,7 +200,7 @@ class Mandelbrot(Fractal):
 	# Iterate complex point
 	# Return tuple with results
 	@staticmethod
-	@jit(nopython=True, cache=True)
+	@njit(nopython=True, cache=True)
 	def iterate(C, flags, bailout, maxIter, maxDiameter, tolerance):
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
@@ -214,6 +214,7 @@ class Mandelbrot(Fractal):
 		nZ = Z.real*Z.real+Z.imag*Z.imag
 		if maxDiameter > 0:
 			orbit = np.zeros(maxIter, dtype=np.float64)
+			# orbit = [0.0] * maxDiameter
 			orbit[0] = nZ
 
 		while i<maxIter and nZ < bailout:
