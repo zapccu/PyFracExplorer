@@ -3,12 +3,25 @@ import numpy as np
 import math
 import colorsys
 
+#
+# Color conversion functions
+#
+# A rgb value is a numpy array of type uint8 with 3 elements (red, green, blue)
+#
+
+# Construct rgb value
+def rgb(red: int, green: int, blue: int) -> np.ndarray:
+	return np.asarray([red, green, blue], dtype=np.uint8)
+
+# Convert rgb value to html color string
 def rgbToStr(rgb: np.ndarray) -> str:
 	return '#{:02X}{:02X}{:02X}'.format(rgb[0], rgb[1], rgb[2])
-		
+
+# Convert integer value to rgb value
 def intToRGB(intColor: int) -> np.ndarray:
 	return np.asarray(((intColor >> 16) & 0xFF, (intColor >> 8) & 0xFF, intColor & 0xFF), dtype=np.uint8)
 
+# Convert rgb value to integer value
 def rgbToInt(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
@@ -65,7 +78,10 @@ def phong(normal: complex, light: list[float]):
 	An array row contains the red, green and blue part of a color.
 """
 
-# Create a smooth, linear color table
+#
+# Create color palettes
+#
+
 def createLinearPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	return np.append(np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), defColor)
 
@@ -90,6 +106,10 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 		(np.sin(ct * 0.01) + 1.0) * 0.5)
 	)
 	return np.append((colors * 255).astype(np.uint8, copy=False), defColor)
+
+#
+# Map calculation results to color
+#
 
 # Map value to palette entry (linear)
 def mapValueLinear(palette: np.ndarray, value: int, maxValue: int):

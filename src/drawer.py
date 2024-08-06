@@ -65,41 +65,6 @@ class Drawer:
 		#else:
 		return self.mapColor(maxIter, i)
 
-	# Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
-	# orientation: 0 = horizontal, 1 = vertical
-	# Calculated line includes endpoint xy
-	# Returns colorline
-	def calculateLine(self, imageMap, fncIterate, fncMapColor, palette,
-			x1: int, y1: int, x2: int, y2: int,
-			flipY: bool = False, detectColor: bool = False) -> np.ndarray:
-
-		w, h, d = self.graphics.imageMap.shape
-		bUnique = 2   # Color not unique
-		y11 = y1
-		y21 = y2
-		
-		# Flip start and end point of vertical line
-		if flipY:
-			y11 = h-y2-1
-			y21 = h-y1-1
-
-		if y1 == y2:
-			# Horizontal line
-			for x in range(x1, x2+1):
-				maxIter, i, Z, diameter, dst, potential = fncIterate(self.fractal.mapXY(x, y1), *self.fractal.calcParameters)
-				imageMap[y11, x] = self.mapColor(maxIter, i)
-			if detectColor and all(np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
-		elif x1 == x2:
-			# Vertical line
-			for y in range(y1, y2+1):
-				maxIter, i, Z, diameter, dst, potential = fncIterate(self.fractal.mapXY(x1, y), *self.fractal.calcParameters)
-				yy = h-y-1 if flipY else y
-				imageMap[yy, x1] = fncMapColor(palette, maxIter, i)
-			if detectColor and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
-
-		# Return [ red, green, blue, bUnique ] of start point of line
-		return np.append(self.graphics.imageMap[y21, x1], bUnique)
-	
 	@staticmethod
 	def getLineColor(coordinates: np.ndarray, imageMap: np.ndarray, flipY: bool = False) -> np.ndarray:
 		x1, y1, x2, y2 = coordinates
@@ -164,6 +129,8 @@ class Drawer:
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, updateProgress: bool = False):
 		progress = 0
 		
+		calcParameters = self.fractal.getCalcParameters()
+
 		for y in range(y1, y2+1):
 			if updateProgress and self.onStatus is not None:
 				newProgress = int(y/(y2-y1+1)*100)
@@ -171,7 +138,11 @@ class Drawer:
 					progress = newProgress
 					self.onStatus({ 'progress': progress })
 			if self.cancel: break
-			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, x1, y, x2, y, flipY=True)
+			Fractal.calculateLine(
+				self.graphics.imageMap, Mandelbrot.iterate, col.mapValueLinear, self.palette,
+				x1, y, x2, y, self.fractal.mapXY(x1, y), complex(self.fractal.dx, self.fractal.dy),
+				calcParameters, flipY = True
+			)
 		return True
 	
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
@@ -203,19 +174,15 @@ class Drawer:
 		]
 
 		i = 0
-		# print("******* Initial rectangle *******")
 		for c in colors:
 			if c[3] == 0:
+				colors[i] = Fractal.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, col.mapValueLinear, self.palette,
+									 clcoList[i], self.fractal.mapXY)
 				colors[i] = self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, *clcoList[i], flipY=True, detectColor=True)
 			i += 1
 
-		# print(f"Rectanlge colors {x1},{y1} - {x2},{y2}")
-		# print(colors)
-
 		# Fill rectangle if all sides have the same unique color
-		# if minLen < self.maxLen and len(top) > 0 and np.array_equal(top, bottom) and np.array_equal(left, right) and np.array_equal(left, top):
 		if minLen < self.maxLen and colors[0,3] == 1 and all(np.all(colors == colors[0,:], axis = 1)):
-			# print(f"Fill {x1},{y1} - {x2},{y2} color={colors[0,0:3]}")
 			self.statFill += 1
 			self.graphics.setColor(rgb=colors[0,0:3])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
@@ -233,7 +200,6 @@ class Drawer:
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			# print("Mid lines")
 			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, x1, midY, x2, midY, flipY=True, detectColor=False)
 			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, midX, y1, midX, y2, flipY=True, detectColor=False)
 

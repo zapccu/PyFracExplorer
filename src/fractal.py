@@ -33,8 +33,6 @@ class Fractal:
 		self.startTime = 0
 		self.calcTime  = 0
 
-		self.calcParameters = []
-
 	def getDefaults(self):
 		return ()
 	
@@ -107,7 +105,6 @@ class Fractal:
 		self.screenHeight = screenHeight
 		self.flip = flip
 		self.mapScreenCoordinates()
-		self.calcParameters = self.getCalcParameters()
 		self.startTime = time.time()
 		return True
 
@@ -123,24 +120,46 @@ class Fractal:
 
 	@staticmethod
 	@jit(nopython=True, cache=True, parallel=True)
-	def calculateLine(imageMap, x1: int, y1: int, x2: int, y2: int, 
-			fncIterate, fncMapColor, corner: complex, delta: complex, calcParameter):
-		C = corner
-		
-		if y1 == y2:
-			for x in prange(x1, x2+1):
-				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameter)
-				imageMap[y1, x] = fncMapColor(i, maxIter)
-				C += complex(delta.real, 0)
-			bUnique = len(np.unique(imageMap[y1:y2, x1], axis = 0)) == 1
-		else:
-			for y in range(y1, y2+1):
-				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameter)
-				imageMap[y, x1] = fncMapColor(i, maxIter)
-				C += complex(0, delta.imag)
-			bUnique = len(np.unique(imageMap[y1, x1:x2], axis = 0)) == 1
+	# Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
+	# orientation: 0 = horizontal, 1 = vertical
+	# Calculated line includes endpoint xy
+	# Returns colorline
+	@staticmethod
+	def calculateLine(imageMap: np.ndarray, fncIterate, fncMapColor, palette: np.ndarray,
+			x1: int, y1: int, x2: int, y2: int, startPoint: complex, delta: complex, calcParameters,
+			flipY: bool = False, detectColor: bool = False) -> np.ndarray:
 
-		return imageMap[y1, x1] if bUnique else None
+		w, h, d = imageMap.shape
+		bUnique = 2
+		y11 = y1
+		y21 = y2
+		C = startPoint
+		
+		# Flip start and end point of vertical line
+		if flipY:
+			y11 = h-y2-1
+			y21 = h-y1-1
+
+		if y1 == y2:
+			# Horizontal line
+			delta.imag = 0.0
+			for x in range(x1, x2+1):
+				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameters)
+				imageMap[y11, x] = fncMapColor(palette, maxIter, i)
+				C += delta
+			if detectColor and all(np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
+		elif x1 == x2:
+			# Vertical line
+			delta.real = 0.0
+			for y in range(y1, y2+1):
+				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameters)
+				yy = h-y-1 if flipY else y
+				imageMap[yy, x1] = fncMapColor(palette, maxIter, i)
+				C += delta
+			if detectColor and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)): bUnique = 1
+
+		# Return [ red, green, blue, bUnique ] of start point of line
+		return np.append(imageMap[y21, x1], bUnique)
 
 class Mandelbrot(Fractal):
 

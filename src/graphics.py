@@ -24,7 +24,7 @@ class Graphics:
 		self.imageMap = np.zeros([self.height, self.width, 3], dtype=np.uint8)
 
 		self.moveTo(0, 0)
-		self.setColor(intColor = 0xFFFFFF)
+		self.setColor(col.rgb(255, 255, 255))
 
 	# Flip vertical coordinates
 	def flip(self, y: int) -> int:
