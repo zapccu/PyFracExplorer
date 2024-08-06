@@ -33,10 +33,10 @@ class Graphics:
 		else:
 			return y
 		
-	# Flip coordinates of line or rectangle
+	# Flip coordinates of line or rectangle. Endpoint not included!
 	def flip2(self, y1: int, y2: int) -> list[int]:
 		if self.flipY:
-			return (self.height-y2-1, self.height-y1-1)
+			return (self.height-y2, self.height-y1)
 		else:
 			return (y1, y2)
 

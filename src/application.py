@@ -14,6 +14,11 @@ class Application:
 
 		# Settings
 		self.settings = {
+			'fractalType': {
+				'values': [ 'Mandelbrot' ],
+				'current': 'Mandelbrot',
+				'default': 'Mandelbrot'
+			},
 			'colorMapping': {
 				'values': [ 'Linear', 'Modulo', 'RGB' ],
 				'current': 'Linear',
@@ -54,14 +59,14 @@ class Application:
 		self.gui.mainWindow.update()
 
 	def getSetting(self, parName: str) -> str:
-		if parName in self.settings:
-			return self.settings[parName]['current']
-		else:
-			return self.settings[parName]['default']
+		return self.settings[parName]['current']
 		
 	def setSetting(self, parName: str, value):
 		if parName in self.settings:
-			self.settings[parName]['current'] = value
+			if value is not None and value in self.settings[parName]['values']:
+				self.settings[parName]['current'] = value
+			else:
+				self.settings[parName]['current'] = self.settings[parName]['default']
 		
 	def getSettingValues(self, parName: str) -> list[str]:
 		if parName in self.settings:

@@ -3,6 +3,9 @@ import numpy as np
 import math
 import colorsys
 
+from numba import jit, prange
+
+
 #
 # Color conversion functions
 #
@@ -83,7 +86,7 @@ def phong(normal: complex, light: list[float]):
 #
 
 def createLinearPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
-	return np.append(np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), defColor)
+	return np.vstack((np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), defColor))
 
 def createRGBPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	return np.array([startColor, endColor, defColor])
@@ -96,7 +99,7 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 		(ct + thetas[1]) * 2 * math.pi,
 		(ct + thetas[2]) * 2 * math.pi)
 	)
-	return np.append(((0.5 + 0.5 * np.sin(colors)) * 255).astype(np.uint8, copy=False), defColor)
+	return np.vstack((((0.5 + 0.5 * np.sin(colors)) * 255).astype(np.uint8, copy=False), defColor))
 
 def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 	ct = np.arange(0, numColors)
@@ -105,13 +108,14 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 		(np.cos(ct * 0.1) + 1.0) * 0.5,
 		(np.sin(ct * 0.01) + 1.0) * 0.5)
 	)
-	return np.append((colors * 255).astype(np.uint8, copy=False), defColor)
+	return np.vstack(((colors * 255).astype(np.uint8, copy=False), defColor))
 
 #
 # Map calculation results to color
 #
 
 # Map value to palette entry (linear)
+@jit(nopython=True, cache=True)
 def mapValueLinear(palette: np.ndarray, value: int, maxValue: int):
 	pLen = len(palette)-1
 	if value >= maxValue or value < 0:
@@ -120,6 +124,7 @@ def mapValueLinear(palette: np.ndarray, value: int, maxValue: int):
 	return palette[idx]
 	
 # Map value to palette entry (modulo division)
+@jit(nopython=True, cache=True)
 def mapValueModulo(palette: np.ndarray, value: int, maxValue: int):
 	pLen = len(palette)-1
 	if value >= maxValue or value < 0:
@@ -127,6 +132,7 @@ def mapValueModulo(palette: np.ndarray, value: int, maxValue: int):
 	idx = value if pLen == maxValue else value % pLen
 	return palette[idx]
 
+@jit(nopython=True, cache=True)
 def mapValueRGB(palette: np.ndarray, value: int, maxValue: int):
 	if value >= maxValue or value < 0:
 		return palette[2]

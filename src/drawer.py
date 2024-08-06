@@ -1,5 +1,7 @@
 
-from numba import jit
+from typing import Type
+
+from numba import jit, prange
 
 import colors as col
 
@@ -20,6 +22,9 @@ class Drawer:
 		self.colorMapping  = app.getSetting('colorMapping')
 		self.drawMode      = app.getSetting('drawMode')
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
+		self.iterFnc = {
+			'Mandelbrot': Mandelbrot.iterate
+		}
 
 		self.colorFnc = {
 			'Linear': col.mapValueLinear,
@@ -45,29 +50,9 @@ class Drawer:
 	def setPalette(self, palette: np.ndarray):
 		self.palette = palette
 
-	# Map iteration result to color, return numpy RGB array	
-	def mapColor(self, maxIter, i) -> np.ndarray:
-		if self.colorMapping in self.colorFnc:
-			return self.colorFnc[self.colorMapping](value=i, maxValue=maxIter)
-		else:
-			return self.palette.getDefColor()
-
-	# Iterate point, return mapped color
-	def calculatePoint(self, x: int, y: int) -> np.ndarray:
-		maxIter, i, Z, diameter, dst, potential = self.fractal.iterate(self.fractal.mapXY(x, y), *self.fractal.calcParameters)
-
-		if diameter >= 0:
-			self.statOrbits += 1
-			self.minDiameter = min(self.minDiameter, diameter)
-			self.maxDiameter = max(self.maxDiameter, diameter)
-		#	colors = len(self.palette)
-		#	return self.palette[colors-diameter*8-1]
-		#else:
-		return self.mapColor(maxIter, i)
-
 	@staticmethod
-	def getLineColor(coordinates: np.ndarray, imageMap: np.ndarray, flipY: bool = False) -> np.ndarray:
-		x1, y1, x2, y2 = coordinates
+	@jit(nopython=True, cache=True)
+	def getLineColor(x1, y1, x2, y2, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
 		y11 = y1
 		y21 = y2
 		if flipY:
@@ -76,19 +61,23 @@ class Drawer:
 			y21 = h-y1-1
 
 		bUnique = 2
-		if y1 == y2 and all(np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:], axis = 1)):
+		if y1 == y2 and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]):
 			bUnique = 1
-		if x1 == x2 and all(np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:], axis = 1)):
+		if x1 == x2 and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]):
 			bUnique = 1
 		
 		# Return [ red, green, blue, bUnique ] of start point of line
 		return np.append(imageMap[y21, x1], bUnique)
 
-	def drawFractal(self, fractal: object, x: int, y: int, width: int, height: int, onStatus=None):
+	def drawFractal(self, fractal: Type[Fractal], x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
 		self.onStatus = onStatus
-		self.drawMode = self.app.getSetting('drawMode')
-		self.colorMapping = self.app.getSetting('colorMapping')
+
+		# Get drawing and calculation methods
+		drawFnc = self.drawFnc[self.app.getSetting('drawMode')]
+		iterFnc = self.iterFnc[self.app.getSetting('fractalType')]
+		mapFnc  = self.colorFnc[self.app.getSetting('colorMapping')]
+
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
 		self.minLen = 16
@@ -98,10 +87,8 @@ class Drawer:
 		y2 = y + width -1
 
 		if self.bDrawing == False:
-			if self.graphics.beginDraw() == False:
-				return False
-			if self.fractal.beginCalc(self.width, self.height) == False:
-				return False
+			if self.graphics.beginDraw() == False: return False
+			if self.fractal.beginCalc(self.width, self.height) == False: return False
 			self.cancel = False
 			self.bDrawing = True
 		else:
@@ -114,7 +101,9 @@ class Drawer:
 		self.minDiameter = 256
 		self.maxDiameter = -1
 
-		self.drawFnc[self.drawMode](x, y, x2, y2, updateProgress=False)
+		calcParameters = self.fractal.getCalcParameters()
+		print(calcParameters, len(self.palette))
+		drawFnc(x, y, x2, y2, iterFnc, mapFnc, calcParameters)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
 		print(f"minDiameter={self.minDiameter} maxDiameter={self.maxDiameter}")
@@ -126,34 +115,20 @@ class Drawer:
 
 		return True
 
-	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, updateProgress: bool = False):
-		progress = 0
-		
-		calcParameters = self.fractal.getCalcParameters()
-
+	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, mapFnc, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			if updateProgress and self.onStatus is not None:
-				newProgress = int(y/(y2-y1+1)*100)
-				if newProgress > progress+2:
-					progress = newProgress
-					self.onStatus({ 'progress': progress })
-			if self.cancel: break
 			Fractal.calculateLine(
-				self.graphics.imageMap, Mandelbrot.iterate, col.mapValueLinear, self.palette,
-				x1, y, x2, y, self.fractal.mapXY(x1, y), complex(self.fractal.dx, self.fractal.dy),
-				calcParameters, flipY = True
+				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				x1, y, x2, y, self.fractal.dxTab, self.fractal.dyTab , calcParameters
 			)
-		return True
-	
-	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int,
-			colors = np.zeros((4, 4), dtype=np.uint8), updateProgress=False):
+
+	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int, iterFnc, mapFnc, calcParameters: tuple, 
+			colors: np.ndarray = np.zeros((4, 4), dtype=np.uint8)):
 
 		width  = x2-x1+1
 		height = y2-y1+1
 		minLen = min(width, height)
 		if minLen < 2: return	# Nothing else to draw
-		
-		# if self.statSplit == 3: return
 
 		# Calculate missing color lines of rectangle
 		# Start/end points are calculated twice
@@ -174,23 +149,24 @@ class Drawer:
 		]
 
 		i = 0
-		for c in colors:
-			if c[3] == 0:
-				colors[i] = Fractal.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, col.mapValueLinear, self.palette,
-									 clcoList[i], self.fractal.mapXY)
-				colors[i] = self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, *clcoList[i], flipY=True, detectColor=True)
+		for c in colors[:,3]:
+			if c == 0:
+				colors[i] = Fractal.calculateLine(
+					self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
+				)
 			i += 1
 
 		# Fill rectangle if all sides have the same unique color
-		if minLen < self.maxLen and colors[0,3] == 1 and all(np.all(colors == colors[0,:], axis = 1)):
+		if minLen < self.maxLen and np.all(colors == colors[0]):
 			self.statFill += 1
-			self.graphics.setColor(rgb=colors[0,0:3])
+			self.graphics.setColor(colors[0,0:3])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
 
 		elif minLen < self.minLen or self.statSplit >= self.maxSplit:
 			# Draw line by line
 			# Do not draw the surrounding rectangle (already drawn)
-			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1)
+			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, mapFnc, calcParameters)
 			self.statCalc += 1
 
 		else:
@@ -200,8 +176,15 @@ class Drawer:
 			# Calculate middle lines
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
-			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, x1, midY, x2, midY, flipY=True, detectColor=False)
-			self.calculateLine(self.graphics.imageMap, Mandelbrot.iterate, midX, y1, midX, y2, flipY=True, detectColor=False)
+
+			Fractal.calculateLine(
+				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				x1, midY, x2, midY, self.fractal.dxTab, self.fractal.dyTab, calcParameters
+			)
+			Fractal.calculateLine(
+				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				midX, y1, midX, y2, self.fractal.dxTab, self.fractal.dyTab, calcParameters
+			)
 
 			# Split color lines
 			#
@@ -233,7 +216,7 @@ class Drawer:
 			], dtype=int)
 
 			# print("get line colors")
-			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap, flipY=True)
+			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap)
 			"""
 			
 			lcoList = [
@@ -251,10 +234,10 @@ class Drawer:
 				[midX, midY, midX, y2]
 			]
 
-			clList = [[0, 0, 0, 0]] * 12
+			clList = np.zeros((12, 4), dtype=np.uint8)
 			i = 0
 			for lco in lcoList:
-				clList[i] = Drawer.getLineColor(lco, self.graphics.imageMap, flipY=True)
+				clList[i] = Drawer.getLineColor(*lco, self.graphics.imageMap)
 				i += 1
 			
 			"""
@@ -276,5 +259,6 @@ class Drawer:
 
 			# Recursively call the function for R1-4
 			for cr in rcoList:
-				self.drawSquareEstimation(*cr[0:4], np.array([clList[i] for i in cr[4:8]]))
-				# self.drawSquareEstimation(*cr[0:4], clList[cr[4:8]])
+				# newColors = np.array([clList[i] for i in cr[4:8]])
+				newColors = clList[cr[4:8]]
+				self.drawSquareEstimation(*cr[0:4], iterFnc, mapFnc, calcParameters, newColors)
