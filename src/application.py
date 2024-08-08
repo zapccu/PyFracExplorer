@@ -4,6 +4,9 @@ from gui import *
 
 import colors as col
 
+import fractal as frc
+import mandelbrot as man
+
 from drawer import *
 from coloreditor import *
 
@@ -43,7 +46,7 @@ class Application:
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
 
 		# Default fractal
-		self.fractal = Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
 		# self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 		self.colorTable = {
@@ -86,7 +89,7 @@ class Application:
 		width, height = self.fractal.mapWH(x2-x1+1, y2-y1+1)
 		corner = self.fractal.mapXY(x1, y1)
 		print(f"Complex = {corner} {width},{height}")
-		self.fractal = Mandelbrot(corner, complex(width, height))
+		self.fractal = man.Mandelbrot(corner, complex(width, height))
 
 	#
 	# Command handling

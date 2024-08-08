@@ -6,7 +6,8 @@ from numba import njit, prange
 import colors as col
 
 from graphics import *
-from fractal import *
+import fractal as frc
+import mandelbrot as man
 
 
 class Drawer:
@@ -21,7 +22,7 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': Mandelbrot.iterate
+			'Mandelbrot': man.iterate
 		}
 
 		self.drawFnc = {
@@ -43,7 +44,7 @@ class Drawer:
 		self.palette = palette
 
 	@staticmethod
-	@njit(nopython=True, cache=True)
+	@njit(cache=True)
 	def getLineColor(x1, y1, x2, y2, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
 		y11 = y1
 		y21 = y2
@@ -61,7 +62,7 @@ class Drawer:
 		# Return [ red, green, blue, bUnique ] of start point of line
 		return np.append(imageMap[y21, x1], bUnique)
 
-	def drawFractal(self, fractal: Type[Fractal], x: int, y: int, width: int, height: int, onStatus=None):
+	def drawFractal(self, fractal: Type[frc.Fractal], x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
 		self.onStatus = onStatus
 
@@ -109,7 +110,7 @@ class Drawer:
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			Fractal.calculateLine(
+			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				x1, y, x2, y, self.fractal.dxTab, self.fractal.dyTab , calcParameters
 			)
@@ -143,7 +144,7 @@ class Drawer:
 		i = 0
 		for c in colors[:,3]:
 			if c == 0:
-				colors[i] = Fractal.calculateLine(
+				colors[i] = frc.calculateLine(
 					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
 				)
@@ -169,11 +170,11 @@ class Drawer:
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
 
-			Fractal.calculateLine(
+			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				x1, midY, x2, midY, self.fractal.dxTab, self.fractal.dyTab, calcParameters
 			)
-			Fractal.calculateLine(
+			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				midX, y1, midX, y2, self.fractal.dxTab, self.fractal.dyTab, calcParameters
 			)
