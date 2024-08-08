@@ -19,17 +19,9 @@ class Drawer:
 		self.height   = height
 		self.minLen   = -1
 		self.maxLen   = -1
-		self.colorMapping  = app.getSetting('colorMapping')
-		self.drawMode      = app.getSetting('drawMode')
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
 			'Mandelbrot': Mandelbrot.iterate
-		}
-
-		self.colorFnc = {
-			'Linear': col.mapValueLinear,
-			'Modulo': col.mapValueModulo,
-			'RGB':    col.mapValueRGB
 		}
 
 		self.drawFnc = {
@@ -76,7 +68,7 @@ class Drawer:
 		# Get drawing and calculation methods
 		drawFnc = self.drawFnc[self.app.getSetting('drawMode')]
 		iterFnc = self.iterFnc[self.app.getSetting('fractalType')]
-		mapFnc  = self.colorFnc[self.app.getSetting('colorMapping')]
+		colorMapping = self.app.getSetting('colorMapping')
 
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
@@ -103,7 +95,7 @@ class Drawer:
 
 		calcParameters = self.fractal.getCalcParameters()
 		print(calcParameters, len(self.palette))
-		drawFnc(x, y, x2, y2, iterFnc, mapFnc, calcParameters)
+		drawFnc(x, y, x2, y2, iterFnc, colorMapping, calcParameters)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
 		print(f"minDiameter={self.minDiameter} maxDiameter={self.maxDiameter}")
@@ -115,14 +107,14 @@ class Drawer:
 
 		return True
 
-	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, mapFnc, calcParameters: tuple):
+	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		for y in range(y1, y2+1):
 			Fractal.calculateLine(
-				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				x1, y, x2, y, self.fractal.dxTab, self.fractal.dyTab , calcParameters
 			)
 
-	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int, iterFnc, mapFnc, calcParameters: tuple, 
+	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple, 
 			colors: np.ndarray = np.zeros((4, 4), dtype=np.uint8)):
 
 		width  = x2-x1+1
@@ -152,7 +144,7 @@ class Drawer:
 		for c in colors[:,3]:
 			if c == 0:
 				colors[i] = Fractal.calculateLine(
-					self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
 				)
 			i += 1
@@ -166,7 +158,7 @@ class Drawer:
 		elif minLen < self.minLen or self.statSplit >= self.maxSplit:
 			# Draw line by line
 			# Do not draw the surrounding rectangle (already drawn)
-			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, mapFnc, calcParameters)
+			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
 			self.statCalc += 1
 
 		else:
@@ -178,11 +170,11 @@ class Drawer:
 			midY = y1+int(height/2)
 
 			Fractal.calculateLine(
-				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				x1, midY, x2, midY, self.fractal.dxTab, self.fractal.dyTab, calcParameters
 			)
 			Fractal.calculateLine(
-				self.graphics.imageMap, iterFnc, mapFnc, self.palette,
+				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				midX, y1, midX, y2, self.fractal.dxTab, self.fractal.dyTab, calcParameters
 			)
 
@@ -261,4 +253,4 @@ class Drawer:
 			for cr in rcoList:
 				# newColors = np.array([clList[i] for i in cr[4:8]])
 				newColors = clList[cr[4:8]]
-				self.drawSquareEstimation(*cr[0:4], iterFnc, mapFnc, calcParameters, newColors)
+				self.drawSquareEstimation(*cr[0:4], iterFnc, colorMapping, calcParameters, newColors)

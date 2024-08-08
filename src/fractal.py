@@ -2,9 +2,11 @@
 import time
 
 import numpy as np
+import numba as nb
 
-from numba import njit, prange
 from math import *
+
+import colors as col
 
 """
 statCalc=0 statFill=0 statSplit=0 statOrbits=79818
@@ -13,6 +15,7 @@ statCalc=0 statFill=0 statSplit=0 statOrbits=79818
 
 _F_POTENTIAL = 1
 _F_DISTANCE  = 2
+
 
 class Fractal:
 
@@ -118,8 +121,8 @@ class Fractal:
 	# Calculated line includes endpoint xy
 	# Returns colorline
 	@staticmethod
-	@njit(nopython=True, cache=True, parallel=True)
-	def calculateLine(imageMap: np.ndarray, fncIterate, fncMapColor, palette: np.ndarray,
+	@nb.njit(cache=True, parallel=True)
+	def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
 			x1: int, y1: int, x2: int, y2: int, dxTab: np.ndarray, dyTab: np.ndarray, calcParameters: tuple,
 			flipY: bool = True, detectColor: bool = False) -> np.ndarray:
 
@@ -135,18 +138,18 @@ class Fractal:
 
 		if y1 == y2:
 			# Horizontal line
-			for x in prange(x1, x2+1):
+			for x in nb.prange(x1, x2+1):
 				C = complex(dxTab[x], dyTab[y1])
-				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameters)
-				imageMap[y11, x] = fncMapColor(palette, i, maxIter)
+				maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
+				imageMap[y11, x] = col.mapColorValue(palette, i, maxIter, colorMapping)
 			if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
 		elif x1 == x2:
 			# Vertical line
-			for y in prange(y1, y2+1):
+			for y in nb.prange(y1, y2+1):
 				C = complex(dxTab[x1], dyTab[y])
-				maxIter, i, Z, diameter, dst, potential = fncIterate(C, *calcParameters)
+				maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
 				yy = h-y-1 if flipY else y
-				imageMap[yy, x1] = fncMapColor(palette, i, maxIter)
+				imageMap[yy, x1] = col.mapColorValue(palette, i, maxIter, colorMapping)
 			if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
 
 		# Return [ red, green, blue, bUnique ] of start point of line
@@ -156,23 +159,19 @@ class Mandelbrot(Fractal):
 
 	_defaults = (
 		('flags', 0),
-		('bailout', 2.0),
 		('maxIter', 256),
 		('corner', complex(-2.0, -1.5)),
 		('size', complex(3.0, 3.0)),
-		('maxDiameter', 10),
-		('tolerance', 1e-10),
+		('maxDiameter', 10)
 	)
 
-	_parameterNames = ( 'flags', 'bailout', 'maxIter', 'corner', 'size', 'maxDiameter' )
-	_resultNames    = ( 'maxIter', 'iterations', 'Z', 'distance', 'potential' )
+	_parameterNames = ( 'flags', 'maxIter', 'corner', 'size', 'maxDiameter' )
+	_resultNames    = ( 'maxIter', 'iterations', 'Z', 'distance' )
 
 	def __init__(self, corner: complex = complex(-2.0, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256, flip = False):
 		super().__init__(size.real, size.imag, corner.real, corner.imag, flip)
 
-		self.bailout       = 2.0
 		self.maxDiameter   = 10
-		self.tolerance     = 1e-10
 
 		# Calculate zoom factor
 		defSize = self.getDefaultValue('size')
@@ -191,8 +190,7 @@ class Mandelbrot(Fractal):
 	
 	def getCalcParameters(self) -> tuple:
 		maxIter = 4096 if self.flags & _F_DISTANCE else self.maxIter
-		bailout = 100.0 if self.flags & _F_POTENTIAL else self.bailout
-		return (self.flags, bailout*bailout, maxIter, self.maxDiameter, self.tolerance)
+		return (self.flags, maxIter, self.maxDiameter)
 
 	def mapXY(self, x, y):
 		return complex(self.dxTab[x], self.dyTab[y])
@@ -200,11 +198,12 @@ class Mandelbrot(Fractal):
 	# Iterate complex point
 	# Return tuple with results
 	@staticmethod
-	@njit(nopython=True, cache=True)
-	def iterate(C, flags, bailout, maxIter, maxDiameter, tolerance):
+	@nb.njit(cache=True)
+	def iterate(C, flags, maxIter, maxDiameter):
 		dst       = 0		# Default distance
 		diameter  = -1		# Default orbit diameter
-		potential = 1.0		# Default potential
+
+		bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
 
 		# Set initial values for calculation
 		distance  = complex(1.0)
@@ -213,7 +212,7 @@ class Mandelbrot(Fractal):
 
 		nZ = Z.real*Z.real+Z.imag*Z.imag
 		if maxDiameter > 0:
-			orbit = np.zeros(maxIter, dtype=np.float64)
+			orbit = np.zeros(maxIter, dtype=np.float32)
 			# orbit = [0.0] * maxDiameter
 			orbit[0] = nZ
 
@@ -228,7 +227,7 @@ class Mandelbrot(Fractal):
 				orbIdx = i % maxDiameter
 				startIdx = maxDiameter-1 if i>= maxDiameter else orbIdx-1
 				for n in range(startIdx, -1, -1):
-					if abs(orbit[n] - nZ) < tolerance:
+					if abs(orbit[n] - nZ) < 1e-10:
 						diameter = orbIdx-n if orbIdx > n else orbIdx+maxDiameter-n
 						i = maxIter-1
 						break
@@ -244,11 +243,61 @@ class Mandelbrot(Fractal):
 			# Convert to value between 0 and 1:
 			# np.tanh(distance*resolution/size)
 
-		if i < maxIter and flags & _F_POTENTIAL:
-			potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
-
-		return maxIter, i, Z, diameter, dst, potential
+		# if i < maxIter and flags & _F_POTENTIAL:
+		#	potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
+		# We do not return potential. Can be calculated from other results
+		return maxIter, i, Z, diameter, dst
 	
+	@staticmethod
+	@nb.guvectorize([(nb.complex64[:], nb.int32, nb.int32, nb.int32, nb.int32[:], nb.int32[:], nb.float32[:], nb.int32[:], nb.float32[:])], '(n),(),(),() -> (n),(n),(n),(n),(n)')
+	def calculateArray(C, flags, maxIter, maxDiameter, M, I, Z, O, D):
+		for p in range(C.shape[0]):
+			dst       = 0		# Default distance
+			diameter  = -1		# Default orbit diameter
+			bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
+
+			# Set initial values for calculation
+			distance  = complex(1.0)
+			c = C[p]
+			z = complex(0, 0)
+
+			if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
+
+			for i in range(maxIter):
+				nz = z.real*z.real+z.imag*z.imag
+				if nz > bailout: break
+				z = z * z + c
+
+				if flags & _F_DISTANCE: distance = z * distance * 2.0 + 1
+
+				if maxDiameter > 0 and i > 0:
+					orbIdx = i % maxDiameter
+					startIdx = maxDiameter-1 if i>= maxDiameter else orbIdx-1
+					for n in range(startIdx, -1, -1):
+						if abs(orbit[n] - nz) < 1e-10:
+							diameter = orbIdx-n if orbIdx > n else orbIdx+maxDiameter-n
+							i = maxIter-1
+							break
+					orbit[i] = nz
+
+			if flags & _F_DISTANCE:
+				az = sqrt(nz)
+				dst = sqrt(az / abs(distance)) * 0.5 * log(az)
+				# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
+				# distance = aZ / abs(distance) * 2.0 * log(aZ)
+				# Convert to value between 0 and 1:
+				# np.tanh(distance*resolution/size)
+
+				# if i < maxIter and flags & _F_POTENTIAL:
+				#	potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
+				# We do not return potential. Can be calculated from other results
+
+			M[p] = maxIter
+			I[p] = i
+			Z[p] = nz
+			O[p] = diameter
+			D[p] = dst
+
 	def getMaxValue(self):
 		return self.maxIter
 
