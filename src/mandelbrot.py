@@ -66,21 +66,16 @@ def iterate(C, flags, maxIter, maxDiameter):
 
 	# Set initial values for calculation
 	distance  = complex(1.0)
-	Z = C
-	i = 1
+	Z = complex(0,0)
 
-	nZ = Z.real*Z.real+Z.imag*Z.imag
-	if maxDiameter > 0:
-		orbit = np.zeros(maxIter, dtype=np.float32)
-		# orbit = [0.0] * maxDiameter
-		orbit[0] = nZ
+	if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
 
-	while i<maxIter and nZ < bailout:
+	for i in range(maxIter+1):
+		nZ = Z.real * Z.real + Z.imag * Z.imag
+		if nZ > bailout: break
 		Z = Z * Z + C
-		nZ = Z.real*Z.real+Z.imag*Z.imag
 
-		if flags & _F_DISTANCE:
-			distance = Z * distance * 2.0 + 1
+		if flags & _F_DISTANCE: distance = Z * distance * 2.0 + 1
 
 		if maxDiameter > 0:
 			orbIdx = i % maxDiameter
@@ -88,11 +83,9 @@ def iterate(C, flags, maxIter, maxDiameter):
 			for n in range(startIdx, -1, -1):
 				if abs(orbit[n] - nZ) < 1e-10:
 					diameter = orbIdx-n if orbIdx > n else orbIdx+maxDiameter-n
-					i = maxIter-1
+					i = maxIter
 					break
 			orbit[i] = nZ
-
-		i += 1
 
 	if flags & _F_DISTANCE:
 		aZ = abs(Z)
@@ -122,7 +115,7 @@ def calculateArray(C, flags, maxIter, maxDiameter, M, I):
 
 		if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
 
-		for i in range(maxIter):
+		for i in range(maxIter+1):
 			nz = z.real*z.real+z.imag*z.imag
 			if nz > bailout: break
 			z = z * z + c

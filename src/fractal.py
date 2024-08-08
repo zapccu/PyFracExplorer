@@ -8,13 +8,6 @@ from math import *
 
 import colors as col
 
-"""
-statCalc=0 statFill=0 statSplit=0 statOrbits=79818
-1.8109090328216553 seconds
-"""
-
-
-
 
 class Fractal:
 
@@ -114,6 +107,11 @@ class Fractal:
 		self.endTime = time.time()
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
+
+
+"""
+Functions optimized by Numba
+"""
 
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 # orientation: 0 = horizontal, 1 = vertical

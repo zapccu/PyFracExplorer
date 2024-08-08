@@ -141,9 +141,20 @@ class Drawer:
 			[ x2, y1, x2, y2 ]
 		]
 
+		"""
 		i = 0
 		for c in colors[:,3]:
 			if c == 0:
+				colors[i] = frc.calculateLine(
+					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
+				)
+			i += 1
+		"""
+		
+		i = 0
+		for c in colors:
+			if not c.any():
 				colors[i] = frc.calculateLine(
 					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
