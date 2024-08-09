@@ -22,7 +22,7 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette       = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': man.iterate
+			'Mandelbrot': man.calculateArray
 		}
 
 		self.drawFnc = {
@@ -112,7 +112,7 @@ class Drawer:
 		for y in range(y1, y2+1):
 			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				x1, y, x2, y, self.fractal.dxTab, self.fractal.dyTab , calcParameters
+				x1, y, x2, y, self.fractal.cplxGrid , calcParameters
 			)
 
 	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple, 
@@ -147,7 +147,7 @@ class Drawer:
 			if c == 0:
 				colors[i] = frc.calculateLine(
 					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
+					*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
 				)
 			i += 1
 		"""
@@ -157,7 +157,7 @@ class Drawer:
 			if not c.any():
 				colors[i] = frc.calculateLine(
 					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					*clcoList[i], self.fractal.dxTab, self.fractal.dyTab, calcParameters, detectColor=True
+					*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
 				)
 			i += 1
 
@@ -183,11 +183,11 @@ class Drawer:
 
 			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				x1, midY, x2, midY, self.fractal.dxTab, self.fractal.dyTab, calcParameters
+				x1, midY, x2, midY, self.fractal.cplxGrid, calcParameters
 			)
 			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				midX, y1, midX, y2, self.fractal.dxTab, self.fractal.dyTab, calcParameters
+				midX, y1, midX, y2, self.fractal.cplxGrid, calcParameters
 			)
 
 			# Split color lines

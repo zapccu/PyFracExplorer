@@ -68,28 +68,24 @@ class Fractal:
 		self.offsetY = offsetY
 		self.mapScreenCoordinates()
 
-	def mapX(self, x) -> float:
+	def mapX(self, x: int) -> float:
 		return self.offsetX + x * self.dx
 	
-	def mapY(self, y) -> float:
+	def mapY(self, y: int) -> float:
 		return self.offsetY + y * self.dy
 
-	# Create tables with mapping of screen coordinates to fractal coordinates
+	# Create matrix with mapping of screen coordinates to fractal coordinates
 	def mapScreenCoordinates(self):
 		self.dx = self.fractalWidth / (self.screenWidth - 1)
 		self.dy = self.fractalHeight / (self.screenHeight - 1)
+		dxTab = np.outer(np.ones((self.screenWidth,), dtype=np.float32), np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth, dtype=np.float32))
+		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight, dtype=np.float32), np.ones((self.screenHeight,), dtype=np.complex64))
+		self.cplxGrid = dxTab + dyTab
 
-		self.dxTab = np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth)
-		self.dyTab = np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight)
-
-	def mapXY(self, x, y):
-		return self.dxTab[x], self.dyTab[y]
+	def mapXY(self, x: int, y: int) -> complex:
+		return self.cplxGrid[y,x]
 		
-	# Map screen coordinates to fractal coordinates
-	def __getitem__(self, index):
-		return self.mapXY(*index)
-	
-	def mapWH(self, width: int, height: int):
+	def mapWH(self, width: int, height: int) -> tuple:
 		return self.dx * width, self.dy * height
 	
 	def getMaxValue(self):
@@ -108,6 +104,8 @@ class Fractal:
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
 
+# calculation function list
+fncList = []
 
 """
 Functions optimized by Numba
@@ -117,9 +115,9 @@ Functions optimized by Numba
 # orientation: 0 = horizontal, 1 = vertical
 # Calculated line includes endpoint xy
 # Returns colorline
-@nb.njit(cache=True, parallel=True)
+# @nb.njit(cache=True, parallel=True)
 def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
-		x1: int, y1: int, x2: int, y2: int, dxTab: np.ndarray, dyTab: np.ndarray, calcParameters: tuple,
+		x1: int, y1: int, x2: int, y2: int, cplxGrid: np.ndarray, calcParameters: tuple,
 		flipY: bool = True, detectColor: bool = False) -> np.ndarray:
 
 	w, h, d = imageMap.shape
@@ -134,26 +132,26 @@ def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: 
 
 	if y1 == y2:
 		# Horizontal line
-		"""
-		C = np.linspace(complex(dxTab[x1], dyTab[y1]), complex(dxTab[x2], dyTab[y1]), x2-x1+1, dtype=np.complex64)
-		M, I = fncIterate(C, *calcParameters)
-		p = 0
-		for x in range(x1, x2+1):
-			imageMap[y11, x] = col.mapColorValue(palette, I[p], M[p], colorMapping)
-			p += 1
+		C = cplxGrid[y1,x1:x2+1]
+		imageMap[y11,x1:x2+1] = fncIterate(C, palette, *calcParameters)
 		"""
 		for x in nb.prange(x1, x2+1):
-			C = complex(dxTab[x], dyTab[y1])
+			C = cplxGrid[y1,x]
 			maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
 			imageMap[y11, x] = col.mapColorValue(palette, i, maxIter, colorMapping)
+		"""
 		if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
 	elif x1 == x2:
 		# Vertical line
+		C = cplxGrid[y1:y2+1,x1]
+		imageMap[y11:y21+1,x1] = fncIterate(C, palette, *calcParameters)
+		"""
 		for y in nb.prange(y1, y2+1):
-			C = complex(dxTab[x1], dyTab[y])
+			C = cplxGrid[y,x1]
 			maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
 			yy = h-y-1 if flipY else y
 			imageMap[yy, x1] = col.mapColorValue(palette, i, maxIter, colorMapping)
+		"""
 		if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
 
 	# Return [ red, green, blue, bUnique ] of start point of line

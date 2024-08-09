@@ -48,10 +48,7 @@ class Mandelbrot(frc.Fractal):
 	def getCalcParameters(self) -> tuple:
 		maxIter = 4096 if self.flags & _F_DISTANCE else self.maxIter
 		return (self.flags, maxIter, self.maxDiameter)
-
-	def mapXY(self, x, y):
-		return complex(self.dxTab[x], self.dyTab[y])
-
+	
 	def getMaxValue(self):
 		return self.maxIter
 	
@@ -59,23 +56,22 @@ class Mandelbrot(frc.Fractal):
 # Return tuple with results
 @nb.njit(cache=True)
 def iterate(C, flags, maxIter, maxDiameter):
-	dst       = 0		# Default distance
-	diameter  = -1		# Default orbit diameter
-
+	dst       = 0
+	diameter  = -1
 	bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
 
 	# Set initial values for calculation
-	distance  = complex(1.0)
-	Z = complex(0,0)
+	D = complex(1.0)
+	Z = C
 
 	if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
 
-	for i in range(maxIter+1):
+	for i in range(1, maxIter+1):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout: break
 		Z = Z * Z + C
 
-		if flags & _F_DISTANCE: distance = Z * distance * 2.0 + 1
+		if flags & _F_DISTANCE: D = Z * D * 2.0 + 1
 
 		if maxDiameter > 0:
 			orbIdx = i % maxDiameter
@@ -89,7 +85,7 @@ def iterate(C, flags, maxIter, maxDiameter):
 
 	if flags & _F_DISTANCE:
 		aZ = abs(Z)
-		dst = sqrt(aZ / abs(distance)) * 0.5 * log(aZ)
+		dst = sqrt(aZ / abs(D)) * 0.5 * log(aZ)
 		# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
 		# distance = aZ / abs(distance) * 2.0 * log(aZ)
 		# Convert to value between 0 and 1:
@@ -100,22 +96,21 @@ def iterate(C, flags, maxIter, maxDiameter):
 	# We do not return potential. Can be calculated from other results
 	return maxIter, i, Z, diameter, dst
 	
-# @nb.guvectorize([(nb.complex64[:], nb.int32, nb.int32, nb.int32, nb.int32[:], nb.int32[:], nb.float32[:], nb.int32[:], nb.float32[:])], '(n),(),(),() -> (n),(n),(n),(n),(n)', nopython=True, cache=True, target='cpu')
-@nb.guvectorize([(nb.complex64[:], nb.int32, nb.int32, nb.int32, nb.int32[:], nb.int32[:])], '(n),(),(),() -> (n),(n)', nopython=True, cache=True, target='cpu')
-def calculateArray(C, flags, maxIter, maxDiameter, M, I):
+@nb.guvectorize([(nb.complex64[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:,:])], '(n),(n,n),(),(),() -> (n,n,n)', nopython=True, cache=True, target='cpu')
+def calculateArray(C, P, flags, maxIter, maxDiameter, COL):
 	for p in range(C.shape[0]):
-		dst       = 0		# Default distance
-		diameter  = -1		# Default orbit diameter
+		dst       = 0
+		diameter  = -1
 		bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
 
 		# Set initial values for calculation
 		distance  = complex(1.0)
 		c = C[p]
-		z = complex(0, 0)
+		z = c
 
 		if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
 
-		for i in range(maxIter+1):
+		for i in range(1, maxIter+1):
 			nz = z.real*z.real+z.imag*z.imag
 			if nz > bailout: break
 			z = z * z + c
@@ -144,8 +139,9 @@ def calculateArray(C, flags, maxIter, maxDiameter, M, I):
 			#	potential = min(max(0.5*log(nZ)/pow(2.0,float(i)), 0.0), 1.0)
 			# We do not return potential. Can be calculated from other results
 
-		M[p] = maxIter	# Maximum number of iterations
-		I[p] = i		# Iterations
+		COL[p] = col.mapColorValue(P, i, maxIter, 0)
+		# M[p] = maxIter	# Maximum number of iterations
+		# I[p] = i		# Iterations
 		#Z[p] = nz		# norm(Zn)
 		#O[p] = diameter	# Orbit diameter
 		#D[p] = dst		# Distance to Mandelbrot set
