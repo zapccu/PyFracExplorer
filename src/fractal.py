@@ -115,7 +115,7 @@ Functions optimized by Numba
 # orientation: 0 = horizontal, 1 = vertical
 # Calculated line includes endpoint xy
 # Returns colorline
-# @nb.njit(cache=True, parallel=True)
+@nb.njit(cache=True, parallel=True)
 def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
 		x1: int, y1: int, x2: int, y2: int, cplxGrid: np.ndarray, calcParameters: tuple,
 		flipY: bool = True, detectColor: bool = False) -> np.ndarray:
@@ -132,26 +132,17 @@ def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: 
 
 	if y1 == y2:
 		# Horizontal line
-		C = cplxGrid[y1,x1:x2+1]
-		imageMap[y11,x1:x2+1] = fncIterate(C, palette, *calcParameters)
-		"""
 		for x in nb.prange(x1, x2+1):
 			C = cplxGrid[y1,x]
-			maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
+			maxIter, i, Z, diameter, dst = fncIterate(cplxGrid[y1,x], *calcParameters)
 			imageMap[y11, x] = col.mapColorValue(palette, i, maxIter, colorMapping)
-		"""
 		if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
 	elif x1 == x2:
 		# Vertical line
-		C = cplxGrid[y1:y2+1,x1]
-		imageMap[y11:y21+1,x1] = fncIterate(C, palette, *calcParameters)
-		"""
 		for y in nb.prange(y1, y2+1):
-			C = cplxGrid[y,x1]
-			maxIter, i, Z, diameter, dst = fncIterate(C, *calcParameters)
+			maxIter, i, Z, diameter, dst = fncIterate(cplxGrid[y,x1], *calcParameters)
 			yy = h-y-1 if flipY else y
 			imageMap[yy, x1] = col.mapColorValue(palette, i, maxIter, colorMapping)
-		"""
 		if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
 
 	# Return [ red, green, blue, bUnique ] of start point of line

@@ -20,9 +20,9 @@ class Drawer:
 		self.height   = height
 		self.minLen   = -1
 		self.maxLen   = -1
-		self.palette       = app.colorTable[app.getSetting('colorPalette')]
+		self.palette  = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': man.calculateArray
+			'Mandelbrot': man.iterate
 		}
 
 		self.drawFnc = {
@@ -45,7 +45,7 @@ class Drawer:
 
 	@staticmethod
 	@njit(cache=True)
-	def getLineColor(x1, y1, x2, y2, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
+	def getLineColor(x1: int, y1: int, x2: int, y2: int, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
 		y11 = y1
 		y21 = y2
 		if flipY:
@@ -95,7 +95,6 @@ class Drawer:
 		self.maxDiameter = -1
 
 		calcParameters = self.fractal.getCalcParameters()
-		print(calcParameters, len(self.palette))
 		drawFnc(x, y, x2, y2, iterFnc, colorMapping, calcParameters)
 
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
@@ -125,15 +124,6 @@ class Drawer:
 
 		# Calculate missing color lines of rectangle
 		# Start/end points are calculated twice
-
-		"""
-		clcoList = np.array([
-			[ x1, y1, x2, y1 ],
-			[ x1, y2, x2, y2 ],
-			[ x1, y1, x1, y2 ],
-			[ x2, y1, x2, y2 ]
-		], dtype=int)
-		"""
 		clcoList = [
 			[ x1, y1, x2, y1 ],
 			[ x1, y2, x2, y2 ],
@@ -141,25 +131,13 @@ class Drawer:
 			[ x2, y1, x2, y2 ]
 		]
 
-		"""
-		i = 0
-		for c in colors[:,3]:
-			if c == 0:
+		for i in range(4):
+			if colors[i,3] == 0:
+				x11, y11, x21, y21 = clcoList[i]
 				colors[i] = frc.calculateLine(
 					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
+					x11, y11, x21, y21, self.fractal.cplxGrid, calcParameters, detectColor=True
 				)
-			i += 1
-		"""
-		
-		i = 0
-		for c in colors:
-			if not c.any():
-				colors[i] = frc.calculateLine(
-					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
-				)
-			i += 1
 
 		# Fill rectangle if all sides have the same unique color
 		if minLen < self.maxLen and np.all(colors == colors[0]):
@@ -202,27 +180,7 @@ class Drawer:
 			#  |       |       |
 			#  +---2---+---3---+
 			#
-			# Line coordinates
-			"""
-			lcoList = np.array([
-				[x1, y1, midX, y1],
-				[midX, y1, x2, y1],
-				[x1, y2, midX, y2],
-				[midX, y2, x2, y2],
-				[x1, y1, x1, midY],
-				[x1, midY, x1, y2],
-				[x2, y1, x2, midY],
-				[x2, midY, x2, y2],
-				[x1, midY, midX, midY],
-				[midX, midY, x2, midY],
-				[midX, y1, midX, midY],
-				[midX, midY, midX, y2]
-			], dtype=int)
-
-			# print("get line colors")
-			clList = np.apply_along_axis(Drawer.getLineColor, 1, lcoList, self.graphics.imageMap)
-			"""
-			
+			# Line coordinates			
 			lcoList = [
 				[x1, y1, midX, y1],
 				[midX, y1, x2, y1],
@@ -241,18 +199,9 @@ class Drawer:
 			clList = np.zeros((12, 4), dtype=np.uint8)
 			i = 0
 			for lco in lcoList:
-				clList[i] = Drawer.getLineColor(*lco, self.graphics.imageMap)
+				x11, y11, x21, y21 = lco
+				clList[i] = Drawer.getLineColor(x11, y11, x21, y21, self.graphics.imageMap)
 				i += 1
-			
-			"""
-			# Coordinates of child rectangles
-			rcoList = np.array([
-				[ x1, y1, midX, midY, 0, 8, 4, 10 ],	# R1
-				[ midX, y1, x2, midY, 1, 9, 10, 6 ],	# R2
-				[ x1, midY, midX, y2, 8, 2, 5, 11 ],	# R3
-				[ midX, midY, x2, y2, 9, 3, 11, 7 ]		# R4
-			], dtype=int)
-			"""
 
 			rcoList = [
 				[ x1, y1, midX, midY, 0, 8, 4, 10 ],	# R1
@@ -262,7 +211,13 @@ class Drawer:
 			]			
 
 			# Recursively call the function for R1-4
-			for cr in rcoList:
-				# newColors = np.array([clList[i] for i in cr[4:8]])
-				newColors = clList[cr[4:8]]
-				self.drawSquareEstimation(*cr[0:4], iterFnc, colorMapping, calcParameters, newColors)
+			#for cr in rcoList:
+			#	x11, y11, x21, y21 = cr[0:4]
+			#	self.drawSquareEstimation(x11, y11, x21, y21, iterFnc, colorMapping, calcParameters, clList[cr[4:8]])
+
+			self.drawSquareEstimation(x1, y1, midX, midY, iterFnc, colorMapping, calcParameters, clList[[0, 8, 4, 10] ])
+			self.drawSquareEstimation(midX, y1, x2, midY, iterFnc, colorMapping, calcParameters, clList[[1, 9, 10, 6] ])
+			self.drawSquareEstimation(x1, midY, midX, y2, iterFnc, colorMapping, calcParameters, clList[[8, 2, 5, 11] ])
+			self.drawSquareEstimation(midX, midY, x2, y2, iterFnc, colorMapping, calcParameters, clList[[9, 3, 11, 7] ])
+
+			
