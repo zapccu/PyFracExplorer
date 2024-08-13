@@ -1,5 +1,5 @@
 
-from graphics import *
+from obsolete.graphics import *
 
 """
 This module is no longer used

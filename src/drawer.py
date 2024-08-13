@@ -1,11 +1,12 @@
 
 from typing import Type
+from PIL import Image as Img
+from PIL import ImageTk
 
+import numpy as np
 import numba as nb
 
 import colors as col
-
-from graphics import *
 import fractal as frc
 import mandelbrot as man
 
@@ -31,14 +32,15 @@ class Drawer:
 			'SQEM Linear': self.drawSquareEstimation
 		}
 
-		canvas = app.gui.drawFrame.canvas
+		self.canvas = app.gui.drawFrame.canvas
 
 		# Adjust canvas size
-		if width != canvas.winfo_reqwidth() or height != canvas.winfo_reqheight():
-			canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
+		if width != self.canvas.winfo_reqwidth() or height != self.canvas.winfo_reqheight():
+			self.canvas.configure(width=width, height=height, scrollregion=(0, 0, width, height))
 
 		# Create graphics environment
-		self.graphics = Graphics(canvas, flipY=True)
+		self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
+
 
 	# Set drawing color palette
 	def setPalette(self, palette: np.ndarray):
@@ -72,7 +74,6 @@ class Drawer:
 		y2 = y + width -1
 
 		if self.bDrawing == False:
-			if self.graphics.beginDraw() == False: return False
 			if self.fractal.beginCalc(self.width, self.height) == False: return False
 			self.cancel = False
 			self.bDrawing = True
@@ -95,30 +96,36 @@ class Drawer:
 		print(f"minDiameter={self.minDiameter} maxDiameter={self.maxDiameter}")
 
 		self.calcTime = self.fractal.endCalc()
-		self.graphics.endDraw()
 		self.bDrawing = False
+
+		self.image = Img.fromarray(self.imageMap, 'RGB').transpose(Img.Transpose.FLIP_TOP_BOTTOM)
+		self.tkImage = ImageTk.PhotoImage(self.image)
+		# self.image.save("test.png", "png")
+		self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
+		self.canvas.update()
+
 		print(f"{self.calcTime} seconds")
 
 		return True
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
-		self.graphics.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
+		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
 		
 	"""
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			self.graphics.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
+			self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
 	"""
 	
 	# Calculate and draw a line, detect unique color
 	def drawLine(self, C, x1, y1, x2, y2, iterFnc, colorMapping, calcParameters):
 		if y1 == y2:
-			self.graphics.imageMap[y1,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y1,x1:x2+1], self.palette, iterFnc, calcParameters)
-			bUnique = 1 if np.all(self.graphics.imageMap[y1, x1:x2+1] == self.graphics.imageMap[y1,x1,:]) else 0
+			self.imageMap[y1,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y1,x1:x2+1], self.palette, iterFnc, calcParameters)
+			bUnique = 1 if np.all(self.imageMap[y1, x1:x2+1] == self.imageMap[y1,x1,:]) else 0
 		else:
-			self.graphics.imageMap[y1:y2+1,x1] = frc.calculateSlices(self.fractal.cplxGrid[y1:y2+1,x1], self.palette, iterFnc, calcParameters)
-			bUnique = 1 if np.all(self.graphics.imageMap[y1:y2+1, x1] == self.graphics.imageMap[y1,x1,:]) else 0
-		return np.append(self.graphics.imageMap[y1,x1], bUnique)
+			self.imageMap[y1:y2+1,x1] = frc.calculateSlices(self.fractal.cplxGrid[y1:y2+1,x1], self.palette, iterFnc, calcParameters)
+			bUnique = 1 if np.all(self.imageMap[y1:y2+1, x1] == self.imageMap[y1,x1,:]) else 0
+		return np.append(self.imageMap[y1,x1], bUnique)
 
 	def drawGrid(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		width  = x2-x1+1
@@ -154,6 +161,7 @@ class Drawer:
 				y1 = yc[y]
 				hColorLines[y,x] = self.drawLine(self.fractal.cplxGrid[y1,x1:x2+1], x1, y1, x1, y2, iterFnc, colorMapping, calcParameters)
 
+		"""
 		for y in range(yr):
 			for x in range(xr):
 				if (np.array_equal(hColorLines[y,x], hColorLines[y+1,x]) and
@@ -163,6 +171,7 @@ class Drawer:
 					self.graphics.fillRect(x1+1, y1+1, x2, y2)
 				else:
 					self.drawLineByLine(x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+		"""
 
 	def drawSquareEstimationRec(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple, 
 			colors: np.ndarray = np.zeros((4, 4), dtype=np.uint8)):
@@ -189,7 +198,7 @@ class Drawer:
 		if minLen < self.maxLen and np.all(colors == colors[0]):
 			self.statFill += 1
 			#self.drawVectorized(x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
-			self.graphics.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
+			self.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
 
 		elif minLen < self.minLen:
 			# Draw line by line
@@ -238,7 +247,7 @@ class Drawer:
 
 			clList = np.empty((12, 4), dtype=np.uint8)
 			for i in range(12):
-				clList[i] = Drawer.getLineColor(*lcoList[i], self.graphics.imageMap)
+				clList[i] = Drawer.getLineColor(*lcoList[i], self.imageMap)
 
 			rcoList = [
 				[ x1, y1, midX, midY ],	# R1
@@ -285,7 +294,7 @@ class Drawer:
 			if rectLen < self.maxLen and np.all(lineColorList == lineColorList[0]):
 				self.statFill += 1
 				# self.drawVectorized (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
-				self.graphics.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
+				self.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
 
 			elif rectLen < self.minLen:
 				# Draw line by line
@@ -334,7 +343,7 @@ class Drawer:
 
 				clList = np.empty((12, 4), dtype=np.uint8)
 				for i, lco in enumerate(lcoList):
-					clList[i] = Drawer.getLineColor(*lco, self.graphics.imageMap)
+					clList[i] = Drawer.getLineColor(*lco, self.imageMap)
 
 				rcoList = [
 					[ x1, y1, midX, midY ],	# R1

@@ -3,7 +3,6 @@ from tkinter import *
 from gui import *
 
 import colors as col
-
 import fractal as frc
 import mandelbrot as man
 
@@ -94,13 +93,10 @@ class Application:
 	#
 	
 	def onDraw(self):
-		print("Mode =", self.gui.selection.mode)
-		print("Flag =", self.gui.selection.selected)
 		if self.gui.selection.isAreaSelected():
 			x1, y1, x2, y2 = self.gui.selection.getArea()
 			width, height = self.fractal.mapWH(x2-x1+1, y2-y1+1)
 			corner = self.fractal.mapXY(x1, y1)
-			print(f"Complex = {corner} {width},{height}")
 			self.fractal = man.Mandelbrot(corner, complex(width, height), -1)
 
 		self.gui.drawFrame.clearCanvas()
