@@ -11,7 +11,7 @@ import colors as col
 
 class Fractal:
 
-	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0, flip: bool = False):
+	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
 		self.screenWidth   = 100
 		self.screenHeight  = 100
 		self.fractalWidth  = fractalWidth
@@ -20,7 +20,6 @@ class Fractal:
 		self.offsetX = offsetX
 		self.offsetY = offsetY
 
-		self.flip = False
 		self.flags = 0
 
 		self.mapScreenCoordinates()
@@ -91,10 +90,9 @@ class Fractal:
 	def getMaxValue(self):
 		return 1
 	
-	def beginCalc(self, screenWidth: int, screenHeight: int, flip: bool = False) -> bool:
+	def beginCalc(self, screenWidth: int, screenHeight: int) -> bool:
 		self.screenWidth = screenWidth
 		self.screenHeight = screenHeight
-		self.flip = flip
 		self.mapScreenCoordinates()
 		self.startTime = time.time()
 		return True
@@ -115,20 +113,17 @@ Functions optimized by Numba
 # orientation: 0 = horizontal, 1 = vertical
 # Calculated line includes endpoint xy
 # Returns colorline
-@nb.njit(cache=True, parallel=True)
+#@nb.njit(cache=True, parallel=True)
 def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
 		x1: int, y1: int, x2: int, y2: int, cplxGrid: np.ndarray, calcParameters: tuple,
-		flipY: bool = True, detectColor: bool = False) -> np.ndarray:
+		detectColor: bool = False) -> np.ndarray:
 
 	w, h, d = imageMap.shape
 	bUnique = 2
-	y11 = y1
-	y21 = y2
 
 	# Flip start and end point of vertical line
-	if flipY:
-		y11 = h-y2-1
-		y21 = h-y1-1
+	y11 = h-y2-1
+	y21 = h-y1-1
 
 	if y1 == y2:
 		# Horizontal line
@@ -141,7 +136,7 @@ def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: 
 		# Vertical line
 		for y in nb.prange(y1, y2+1):
 			maxIter, i, Z, diameter, dst = fncIterate(cplxGrid[y,x1], *calcParameters)
-			yy = h-y-1 if flipY else y
+			yy = h-y-1
 			imageMap[yy, x1] = col.mapColorValue(palette, i, maxIter, colorMapping)
 		if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
 

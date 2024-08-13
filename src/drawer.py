@@ -1,7 +1,7 @@
 
 from typing import Type
 
-from numba import njit, prange
+import numba as nb
 
 import colors as col
 
@@ -22,12 +22,12 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette  = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': man.iterate
+			'Mandelbrot': man.calculateSlices
 		}
 
 		self.drawFnc = {
 			'LineByLine': self.drawLineByLine,
-			'SquareEstimation': self.drawSquareEstimation
+			'SquareEstimation': self.drawSquareEstimationRec
 		}
 
 		canvas = app.gui.drawFrame.canvas
@@ -44,22 +44,36 @@ class Drawer:
 		self.palette = palette
 
 	@staticmethod
-	@njit(cache=True)
-	def getLineColor(x1: int, y1: int, x2: int, y2: int, imageMap: np.ndarray, flipY: bool = True) -> np.ndarray:
-		y11 = y1
-		y21 = y2
-		if flipY:
-			w, h, d = imageMap.shape
-			y11 = h-y2-1
-			y21 = h-y1-1
+	@nb.njit(cache=True)
+	def getLineColor(x1: int, y1: int, x2: int, y2: int, imageMap: np.ndarray) -> np.ndarray:
+		h = imageMap.shape[1]
+		y11 = h-y2-1
+		y21 = h-y1-1
 
 		bUnique = 2
 		if y1 == y2 and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]):
 			bUnique = 1
-		if x1 == x2 and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]):
+		elif x1 == x2 and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]):
 			bUnique = 1
 		
 		# Return [ red, green, blue, bUnique ] of start point of line
+		return np.append(imageMap[y21, x1], bUnique)
+
+	@staticmethod
+	@nb.njit(cache=True)
+	def setLineColor(R: np.ndarray, imageMap: np.ndarray, x1: int, y1: int, x2: int, y2: int, detectColor: bool = False) -> np.ndarray:
+		h = imageMap.shape[1]
+		y11 = h-y2-1
+		y21 = h-y1-1
+		bUnique = 2
+
+		if y1 == y2:
+			imageMap[y11,x1:x2+1] = R
+			if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
+		elif x1 == x2:
+			imageMap[y11:y21+1, x1] = R
+			if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
+
 		return np.append(imageMap[y21, x1], bUnique)
 
 	def drawFractal(self, fractal: Type[frc.Fractal], x: int, y: int, width: int, height: int, onStatus=None):
@@ -74,7 +88,6 @@ class Drawer:
 		self.maxLen = max(int(min(width, height)/2), 16)
 		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
 		self.minLen = 16
-		self.maxSplit = 10000
 
 		x2 = x + width -1
 		y2 = y + width -1
@@ -106,15 +119,58 @@ class Drawer:
 		print(f"{self.calcTime} seconds")
 
 		return True
-
+	
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			frc.calculateLine(
-				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				x1, y, x2, y, self.fractal.cplxGrid , calcParameters
-			)
+			R = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, 0, *calcParameters)
+			#R = iterFnc(self.fractal.cplxGrid[y,x1:x2+1], self.palette, *calcParameters)
+			Drawer.setLineColor(R, self.graphics.imageMap, x1, y, x2, y)
 
-	def drawSquareEstimation (self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple, 
+	def drawGrid(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
+		width  = x2-x1+1
+		height = y2-y1+1
+		recSize = 16
+		rectangles = int(min(width, height)/recSize)
+
+		xc = np.linspace(x1, x2, rectangles, dtype=np.int32)
+		yc = np.linspace(y1, y2, rectangles, dtype=np.int32)
+		xr = len(xc)-1
+		yr = len(yc)-1
+
+		"""
+		for y in yc:
+			self.drawLine(self.fractal.cplxGrid[y,x1:x2+1], x1, y, x2, y, iterFnc, colorMapping, calcParameters)
+		for x in xc:
+			self.drawLine(self.fractal.cplxGrid[y1:y2+1,x], x, y1, x, y2, iterFnc, colorMapping, calcParameters)
+		"""
+
+		vColorLines = np.empty((yr,len(xc),4), dtype=np.uint8)
+		hColorLines = np.empty((len(yc),xc,4), dtype=np.uint8)
+
+		for y in range(yr):
+			for x in range(len(xc)):
+				x1 = xc[x]
+				y1 = yc[y]
+				y2 = yc[y+1]
+				vColorLines[y,x] = self.drawLine(self.fractal.cplxGrid[y1:y2+1,x1], x1, y1, x1, y2, iterFnc, colorMapping, calcParameters)
+		for y in range(len(yc)):
+			for x in range(xr):
+				x1 = xc[x]
+				x2 = xc[x+1]
+				y1 = yc[y]
+				hColorLines[y,x] = self.drawLine(self.fractal.cplxGrid[y1,x1:x2+1], x1, y1, x1, y2, iterFnc, colorMapping, calcParameters)
+
+		for y in range(yr):
+			for x in range(xr):
+				if (np.array_equal(hColorLines[y,x], hColorLines[y+1,x]) and
+				   np.array_equal(vColorLines[y,x], vColorLines[y,x+1]) and
+				   np.array_equal(hColorLines[y,x], vColorLines[y,x])):
+					self.graphics.setColor(hColorLines[y,x])
+					self.graphics.fillRect(x1+1, y1+1, x2, y2)
+				else:
+					self.drawLineByLine(x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+
+	def drawSquareEstimationRec(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple, 
 			colors: np.ndarray = np.zeros((4, 4), dtype=np.uint8)):
 
 		width  = x2-x1+1
@@ -131,13 +187,15 @@ class Drawer:
 			[ x2, y1, x2, y2 ]
 		]
 
-		for i in range(4):
-			if colors[i,3] == 0:
-				x11, y11, x21, y21 = clcoList[i]
-				colors[i] = frc.calculateLine(
-					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					x11, y11, x21, y21, self.fractal.cplxGrid, calcParameters, detectColor=True
-				)
+		for i, c in enumerate(colors):
+			if c[3] != 1:
+				xx1, yy1, xx2, yy2 = clcoList[i]
+				colors[i] = self.drawLine(self.fractal.cplxGrid[yy1:yy2+1,xx1:xx2+1].flatten(), xx1, yy1, xx2, yy2, iterFnc, colorMapping,
+					calcParameters, detectColor=True)
+				#colors[i] = frc.calculateLine(
+				#	self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+				#	*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
+				#)
 
 		# Fill rectangle if all sides have the same unique color
 		if minLen < self.maxLen and np.all(colors == colors[0]):
@@ -145,7 +203,7 @@ class Drawer:
 			self.graphics.setColor(colors[0,0:3])
 			self.graphics.fillRect(x1+1, y1+1, x2, y2)
 
-		elif minLen < self.minLen or self.statSplit >= self.maxSplit:
+		elif minLen < self.minLen:
 			# Draw line by line
 			# Do not draw the surrounding rectangle (already drawn)
 			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
@@ -159,6 +217,10 @@ class Drawer:
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
 
+			self.drawLine(self.fractal.cplxGrid[midY:midY+1,x1:x2+1].flatten(), x1, midY, x2, midY, iterFnc, colorMapping, calcParameters)
+			self.drawLine(self.fractal.cplxGrid[y1:y2+1,midX:midX+1].flatten(), midX, y1, midX, y2, iterFnc, colorMapping, calcParameters)
+
+			"""
 			frc.calculateLine(
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				x1, midY, x2, midY, self.fractal.cplxGrid, calcParameters
@@ -167,6 +229,7 @@ class Drawer:
 				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
 				midX, y1, midX, y2, self.fractal.cplxGrid, calcParameters
 			)
+			"""
 
 			# Split color lines
 			#
@@ -196,28 +259,135 @@ class Drawer:
 				[midX, midY, midX, y2]
 			]
 
-			clList = np.zeros((12, 4), dtype=np.uint8)
-			i = 0
-			for lco in lcoList:
-				x11, y11, x21, y21 = lco
-				clList[i] = Drawer.getLineColor(x11, y11, x21, y21, self.graphics.imageMap)
-				i += 1
+			clList = np.empty((12, 4), dtype=np.uint8)
+			for i in range(12):
+				clList[i] = Drawer.getLineColor(*lcoList[i], self.graphics.imageMap)
 
 			rcoList = [
-				[ x1, y1, midX, midY, 0, 8, 4, 10 ],	# R1
-				[ midX, y1, x2, midY, 1, 9, 10, 6 ],	# R2
-				[ x1, midY, midX, y2, 8, 2, 5, 11 ],	# R3
-				[ midX, midY, x2, y2, 9, 3, 11, 7 ]		# R4
-			]			
+				[ x1, y1, midX, midY ],	# R1
+				[ midX, y1, x2, midY ],	# R2
+				[ x1, midY, midX, y2 ],	# R3
+				[ midX, midY, x2, y2 ]	# R4
+			]
+
+			clnoList = [
+				[ 0, 8, 4, 10 ],
+				[ 1, 9, 10, 6 ],
+				[ 8, 2, 5, 11 ],
+				[ 9, 3, 11, 7 ]
+			]		
 
 			# Recursively call the function for R1-4
-			#for cr in rcoList:
-			#	x11, y11, x21, y21 = cr[0:4]
-			#	self.drawSquareEstimation(x11, y11, x21, y21, iterFnc, colorMapping, calcParameters, clList[cr[4:8]])
+			for i, coord in enumerate(rcoList):
+				self.drawSquareEstimationRec(*coord, iterFnc, colorMapping, calcParameters, clList[clnoList[i]])
 
-			self.drawSquareEstimation(x1, y1, midX, midY, iterFnc, colorMapping, calcParameters, clList[[0, 8, 4, 10] ])
-			self.drawSquareEstimation(midX, y1, x2, midY, iterFnc, colorMapping, calcParameters, clList[[1, 9, 10, 6] ])
-			self.drawSquareEstimation(x1, midY, midX, y2, iterFnc, colorMapping, calcParameters, clList[[8, 2, 5, 11] ])
-			self.drawSquareEstimation(midX, midY, x2, y2, iterFnc, colorMapping, calcParameters, clList[[9, 3, 11, 7] ])
+	def drawSquareEstimation(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 
-			
+		tColor = frc.calculateLine(
+			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+			x1, y1, x2, y1, self.fractal.cplxGrid, calcParameters, detectColor=True)
+		bColor = frc.calculateLine(
+			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+			x1, y2, x2, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
+		lColor = frc.calculateLine(
+			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+			x1, y1, x1, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
+		rColor = frc.calculateLine(
+			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+			x2, y1, x2, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
+		colors = np.array([tColor, bColor, lColor, rColor], dtype=np.uint8)
+
+		areaStack = [
+			[ x1, y1, x2, y2, colors]
+		]
+
+		while len(areaStack) > 0:
+			area = areaStack.pop()
+			lineColorList = area.pop()
+			x1, y1, x2, y2 = area
+
+			width  = x2-x1+1
+			height = y2-y1+1
+			rectLen = min(width, height)
+			if rectLen < 2:
+				print("rectLen ", rectLen)
+				continue
+
+			# Fill rectangle if all sides have the same unique color
+			if rectLen < self.maxLen and np.all(lineColorList == lineColorList[0]):
+				self.statFill += 1
+				self.graphics.setColor(lineColorList[0,0:3])
+				self.graphics.fillRect(x1+1, y1+1, x2, y2)
+
+			elif rectLen < self.minLen:
+				# Draw line by line
+				# Do not draw the surrounding rectangle (already drawn)
+				self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+				self.statCalc += 1
+
+			else:
+				# Split rectangle into child rectangles
+				self.statSplit += 1
+
+				# Calculate middle lines
+				midX = x1+int(width/2)
+				midY = y1+int(height/2)
+
+				frc.calculateLine(
+					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+					x1, midY, x2, midY, self.fractal.cplxGrid, calcParameters
+				)
+				frc.calculateLine(
+					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
+					midX, y1, midX, y2, self.fractal.cplxGrid, calcParameters
+				)
+
+				# Split color lines
+				#
+				#  +---0---+---1---+
+				#  |       |       |
+				#  4   R1  10  R2  6
+				#  |       |       |
+				#  +---8---+---9---+
+				#  |       |       |
+				#  5   R3  11  R4  7
+				#  |       |       |
+				#  +---2---+---3---+
+				#
+				# Line coordinates			
+				lcoList = [
+					[x1, y1, midX, y1],
+					[midX, y1, x2, y1],
+					[x1, y2, midX, y2],
+					[midX, y2, x2, y2],
+					[x1, y1, x1, midY],
+					[x1, midY, x1, y2],
+					[x2, y1, x2, midY],
+					[x2, midY, x2, y2],
+					[x1, midY, midX, midY],
+					[midX, midY, x2, midY],
+					[midX, y1, midX, midY],
+					[midX, midY, midX, y2]
+				]
+
+				clList = np.empty((12, 4), dtype=np.uint8)
+				for i, lco in enumerate(lcoList):
+					clList[i] = Drawer.getLineColor(*lco, self.graphics.imageMap)
+
+				rcoList = [
+					[ x1, y1, midX, midY ],	# R1
+					[ midX, y1, x2, midY ],	# R2
+					[ x1, midY, midX, y2 ],	# R3
+					[ midX, midY, x2, y2 ]	# R4
+				]
+
+				clnoList = [
+					[ 0, 8, 4, 10 ],
+					[ 1, 9, 10, 6 ],
+					[ 8, 2, 5, 11 ],
+					[ 9, 3, 11, 7 ]
+				]
+
+				for i, coord in enumerate(rcoList):
+					areaStack.append([ *coord, clList[clnoList[i]] ])
+

@@ -21,12 +21,10 @@ def rgbToStr(rgb: np.ndarray) -> str:
 	return '#{:02X}{:02X}{:02X}'.format(rgb[0], rgb[1], rgb[2])
 
 # Convert integer value to rgb value
-@njit(cache=True)
 def intToRGB(intColor: int) -> np.ndarray:
 	return np.asarray(((intColor >> 16) & 0xFF, (intColor >> 8) & 0xFF, intColor & 0xFF), dtype=np.uint8)
 
 # Convert rgb value to integer value
-@njit(cache=True)
 def rgbToInt(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
@@ -132,6 +130,9 @@ def mapColorValue(palette: np.ndarray, value: int, maxValue: int, method = 0) ->
 		return palette[value % pLen]
 	else:
 		return palette[int(pLen / maxValue * value)]
+	
+
+
 
 """
 	elif method == 2:
