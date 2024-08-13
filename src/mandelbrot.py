@@ -59,7 +59,8 @@ class Mandelbrot(frc.Fractal):
 def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 	dst       = 0
 	diameter  = -1
-	bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
+	#bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
+	bailout = 10000.0
 
 	# Set initial values for calculation
 	D = complex(1.0)

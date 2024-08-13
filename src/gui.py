@@ -249,8 +249,8 @@ class Selection:
 				self.xo, self.yo = x, y
 
 				self.mode     = Selection.MOVEAREA
-				self.active   = True	# select mode active
-				self.selected = False	# disable selection
+				self.active   = True		# select mode active
+				self.selected = False		# disable selection
 
 				self.canvas.config(cursor='hand')
 
@@ -323,24 +323,28 @@ class Selection:
 		y = event.y
 		
 		if self.active:
-			if self.mode == Selection.POINT:
-				self.selected = True
-				self.active   = False
+			if self.mode == Selection.AREA:
+				# End of area selection, sort points => xs, ys < xe, ye
+				x, y = self.keepAspectRatio(x, y)
+				xs, ys = self.xs, self.ys
+				self.xs = min(xs, x)
+				self.ys = min(ys, y)
+				self.xe = max(xs, x)
+				self.ye = max(ys, y)
+				self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
 
-			elif self.mode == Selection.AREA or self.mode == Selection.MOVEAREA:
-				if self.mode == Selection.AREA:
-					# End of area selection, sort points => xs, ys < xe, ye
-					x, y = self.keepAspectRatio(x, y)
-					xs, ys = self.xs, self.ys
-					self.xs = min(xs, x)
-					self.ys = min(ys, y)
-					self.xe = max(xs, x)
-					self.ye = max(ys, y)
-					self.canvas.coords(self.selectRect, self.xs, self.ys, self.xe, self.ye)
-
-				self.active = False
-				self.selected = True
+			elif self.mode == Selection.MOVEAREA:
+				self.mode = Selection.AREA
 				self.canvas.config(cursor='cross')
+
+			elif self.mode != Selection.POINT:
+				print(f"Invalid selection mode {self.mode} on button release")
+				return False
+
+			self.selected = True
+			self.active = False
+		else:
+			print("Selection not active on button release")
 
 		print(f"buttonReleased: mode={self.mode} selected={self.selected} active={self.active}")
 		return True
@@ -356,6 +360,16 @@ class Selection:
 	# Check if either point or area is selected
 	def isSelected(self) -> bool:
 		return self.selected
+	
+	def isPointSelected(self) -> bool:
+		return self.selected and self.mode == Selection.POINT
+
+	def isAreaSelected(self) -> bool:
+		return self.selected and self.mode == Selection.AREA
+
+	# Return selection mode (NOSELECTION, POINT, AREA)
+	def mode(self) -> int:
+		return self.mode
 	
 	# Check if point is inside the currently selected area or is matching the currently selected point
 	def isInside(self, x: int, y: int) -> bool:
