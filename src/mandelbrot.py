@@ -94,23 +94,8 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 
 	return col.mapColorValue(P, i, maxIter)
 
-
-iterFncTable = [ calculatePointZ2 ]
-
-@nb.njit(cache=True, parallel=True)
-def calculateSlices(C: np.ndarray, P: np.ndarray, fncNo: int, flags: int, maxIter: int, maxDiameter: int) -> np.ndarray:
-	lc = len(C)
-	R = np.empty((lc, 3), dtype=np.uint8)
-
-	for p in nb.prange(lc):
-		R[p,:] = iterFncTable[fncNo](C[p], P, flags, maxIter, maxDiameter)
-
-	return R
-
-@nb.guvectorize([(nb.complex64[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
-def calculateVector(C, P, fncNo, flags, maxIter, maxDiameter, R):
+@nb.guvectorize([(nb.complex64[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+def calculateVectorZ2(C, P, flags, maxIter, maxDiameter, R):
 	for p in range(C.shape[0]):
-		z, i = iterFncTable[fncNo](C[p], P, flags, maxIter, maxDiameter)
-		R[p,:] = col.mapColorValue(P, i, maxIter)
-
+		R[p,:] = calculatePointZ2(C[p], P, flags, maxIter, maxDiameter)
 

@@ -22,12 +22,13 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette  = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': man.calculateSlices
+			'Mandelbrot': man.calculateVectorZ2
 		}
 
 		self.drawFnc = {
-			'LineByLine': self.drawLineByLine,
-			'SquareEstimation': self.drawSquareEstimationRec
+			'Vectorized': self.drawVectorized,
+			'SQEM Recursive': self.drawSquareEstimationRec,
+			'SQEM Linear': self.drawSquareEstimation
 		}
 
 		canvas = app.gui.drawFrame.canvas
@@ -120,11 +121,29 @@ class Drawer:
 
 		return True
 	
+	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
+		self.graphics.imageMap[y1:y2+1,x1:x2+1] = np.flip(iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters), axis=0)
+		
+	"""
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			R = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, 0, *calcParameters)
-			#R = iterFnc(self.fractal.cplxGrid[y,x1:x2+1], self.palette, *calcParameters)
-			Drawer.setLineColor(R, self.graphics.imageMap, x1, y, x2, y)
+			self.graphics.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
+	"""
+	
+	def drawLine(self, C, x1, y1, x2, y2, iterFnc, colorMapping, calcParameters):
+		h = self.graphics.imageMap.shape[1]
+
+		# Flip start and end point of vertical line
+		y11 = h-y2-1
+		y21 = h-y1-1
+
+		if y1 == y2:
+			self.graphics.imageMap[y11,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y1,x1:x2+1], self.palette, iterFnc, calcParameters)
+			bUnique = 1 if np.all(self.graphics.imageMap[y11, x1:x2+1] == self.graphics.imageMap[y11,x1,:]) else 0
+		else:
+			self.graphics.imageMap[y11:y21+1,x1] = np.flip(frc.calculateSlices(self.fractal.cplxGrid[y1:y2+1,x1], self.palette, iterFnc, calcParameters), 0)
+			bUnique = 1 if np.all(self.graphics.imageMap[y11:y21+1, x1] == self.graphics.imageMap[y11,x1,:]) else 0
+		return np.append(self.graphics.imageMap[y11,x1], bUnique)
 
 	def drawGrid(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		width  = x2-x1+1
@@ -189,13 +208,7 @@ class Drawer:
 
 		for i, c in enumerate(colors):
 			if c[3] != 1:
-				xx1, yy1, xx2, yy2 = clcoList[i]
-				colors[i] = self.drawLine(self.fractal.cplxGrid[yy1:yy2+1,xx1:xx2+1].flatten(), xx1, yy1, xx2, yy2, iterFnc, colorMapping,
-					calcParameters, detectColor=True)
-				#colors[i] = frc.calculateLine(
-				#	self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				#	*clcoList[i], self.fractal.cplxGrid, calcParameters, detectColor=True
-				#)
+				colors[i] = self.drawLine(self.fractal.cplxGrid, *clcoList[i], iterFnc, colorMapping, calcParameters)
 
 		# Fill rectangle if all sides have the same unique color
 		if minLen < self.maxLen and np.all(colors == colors[0]):
@@ -206,7 +219,7 @@ class Drawer:
 		elif minLen < self.minLen:
 			# Draw line by line
 			# Do not draw the surrounding rectangle (already drawn)
-			self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+			self.drawVectorized(x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
 			self.statCalc += 1
 
 		else:
@@ -217,19 +230,8 @@ class Drawer:
 			midX = x1+int(width/2)
 			midY = y1+int(height/2)
 
-			self.drawLine(self.fractal.cplxGrid[midY:midY+1,x1:x2+1].flatten(), x1, midY, x2, midY, iterFnc, colorMapping, calcParameters)
-			self.drawLine(self.fractal.cplxGrid[y1:y2+1,midX:midX+1].flatten(), midX, y1, midX, y2, iterFnc, colorMapping, calcParameters)
-
-			"""
-			frc.calculateLine(
-				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				x1, midY, x2, midY, self.fractal.cplxGrid, calcParameters
-			)
-			frc.calculateLine(
-				self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-				midX, y1, midX, y2, self.fractal.cplxGrid, calcParameters
-			)
-			"""
+			self.drawLine(self.fractal.cplxGrid, x1, midY, x2, midY, iterFnc, colorMapping, calcParameters)
+			self.drawLine(self.fractal.cplxGrid, midX, y1, midX, y2, iterFnc, colorMapping, calcParameters)
 
 			# Split color lines
 			#
@@ -283,18 +285,10 @@ class Drawer:
 
 	def drawSquareEstimation(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 
-		tColor = frc.calculateLine(
-			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-			x1, y1, x2, y1, self.fractal.cplxGrid, calcParameters, detectColor=True)
-		bColor = frc.calculateLine(
-			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-			x1, y2, x2, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
-		lColor = frc.calculateLine(
-			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-			x1, y1, x1, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
-		rColor = frc.calculateLine(
-			self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-			x2, y1, x2, y2, self.fractal.cplxGrid, calcParameters, detectColor=True)
+		tColor = self.drawLine(self.fractal.cplxGrid, x1, y1, x2, y1, iterFnc, colorMapping, calcParameters)
+		bColor = self.drawLine(self.fractal.cplxGrid, x1, y2, x2, y2, iterFnc, colorMapping, calcParameters)
+		lColor = self.drawLine(self.fractal.cplxGrid, x1, y1, x1, y2, iterFnc, colorMapping, calcParameters)
+		rColor = self.drawLine(self.fractal.cplxGrid, x2, y1, x2, y2, iterFnc, colorMapping, calcParameters)
 		colors = np.array([tColor, bColor, lColor, rColor], dtype=np.uint8)
 
 		areaStack = [
@@ -310,7 +304,6 @@ class Drawer:
 			height = y2-y1+1
 			rectLen = min(width, height)
 			if rectLen < 2:
-				print("rectLen ", rectLen)
 				continue
 
 			# Fill rectangle if all sides have the same unique color
@@ -322,7 +315,7 @@ class Drawer:
 			elif rectLen < self.minLen:
 				# Draw line by line
 				# Do not draw the surrounding rectangle (already drawn)
-				self.drawLineByLine (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+				self.drawVectorized (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
 				self.statCalc += 1
 
 			else:
@@ -333,14 +326,8 @@ class Drawer:
 				midX = x1+int(width/2)
 				midY = y1+int(height/2)
 
-				frc.calculateLine(
-					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					x1, midY, x2, midY, self.fractal.cplxGrid, calcParameters
-				)
-				frc.calculateLine(
-					self.graphics.imageMap, iterFnc, colorMapping, self.palette,
-					midX, y1, midX, y2, self.fractal.cplxGrid, calcParameters
-				)
+				self.drawLine(self.fractal.cplxGrid, x1, midY, x2, midY, iterFnc, colorMapping, calcParameters)
+				self.drawLine(self.fractal.cplxGrid, midX, y1, midX, y2, iterFnc, colorMapping, calcParameters)
 
 				# Split color lines
 				#

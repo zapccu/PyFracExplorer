@@ -86,10 +86,10 @@ def phong(normal: complex, light: list[float]):
 #
 
 def createLinearPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
-	return np.vstack((np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), defColor))
+	return np.vstack((np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), np.array(defColor, dtype=np.uint8)))
 
 def createRGBPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
-	return np.array([startColor, endColor, defColor])
+	return np.array([startColor, endColor, defColor], dtype=np.uint8)
 
 def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	numColors = max(numColors, 2)
@@ -99,7 +99,7 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 		(ct + thetas[1]) * 2 * math.pi,
 		(ct + thetas[2]) * 2 * math.pi)
 	)
-	return np.vstack((((0.5 + 0.5 * np.sin(colors)) * 255).astype(np.uint8, copy=False), defColor))
+	return np.vstack((((0.5 + 0.5 * np.sin(colors)) * 255).astype(np.uint8, copy=False), np.array(defColor, dtype=np.uint8)))
 
 def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 	ct = np.arange(0, numColors)
@@ -108,7 +108,7 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 		(np.cos(ct * 0.1) + 1.0) * 0.5,
 		(np.sin(ct * 0.01) + 1.0) * 0.5)
 	)
-	return np.vstack(((colors * 255).astype(np.uint8, copy=False), defColor))
+	return np.vstack(((colors * 255).astype(np.uint8, copy=False), np.array(defColor, dtype=np.uint8)))
 
 #
 # Map calculation results to color

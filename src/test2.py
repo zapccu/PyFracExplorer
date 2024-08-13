@@ -1,16 +1,11 @@
 import numpy as np
 
-a = np.array([
-	[ 2, 2, 2, 1 ],
-	[ 2, 2, 2, 1 ],
-	[ 2, 2, 2, 1 ],
-	[ 2, 2, 2, 1 ]
-])
+a = np.empty((4, 4, 3), dtype=np.uint8)
 
-b = np.all(a == a[0])
+for i in range(4):
+	a[i,:] = np.array([i, i, i], dtype=np.uint8)
+	print("Line ", i, " = ", a[i,:])
 
-print("Check if")
-print(a)
-print("is matching ")
-print(a[0])
-print(b)
+b = np.flip(a, 0)
+for i in range(4):
+	print("Line ", i, " = ", b[i,:])

@@ -113,7 +113,13 @@ Functions optimized by Numba
 # orientation: 0 = horizontal, 1 = vertical
 # Calculated line includes endpoint xy
 # Returns colorline
-#@nb.njit(cache=True, parallel=True)
+def calculateSlices(C: np.ndarray, P: np.ndarray, iterFnc, calcParameters: tuple) -> np.ndarray:
+	return iterFnc(C, P, *calcParameters)
+
+def getUniqueColor(L: np.ndarray) -> np.ndarray:
+	bUnique = 1 if np.all(L == L[0,:]) else 0
+	return np.append(L[0], bUnique)
+
 def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
 		x1: int, y1: int, x2: int, y2: int, cplxGrid: np.ndarray, calcParameters: tuple,
 		detectColor: bool = False) -> np.ndarray:

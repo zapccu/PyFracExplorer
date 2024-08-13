@@ -28,9 +28,9 @@ class Application:
 				'default': 'Linear'
 			},
 			'drawMode': {
-				'values': [ 'LineByLine', 'SquareEstimation' ],
-				'current': 'LineByLine',
-				'default': 'LineByLine'
+				'values': [ 'Vectorized', 'SQEM Recursive', 'SQEM Linear' ],
+				'current': 'Vectorized',
+				'default': 'Vectorized'
 			},
 			'colorPalette': {
 				'values': [ 'Grey', 'Sinus', 'SinusCosinus' ],
