@@ -36,7 +36,7 @@ class Mandelbrot(frc.Fractal):
 		self.zoom = max(defSize.real / size.real, defSize.imag / size.imag)
 
 		if maxIter == -1:
-			self.maxIter = max(int(abs(1000 * log(1 / sqrt(self.zoom)))), 256)
+			self.maxIter = min(max(int(abs(1000 * log(1 / sqrt(self.zoom)))), 256), 4096)
 		else:
 			self.maxIter = maxIter
 
@@ -65,7 +65,7 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 	D = complex(1.0)
 	Z = C
 
-	if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float32)
+	if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float64)
 
 	for i in range(1, maxIter+1):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
@@ -94,7 +94,7 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 
 	return col.mapColorValue(P, i, maxIter)
 
-@nb.guvectorize([(nb.complex64[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
 def calculateVectorZ2(C, P, flags, maxIter, maxDiameter, R):
 	for p in range(C.shape[0]):
 		R[p,:] = calculatePointZ2(C[p], P, flags, maxIter, maxDiameter)

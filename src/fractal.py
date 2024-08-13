@@ -77,8 +77,8 @@ class Fractal:
 	def mapScreenCoordinates(self):
 		self.dx = self.fractalWidth / (self.screenWidth - 1)
 		self.dy = self.fractalHeight / (self.screenHeight - 1)
-		dxTab = np.outer(np.ones((self.screenWidth,), dtype=np.float32), np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth, dtype=np.float32))
-		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight, dtype=np.float32), np.ones((self.screenHeight,), dtype=np.complex64))
+		dxTab = np.outer(np.ones((self.screenWidth,), dtype=np.float64), np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth, dtype=np.float64))
+		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight, dtype=np.float64), np.ones((self.screenHeight,), dtype=np.complex128))
 		self.cplxGrid = dxTab + dyTab
 
 	def mapXY(self, x: int, y: int) -> complex:
@@ -101,9 +101,7 @@ class Fractal:
 		self.endTime = time.time()
 		self.calcTime = self.endTime-self.startTime+1
 		return self.calcTime
-
-# calculation function list
-fncList = []
+	
 
 """
 Functions optimized by Numba
@@ -119,33 +117,4 @@ def calculateSlices(C: np.ndarray, P: np.ndarray, iterFnc, calcParameters: tuple
 def getUniqueColor(L: np.ndarray) -> np.ndarray:
 	bUnique = 1 if np.all(L == L[0,:]) else 0
 	return np.append(L[0], bUnique)
-
-def calculateLine(imageMap: np.ndarray, fncIterate, colorMapping: int, palette: np.ndarray,
-		x1: int, y1: int, x2: int, y2: int, cplxGrid: np.ndarray, calcParameters: tuple,
-		detectColor: bool = False) -> np.ndarray:
-
-	w, h, d = imageMap.shape
-	bUnique = 2
-
-	# Flip start and end point of vertical line
-	y11 = h-y2-1
-	y21 = h-y1-1
-
-	if y1 == y2:
-		# Horizontal line
-		for x in nb.prange(x1, x2+1):
-			C = cplxGrid[y1,x]
-			maxIter, i, Z, diameter, dst = fncIterate(cplxGrid[y1,x], *calcParameters)
-			imageMap[y11, x] = col.mapColorValue(palette, i, maxIter, colorMapping)
-		if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
-	elif x1 == x2:
-		# Vertical line
-		for y in nb.prange(y1, y2+1):
-			maxIter, i, Z, diameter, dst = fncIterate(cplxGrid[y,x1], *calcParameters)
-			yy = h-y-1
-			imageMap[yy, x1] = col.mapColorValue(palette, i, maxIter, colorMapping)
-		if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
-
-	# Return [ red, green, blue, bUnique ] of start point of line
-	return np.append(imageMap[y21, x1], bUnique)
 

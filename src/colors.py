@@ -85,9 +85,27 @@ def phong(normal: complex, light: list[float]):
 # Create color palettes
 #
 
+"""
 def createLinearPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	return np.vstack((np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), np.array(defColor, dtype=np.uint8)))
+"""
+def createLinearPalette(numColors: int, colorPoints: list = [(255, 255, 255)], defColor: tuple = (0, 0, 0)) -> np.ndarray:
+	if len(colorPoints) == 0:
+		# Greyscale palette
+		palette = np.linspace((0, 0, 0), (255, 255, 255), max(numColors, 2), dtype=np.uint8)
+	elif (len(colorPoints) == 1):
+		# Monochrome palette
+		palette = np.full((max(numColors,1),3), colorPoints[0], dtype=np.uint8)
+	else:
+		numColors = max(numColors,len(colorPoints))
+		secSize = int(numColors/(len(colorPoints)-1))
+		palette = np.array([colorPoints[0]], dtype=np.uint8)
+		for i in range(len(colorPoints)-1):
+			if secSize + len(palette)-1 > numColors: secSize = numColors - len(palette)
+			palette = np.vstack((palette[:-1], np.linspace(colorPoints[i], colorPoints[i+1], secSize, dtype=np.uint8)))
 
+	return np.vstack((palette, np.array(defColor, dtype=np.uint8)))
+	
 def createRGBPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	return np.array([startColor, endColor, defColor], dtype=np.uint8)
 

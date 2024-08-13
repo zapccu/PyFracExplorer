@@ -47,35 +47,14 @@ class Drawer:
 	@staticmethod
 	@nb.njit(cache=True)
 	def getLineColor(x1: int, y1: int, x2: int, y2: int, imageMap: np.ndarray) -> np.ndarray:
-		h = imageMap.shape[1]
-		y11 = h-y2-1
-		y21 = h-y1-1
-
 		bUnique = 2
-		if y1 == y2 and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]):
+		if y1 == y2 and np.all(imageMap[y1, x1:x2+1] == imageMap[y1,x1,:]):
 			bUnique = 1
-		elif x1 == x2 and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]):
+		elif x1 == x2 and np.all(imageMap[y1:y2+1, x1] == imageMap[y1,x1,:]):
 			bUnique = 1
 		
 		# Return [ red, green, blue, bUnique ] of start point of line
-		return np.append(imageMap[y21, x1], bUnique)
-
-	@staticmethod
-	@nb.njit(cache=True)
-	def setLineColor(R: np.ndarray, imageMap: np.ndarray, x1: int, y1: int, x2: int, y2: int, detectColor: bool = False) -> np.ndarray:
-		h = imageMap.shape[1]
-		y11 = h-y2-1
-		y21 = h-y1-1
-		bUnique = 2
-
-		if y1 == y2:
-			imageMap[y11,x1:x2+1] = R
-			if detectColor and np.all(imageMap[y11, x1:x2+1] == imageMap[y11,x1,:]): bUnique = 1
-		elif x1 == x2:
-			imageMap[y11:y21+1, x1] = R
-			if detectColor and np.all(imageMap[y11:y21+1, x1] == imageMap[y11,x1,:]): bUnique = 1
-
-		return np.append(imageMap[y21, x1], bUnique)
+		return np.append(imageMap[y1, x1], bUnique)
 
 	def drawFractal(self, fractal: Type[frc.Fractal], x: int, y: int, width: int, height: int, onStatus=None):
 		self.fractal = fractal
@@ -87,8 +66,7 @@ class Drawer:
 		colorMapping = self.app.getSetting('colorMapping')
 
 		self.maxLen = max(int(min(width, height)/2), 16)
-		self.minLen = min(max(int(min(width, height)/64), 16), self.maxLen)
-		self.minLen = 16
+		self.minLen = min(max(int(min(width, height)/8), 16), self.maxLen)
 
 		x2 = x + width -1
 		y2 = y + width -1
@@ -111,6 +89,8 @@ class Drawer:
 		calcParameters = self.fractal.getCalcParameters()
 		drawFnc(x, y, x2, y2, iterFnc, colorMapping, calcParameters)
 
+		print("Zoom =", self.fractal.zoom, "maxLen =", self.maxLen, "minLen =", self.minLen)
+		print("Parameters=", calcParameters)
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
 		print(f"minDiameter={self.minDiameter} maxDiameter={self.maxDiameter}")
 
@@ -122,7 +102,7 @@ class Drawer:
 		return True
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
-		self.graphics.imageMap[y1:y2+1,x1:x2+1] = np.flip(iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters), axis=0)
+		self.graphics.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
 		
 	"""
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
@@ -130,20 +110,15 @@ class Drawer:
 			self.graphics.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
 	"""
 	
+	# Calculate and draw a line, detect unique color
 	def drawLine(self, C, x1, y1, x2, y2, iterFnc, colorMapping, calcParameters):
-		h = self.graphics.imageMap.shape[1]
-
-		# Flip start and end point of vertical line
-		y11 = h-y2-1
-		y21 = h-y1-1
-
 		if y1 == y2:
-			self.graphics.imageMap[y11,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y1,x1:x2+1], self.palette, iterFnc, calcParameters)
-			bUnique = 1 if np.all(self.graphics.imageMap[y11, x1:x2+1] == self.graphics.imageMap[y11,x1,:]) else 0
+			self.graphics.imageMap[y1,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y1,x1:x2+1], self.palette, iterFnc, calcParameters)
+			bUnique = 1 if np.all(self.graphics.imageMap[y1, x1:x2+1] == self.graphics.imageMap[y1,x1,:]) else 0
 		else:
-			self.graphics.imageMap[y11:y21+1,x1] = np.flip(frc.calculateSlices(self.fractal.cplxGrid[y1:y2+1,x1], self.palette, iterFnc, calcParameters), 0)
-			bUnique = 1 if np.all(self.graphics.imageMap[y11:y21+1, x1] == self.graphics.imageMap[y11,x1,:]) else 0
-		return np.append(self.graphics.imageMap[y11,x1], bUnique)
+			self.graphics.imageMap[y1:y2+1,x1] = frc.calculateSlices(self.fractal.cplxGrid[y1:y2+1,x1], self.palette, iterFnc, calcParameters)
+			bUnique = 1 if np.all(self.graphics.imageMap[y1:y2+1, x1] == self.graphics.imageMap[y1,x1,:]) else 0
+		return np.append(self.graphics.imageMap[y1,x1], bUnique)
 
 	def drawGrid(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		width  = x2-x1+1
@@ -213,8 +188,8 @@ class Drawer:
 		# Fill rectangle if all sides have the same unique color
 		if minLen < self.maxLen and np.all(colors == colors[0]):
 			self.statFill += 1
-			self.graphics.setColor(colors[0,0:3])
-			self.graphics.fillRect(x1+1, y1+1, x2, y2)
+			#self.drawVectorized(x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+			self.graphics.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
 
 		elif minLen < self.minLen:
 			# Draw line by line
@@ -309,8 +284,8 @@ class Drawer:
 			# Fill rectangle if all sides have the same unique color
 			if rectLen < self.maxLen and np.all(lineColorList == lineColorList[0]):
 				self.statFill += 1
-				self.graphics.setColor(lineColorList[0,0:3])
-				self.graphics.fillRect(x1+1, y1+1, x2, y2)
+				# self.drawVectorized (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
+				self.graphics.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
 
 			elif rectLen < self.minLen:
 				# Draw line by line

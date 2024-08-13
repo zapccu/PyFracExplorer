@@ -33,7 +33,7 @@ class Application:
 				'default': 'Vectorized'
 			},
 			'colorPalette': {
-				'values': [ 'Grey', 'Sinus', 'SinusCosinus' ],
+				'values': [ 'Monochrome', 'Grey', 'Sinus', 'SinusCosinus','RedGreenBlue' ],
 				'current': 'Grey',
 				'default': 'Grey'
 			}
@@ -47,12 +47,14 @@ class Application:
 
 		# Default fractal
 		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
-		# self.fractal = Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
+		# self.fractal = man.Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 		self.colorTable = {
-			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), (30, 30, 30), (255, 255, 255), defColor=(0, 0, 0)),
+			'Monochrome':   col.createLinearPalette(self.fractal.getMaxValue()),
+			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [(30,30,30), (255,255,255)], defColor=(0, 0, 0)),
 			'Sinus':        col.createSinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
-			'SinusCosinus': col.createSinusCosinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0))
+			'SinusCosinus': col.createSinusCosinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
+			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [(125,30,0),(30,255,30),(0,30,125)])
 		}
 
 	def run(self):
@@ -89,7 +91,7 @@ class Application:
 		width, height = self.fractal.mapWH(x2-x1+1, y2-y1+1)
 		corner = self.fractal.mapXY(x1, y1)
 		print(f"Complex = {corner} {width},{height}")
-		self.fractal = man.Mandelbrot(corner, complex(width, height))
+		self.fractal = man.Mandelbrot(corner, complex(width, height), -1)
 
 	#
 	# Command handling

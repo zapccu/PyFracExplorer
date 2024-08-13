@@ -6,6 +6,5 @@ for i in range(4):
 	a[i,:] = np.array([i, i, i], dtype=np.uint8)
 	print("Line ", i, " = ", a[i,:])
 
-b = np.flip(a, 0)
-for i in range(4):
-	print("Line ", i, " = ", b[i,:])
+a = np.delete(a, 2, 0)
+print(a)
