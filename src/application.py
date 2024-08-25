@@ -9,6 +9,8 @@ import mandelbrot as man
 from drawer import *
 from coloreditor import *
 
+import tkconfigure as tkc
+
 
 class Application:
 
