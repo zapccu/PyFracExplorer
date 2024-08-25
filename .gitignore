@@ -1,3 +1,4 @@
+.DS_Store
 .vscode
 __pycache__
 *code-workspace
@@ -5,3 +6,4 @@ test/**
 test.png
 test*
 mp.py
+metalize.py

@@ -23,13 +23,14 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette  = app.colorTable[app.getSetting('colorPalette')]
 		self.iterFnc = {
-			'Mandelbrot': man.calculateVectorZ2
+			'Mandelbrot': man.calculateMetalZ2
 		}
 
 		self.drawFnc = {
 			'Vectorized': self.drawVectorized,
 			'SQEM Recursive': self.drawSquareEstimationRec,
-			'SQEM Linear': self.drawSquareEstimation
+			'SQEM Linear': self.drawSquareEstimation,
+			'Metalized': self.drawMetalized
 		}
 
 		self.canvas = app.gui.drawFrame.canvas
@@ -110,6 +111,10 @@ class Drawer:
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
 		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
+
+	def drawMetalized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
+		self.fractal.calculateMetalPointZ2(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
+		return
 		
 	"""
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
@@ -263,7 +268,7 @@ class Drawer:
 				[ 9, 3, 11, 7 ]
 			]		
 
-			# Recursively call the function for R1-4
+			# Recursively call the function for rectangles R1-4
 			for i, coord in enumerate(rcoList):
 				self.drawSquareEstimationRec(*coord, iterFnc, colorMapping, calcParameters, clList[clnoList[i]])
 
@@ -294,7 +299,7 @@ class Drawer:
 			if rectLen < self.maxLen and np.all(lineColorList == lineColorList[0]):
 				self.statFill += 1
 				# self.drawVectorized (x1+1, y1+1, x2-1, y2-1, iterFnc, colorMapping, calcParameters)
-				self.imageMap[y1+1:y2, x1+1:x2] = colors[0,0:3]
+				self.imageMap[y1+1:y2, x1+1:x2] = lineColorList[0,0:3]
 
 			elif rectLen < self.minLen:
 				# Draw line by line

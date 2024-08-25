@@ -27,16 +27,20 @@ class Application:
 				'default': 'Linear'
 			},
 			'drawMode': {
-				'values': [ 'Vectorized', 'SQEM Recursive', 'SQEM Linear' ],
+				'values': [ 'Vectorized', 'SQEM Recursive', 'SQEM Linear', 'Metalized' ],
 				'current': 'Vectorized',
 				'default': 'Vectorized'
 			},
 			'colorPalette': {
-				'values': [ 'Monochrome', 'Grey', 'Sinus', 'SinusCosinus','RedGreenBlue' ],
+				'values': [ 'Monochrome', 'Grey', 'Sinus', 'SinusCosinus', 'RedGreenBlue', 'BlueGrey' ],
 				'current': 'Grey',
 				'default': 'Grey'
 			}
 		}
+
+		# Default fractal
+		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		# self.fractal = man.Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
 		# GUI
 		self.gui = GUI(self, title, width, height, 50, 200)
@@ -44,16 +48,14 @@ class Application:
 		# Define selection handler
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
 
-		# Default fractal
-		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
-		# self.fractal = man.Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
-
+		maxValue = self.fractal.getMaxValue()
 		self.colorTable = {
 			'Monochrome':   col.createLinearPalette(self.fractal.getMaxValue()),
-			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [(30,30,30), (255,255,255)], defColor=(0, 0, 0)),
+			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [(80,80,80), (255,255,255)], defColor=(0, 0, 0)),
 			'Sinus':        col.createSinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
 			'SinusCosinus': col.createSinusCosinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
-			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [(125,30,0),(30,255,30),(0,30,125)])
+			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [(125,30,0),(30,255,30),(0,30,125)]),
+			'BlueGrey':     col.createLinearPalette(maxValue, [(100,100,100),(200,200,200),(0,0,255)])
 		}
 
 	def run(self):

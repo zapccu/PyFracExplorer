@@ -118,7 +118,7 @@ class ControlFrame(Frame):
 
 		# Color mapping combobox
 		self.lblColorMapping = Label(self, text="Color mapping", justify='left', bg=bg, anchor='w')
-		self.cbColorMapping = Combobox(self, state="readonly", values=app.getSettingValues('colorMapping'), width=22, background=bg)
+		self.cbColorMapping = Combobox(self, state="readonly", values=app.getSettingValues('colorMapping'), width=20, background=bg)
 		self.cbColorMapping.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('colorMapping', self.cbColorMapping.get())	
@@ -129,7 +129,7 @@ class ControlFrame(Frame):
 
 		# Drawmode combobox with label
 		self.lblDrawMode = Label(self, text="Draw mode", background=bg, anchor='w')
-		self.cbDrawMode = Combobox(self, state="readonly", values=app.getSettingValues('drawMode'), width=22, background=bg)
+		self.cbDrawMode = Combobox(self, state="readonly", values=app.getSettingValues('drawMode'), width=20, background=bg)
 		self.cbDrawMode.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('drawMode', self.cbDrawMode.get())	
@@ -140,7 +140,7 @@ class ControlFrame(Frame):
 
 		# Color palette combobox with label
 		self.lblColorPalette = Label(self, text="Color palette", width=25, background=bg, anchor='w')
-		self.cbColorPalette = Combobox(self, state="readonly", values=app.getSettingValues('colorPalette'), width=22, background=bg)
+		self.cbColorPalette = Combobox(self, state="readonly", values=app.getSettingValues('colorPalette'), width=20, background=bg)
 		self.cbColorPalette.bind("<<ComboboxSelected>>",
 			lambda event:
 				self.app.setSetting('colorPalette', self.cbColorPalette.get())
@@ -151,11 +151,22 @@ class ControlFrame(Frame):
 		self.btnColor = Button(self, text="Edit colors", width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onColorEdit())
 		self.btnColor.grid(column=0, row=7, pady=10)
 
+		calcParameters = self.app.fractal.getCalcParameters()
+		print(calcParameters)
+
 		# Iterations
-		self.lblIterations = Label(self, text="Iterations:", justify='left', background=bg, anchor='w')
-		self.entIterations = Entry(self)
-		self.lblIterations.grid(sticky='E', column=0, row=8, pady=5)
-		self.entIterations.grid(sticky='W', column=1, row=9, pady=5)
+		self.lblIterations = Label(self, text="Max iterations:", justify='left', background=bg, anchor='w')
+		self.entIterations = Spinbox(self, from_=100, to=4000, width=6, justify='right')
+		self.lblIterations.grid(sticky='W', columnspan=2, column=0, row=8, padx=5, pady=0)
+		self.entIterations.grid(sticky='E', columnspan=2, column=0, row=8, padx=40, pady=0)
+		self.entIterations.insert(0, str(calcParameters[1]))
+
+		# Orbit diameter
+		self.lblDiameter = Label(self, text="Orbit diameter:", justify='left', background=bg, anchor='w')
+		self.sbDiameter = Spinbox(self, from_=0, to=10, width=4, justify='right', state='readonly')
+		self.lblDiameter.grid(sticky='W', columnspan=2, column=0, row=10, padx=5, pady=5)
+		self.sbDiameter.grid(sticky='E', columnspan=2, column=0, row=10, padx=40, pady=0)
+		self.sbDiameter.insert(0, str(calcParameters[2]))
 
 
 class Selection:

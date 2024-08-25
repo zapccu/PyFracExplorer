@@ -5,6 +5,8 @@ import numpy as np
 import numba as nb
 
 from math import *
+from metalize import metalize
+
 import fractal as frc
 
 import colors as col
@@ -59,14 +61,13 @@ class Mandelbrot(frc.Fractal):
 def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 	dst       = 0
 	diameter  = -1
-	#bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
-	bailout = 10000.0
+	bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
 
 	# Set initial values for calculation
 	D = complex(1.0)
 	Z = C
 
-	if maxDiameter > 0: orbit = np.zeros(maxIter, dtype=np.float64)
+	if maxDiameter > 0: orbit = np.zeros(maxDiameter, dtype=np.float64)
 
 	for i in range(1, maxIter+1):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
@@ -83,7 +84,7 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 					diameter = orbIdx-n if orbIdx > n else orbIdx+maxDiameter-n
 					i = maxIter
 					break
-			orbit[i] = nZ
+			orbit[orbIdx] = nZ
 
 	if flags & _F_DISTANCE:
 		aZ = abs(Z)
@@ -92,6 +93,22 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 		# distance = aZ / abs(distance) * 2.0 * log(aZ)
 		# Convert to value between 0 and 1:
 		# np.tanh(distance*resolution/size)
+
+	return col.mapColorValue(P, i, maxIter)
+
+def calculateMetalPointZ2(C, P, flags, maxIter, maxDiameter):
+	dst       = 0
+	diameter  = -1
+	bailout   = 4.0
+
+	# Set initial values for calculation
+	D = complex(1.0)
+	Z = C
+
+	for i in range(1, 257):
+		nZ = Z.real * Z.real + Z.imag * Z.imag
+		if nZ > bailout: break
+		Z = Z * Z + C
 
 	return col.mapColorValue(P, i, maxIter)
 
