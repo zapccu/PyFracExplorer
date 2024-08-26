@@ -11,12 +11,29 @@ from coloreditor import *
 
 import tkconfigure as tkc
 
-
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
 
 		# Settings
+		self.settings = tkc.TKConfigure({
+			"Fractal selection": {
+				"fractalType": {
+					"inputType": 'int',
+					'valRange':  [
+						'Mandelbrot Set',
+						'Julia Set'
+					],
+					'initValue': 0,
+					'widget':    'TKCListbox',
+					'label':     'Fractal type:',
+					'width':     15,
+					'widgetAttr': {
+						'justify': 'left'
+					}
+				}
+			}
+		})
 		self.settings = {
 			'fractalType': {
 				'values': [ 'Mandelbrot' ],

@@ -85,10 +85,6 @@ def phong(normal: complex, light: list[float]):
 # Create color palettes
 #
 
-"""
-def createLinearPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:
-	return np.vstack((np.linspace(startColor, endColor, max(numColors, 2), dtype=np.uint8), np.array(defColor, dtype=np.uint8)))
-"""
 def createLinearPalette(numColors: int, colorPoints: list = [(255, 255, 255)], defColor: tuple = (0, 0, 0)) -> np.ndarray:
 	if len(colorPoints) == 0:
 		# Greyscale palette
@@ -104,6 +100,7 @@ def createLinearPalette(numColors: int, colorPoints: list = [(255, 255, 255)], d
 			if secSize + len(palette)-1 > numColors: secSize = numColors - len(palette)
 			palette = np.vstack((palette[:-1], np.linspace(colorPoints[i], colorPoints[i+1], secSize, dtype=np.uint8)))
 
+	# Append default color and return palette
 	return np.vstack((palette, np.array(defColor, dtype=np.uint8)))
 	
 def createRGBPalette(numColors: int, startColor: tuple, endColor: tuple, defColor: tuple = (0, 0, 0)) -> np.ndarray:

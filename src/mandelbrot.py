@@ -5,14 +5,14 @@ import numpy as np
 import numba as nb
 
 from math import *
-from metalize import metalize
 
 import fractal as frc
 
 import colors as col
 
-_F_POTENTIAL = 1
-_F_DISTANCE  = 2
+# Flags
+_F_POTENTIAL = 1   # Calculate potential
+_F_DISTANCE  = 2   # Calculate distance
 
 
 class Mandelbrot(frc.Fractal):
