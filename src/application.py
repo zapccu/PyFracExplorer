@@ -19,10 +19,9 @@ class Application:
 		self.settings = tkc.TKConfigure({
 			"Fractal selection": {
 				"fractalType": {
-					"inputType": 'int',
+					'inputType': 'int',
 					'valRange':  [
-						'Mandelbrot Set',
-						'Julia Set'
+						'Mandelbrot Set', 'Julia Set'
 					],
 					'initValue': 0,
 					'widget':    'TKCListbox',
@@ -31,31 +30,35 @@ class Application:
 					'widgetAttr': {
 						'justify': 'left'
 					}
+				},
+				"drawMode": {
+					'inputType': 'int',
+					'valRange':  [
+						'Vectorized', 'SQEM Recursive', 'SQEM Linear'
+					],
+					'initValue': 0,
+					'widget':    'TKCListbox',
+					'label':     'Draw mode:',
+					'width':     15,
+					'widgetAttr': {
+						'justify': 'left'
+					},
+				},
+				'colorPalette': {
+					'inputType': 'int',
+					'valRange':  [
+						'Monochrome', 'Grey', 'Sinus', 'SinusCosinus', 'RedGreenBlue', 'BlueGrey'
+					],
+					'initValue': 0,
+					'widget':    'TKCListbox',
+					'label':     'Color palette:',
+					'width':     15,
+					'widgetAttr': {
+						'justify': 'left'
+					}
 				}
 			}
 		})
-		self.settings = {
-			'fractalType': {
-				'values': [ 'Mandelbrot' ],
-				'current': 'Mandelbrot',
-				'default': 'Mandelbrot'
-			},
-			'colorMapping': {
-				'values': [ 'Linear', 'Modulo', 'RGB' ],
-				'current': 'Linear',
-				'default': 'Linear'
-			},
-			'drawMode': {
-				'values': [ 'Vectorized', 'SQEM Recursive', 'SQEM Linear', 'Metalized' ],
-				'current': 'Vectorized',
-				'default': 'Vectorized'
-			},
-			'colorPalette': {
-				'values': [ 'Monochrome', 'Grey', 'Sinus', 'SinusCosinus', 'RedGreenBlue', 'BlueGrey' ],
-				'current': 'Grey',
-				'default': 'Grey'
-			}
-		}
 
 		# Default fractal
 		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))

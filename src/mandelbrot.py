@@ -7,34 +7,65 @@ import numba as nb
 from math import *
 
 import fractal as frc
-
 import colors as col
+import tkconfigure as tkc
+
 
 # Flags
-_F_POTENTIAL = 1   # Calculate potential
-_F_DISTANCE  = 2   # Calculate distance
+_F_POTENTIAL  = 1   # Calculate potential
+_F_DISTANCE   = 2   # Calculate distance
+_F_ORBITCOLOR = 4   # Colorize orbits
 
 
 class Mandelbrot(frc.Fractal):
 
-	_defaults = (
-		('flags', 0),
-		('maxIter', 256),
-		('corner', complex(-2.0, -1.5)),
-		('size', complex(3.0, 3.0)),
-		('maxDiameter', 10)
-	)
-
-	_parameterNames = ( 'flags', 'maxIter', 'corner', 'size', 'maxDiameter' )
 	_resultNames    = ( 'maxIter', 'iterations', 'Z', 'distance' )
 
-	def __init__(self, corner: complex = complex(-2.0, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256):
+	def __init__(self, corner: complex = complex(-2.25, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256):
 		super().__init__(size.real, size.imag, corner.real, corner.imag)
 
-		self.maxDiameter   = 10
+		self.settings = tkc.TKConfigure({
+			"Mandelbrot Set": {
+				"corner": {
+					"inputType": "complex",
+					"initValue": corner,
+					"widget":    "TKCEntry",
+					"label":     "Corner"
+				},
+				"size": {
+					"inputType": "complex",
+					"initValue": size,
+					"widget":    "TKEntry",
+					"label":     "Size"
+				},
+				"maxIter": {
+					"inputType": "int",
+					"valRange":  (10, 4000, 50),
+					"initValue": maxIter,
+					"widget":    "TKCSpinbox",
+					"label":     "Max. iterations"
+				},
+				"maxDiameter": {
+					"inputType": "int",
+					"valRange":  (0, 10),
+					"initValue": 10,
+					"widget":    "TKCSpinbox",
+					"label":     "Max. diameter"
+				},
+				"flags": {
+					"inputType": "int",
+					"valRange":  ["Potential", "Distance"],
+					"initValue": 0,
+					"wiget":     "TKCFlags",
+					"widgetAttr": {
+						"text": "Calculation options"
+					}
+				}
+			}
+		})
 
 		# Calculate zoom factor
-		defSize = self.getDefaultValue('size')
+		defSize = self.settings['size']
 		self.zoom = max(defSize.real / size.real, defSize.imag / size.imag)
 
 		if maxIter == -1:
@@ -42,11 +73,8 @@ class Mandelbrot(frc.Fractal):
 		else:
 			self.maxIter = maxIter
 
-	def getDefaults(self) -> tuple:
-		return Mandelbrot._defaults
-	
-	def getParameterNames(self) -> tuple:
-		return Mandelbrot._parameterNames
+	def getParameterNames(self) -> list:
+		return self.settings.getIds()
 	
 	def getCalcParameters(self) -> tuple:
 		maxIter = 4096 if self.flags & _F_DISTANCE else self.maxIter
@@ -93,22 +121,6 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 		# distance = aZ / abs(distance) * 2.0 * log(aZ)
 		# Convert to value between 0 and 1:
 		# np.tanh(distance*resolution/size)
-
-	return col.mapColorValue(P, i, maxIter)
-
-def calculateMetalPointZ2(C, P, flags, maxIter, maxDiameter):
-	dst       = 0
-	diameter  = -1
-	bailout   = 4.0
-
-	# Set initial values for calculation
-	D = complex(1.0)
-	Z = C
-
-	for i in range(1, 257):
-		nZ = Z.real * Z.real + Z.imag * Z.imag
-		if nZ > bailout: break
-		Z = Z * Z + C
 
 	return col.mapColorValue(P, i, maxIter)
 
