@@ -19,41 +19,41 @@ class Application:
 		self.settings = tkc.TKConfigure({
 			"Fractal selection": {
 				"fractalType": {
-					'inputType': 'int',
-					'valRange':  [
+					'inputtype': 'str',
+					'valrange':  [
 						'Mandelbrot Set', 'Julia Set'
 					],
-					'initValue': 0,
+					'initvalue': 'Mandelbrot Set',
 					'widget':    'TKCListbox',
 					'label':     'Fractal type:',
 					'width':     15,
-					'widgetAttr': {
+					'widgetattr': {
 						'justify': 'left'
 					}
 				},
 				"drawMode": {
-					'inputType': 'int',
-					'valRange':  [
+					'inputtype': 'str',
+					'valrange':  [
 						'Vectorized', 'SQEM Recursive', 'SQEM Linear'
 					],
-					'initValue': 0,
+					'initvalue': 'Vectorized',
 					'widget':    'TKCListbox',
 					'label':     'Draw mode:',
 					'width':     15,
-					'widgetAttr': {
+					'widgetattr': {
 						'justify': 'left'
 					},
 				},
 				'colorPalette': {
-					'inputType': 'int',
-					'valRange':  [
+					'inputtype': 'str',
+					'valrange':  [
 						'Monochrome', 'Grey', 'Sinus', 'SinusCosinus', 'RedGreenBlue', 'BlueGrey'
 					],
-					'initValue': 0,
+					'initvalue': 'Grey',
 					'widget':    'TKCListbox',
 					'label':     'Color palette:',
 					'width':     15,
-					'widgetAttr': {
+					'widgetattr': {
 						'justify': 'left'
 					}
 				}
@@ -61,11 +61,15 @@ class Application:
 		})
 
 		# Default fractal
-		self.fractal = man.Mandelbrot(complex(-2.0, -1.5), complex(3.0, 3.0))
+		self.fractal = man.Mandelbrot(complex(-2.25, -1.5), complex(3.0, 3.0))
 		# self.fractal = man.Mandelbrot(complex(-0.42125, -1.21125), complex(0.62249, 0.62249), maxIter=500)
 
-		# GUI
-		self.gui = GUI(self, title, width, height, 50, 200)
+		# Create GUI
+		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=300)
+
+		# Create settings widgets
+		row = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=5)
+		self.fractal.settings.createMask(self.gui.controlFrame, startrow=row, padx=2, pady=5)
 
 		# Define selection handler
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
@@ -80,27 +84,14 @@ class Application:
 			'BlueGrey':     col.createLinearPalette(maxValue, [(100,100,100),(200,200,200),(0,0,255)])
 		}
 
+	def __getitem__(self, index: str):
+		return self.settings.get(index)
+	
 	def run(self):
 		self.gui.mainWindow.mainloop()
 
 	def update(self):
 		self.gui.mainWindow.update()
-
-	def getSetting(self, parName: str) -> str:
-		return self.settings[parName]['current']
-		
-	def setSetting(self, parName: str, value):
-		if parName in self.settings:
-			if value is not None and value in self.settings[parName]['values']:
-				self.settings[parName]['current'] = value
-			else:
-				self.settings[parName]['current'] = self.settings[parName]['default']
-		
-	def getSettingValues(self, parName: str) -> list[str]:
-		if parName in self.settings:
-			return self.settings[parName]['values']
-		else:
-			return []
 
 	#
 	# Screen selection handling
@@ -116,12 +107,17 @@ class Application:
 	# Command handling
 	#
 	
-	def onDraw(self):
+	def onApply(self):
 		if self.gui.selection.isAreaSelected():
 			x1, y1, x2, y2 = self.gui.selection.getArea()
-			width, height = self.fractal.mapWH(x2-x1+1, y2-y1+1)
+			size = self.fractal.mapWH(x2-x1+1, y2-y1+1)
 			corner = self.fractal.mapXY(x1, y1)
-			self.fractal = man.Mandelbrot(corner, complex(width, height), -1)
+			self.fractal.setDimensions(size.real, size.imag, corner.real, corner.imag)
+		else:
+			self.settings.apply()
+			self.fractal.settings.apply()
+
+	def onDraw(self):
 
 		self.gui.drawFrame.clearCanvas()
 		self.gui.selection.reset()

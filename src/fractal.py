@@ -2,6 +2,7 @@
 import time
 
 import numpy as np
+import tkconfigure as tkc
 
 from math import *
 
@@ -11,17 +12,12 @@ import colors as col
 class Fractal:
 
 	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
-		self.screenWidth   = 100
-		self.screenHeight  = 100
+		self.settings = tkc.TKConfigure()
+
 		self.fractalWidth  = fractalWidth
 		self.fractalHeight = fractalHeight
-
-		self.offsetX = offsetX
-		self.offsetY = offsetY
-
-		self.flags = 0
-
-		self.mapScreenCoordinates()
+		self.offsetX       = offsetX
+		self.offsetY       = offsetY
 
 		self.startTime = 0
 		self.calcTime  = 0
@@ -64,35 +60,42 @@ class Fractal:
 		self.fractalHeight = fractalHeight
 		self.offsetX = offsetX
 		self.offsetY = offsetY
-		self.mapScreenCoordinates()
+
+	def dx(self) -> float:
+		return self.fractalWidth / (self.screenWidth - 1)
+	
+	def dy(self) -> float:
+		self.dy = self.fractalHeight / (self.screenHeight - 1)
 
 	def mapX(self, x: int) -> float:
-		return self.offsetX + x * self.dx
+		return self.offsetX + x * self.dx()
 	
 	def mapY(self, y: int) -> float:
-		return self.offsetY + y * self.dy
-
-	# Create matrix with mapping of screen coordinates to fractal coordinates
-	def mapScreenCoordinates(self):
-		self.dx = self.fractalWidth / (self.screenWidth - 1)
-		self.dy = self.fractalHeight / (self.screenHeight - 1)
-		dxTab = np.outer(np.ones((self.screenWidth,), dtype=np.float64), np.linspace(self.offsetX, self.offsetX+self.fractalWidth, self.screenWidth, dtype=np.float64))
-		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, self.screenHeight, dtype=np.float64), np.ones((self.screenHeight,), dtype=np.complex128))
-		self.cplxGrid = dxTab + dyTab
+		return self.offsetY + y * self.dy()
 
 	def mapXY(self, x: int, y: int) -> complex:
-		return self.cplxGrid[y,x]
+		return complex(self.mapX(x), self.mapY(y))
 		
-	def mapWH(self, width: int, height: int) -> tuple:
-		return self.dx * width, self.dy * height
+	def mapWH(self, width: int, height: int) -> complex:
+		return complex(self.dx() * width, self.dy() * height)
 	
+	# Create matrix with mapping of screen coordinates to fractal coordinates
+	def mapScreenCoordinates(self, screenWidth: int, screenHeight: int):
+		dxTab = np.outer(np.ones((screenWidth,), dtype=np.float64),
+				   np.linspace(self.offsetX, self.offsetX+self.fractalWidth, screenWidth, dtype=np.float64))
+		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, screenHeight, dtype=np.float64),
+				   np.ones((screenHeight,), dtype=np.complex128))
+		self.cplxGrid = dxTab + dyTab
+
 	def getMaxValue(self):
 		return 1
 	
+	def updateParameters(self):
+		pass
+	
 	def beginCalc(self, screenWidth: int, screenHeight: int) -> bool:
-		self.screenWidth = screenWidth
-		self.screenHeight = screenHeight
-		self.mapScreenCoordinates()
+		self.updateParameters()
+		self.mapScreenCoordinates(screenWidth, screenHeight)
 		self.startTime = time.time()
 		return True
 

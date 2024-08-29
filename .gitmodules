@@ -1,0 +1,3 @@
+[submodule "src/tkconfigure"]
+	path = src/tkconfigure
+	url = https://github.com/zapccu/tkconfigure

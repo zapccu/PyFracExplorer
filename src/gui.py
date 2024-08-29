@@ -1,6 +1,6 @@
 
 from tkinter import *
-from tkinter.ttk import Combobox, Style, Progressbar
+from tkinter.ttk import Combobox, Style, Progressbar, Separator
 
 """
 GUI
@@ -101,73 +101,25 @@ class ControlFrame(Frame):
 		self.gui = gui
 		self.app = app
 
-		self.colorMapping = 'Linear'
-
 		self.pack_propagate(False)
 		self.pack(side=RIGHT, expand=False, fill=Y, anchor='ne')
-
-		style = Style()
-		style.theme_use('clam')
-		style.configure("TCombobox", fieldbackground= "orange", background= "white")
 		
 		# Draw and Cancel Buttons
-		self.btnDraw   = Button(self, text="Draw",   width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onDraw())
-		self.btnCancel = Button(self, text="Cancel", width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onCancel())
-		self.btnDraw.grid(column=0, row=0, padx=5, pady=10)
-		self.btnCancel.grid(column=1, row=0, pady=10)
+		self.btnFrame = LabelFrame(self)
+		self.btnFrame.grid(columnspan=2, column=0, row=0)
+		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onApplay())
+		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onDraw())
+		self.btnCancel = Button(self.btnFrame, text="Cancel", width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onCancel())
+		self.btnApply.grid(column=0, row=0, padx=5, pady=5)
+		self.btnDraw.grid(column=1, row=0, padx=5, pady=5)
+		self.btnCancel.grid(column=2, row=0, pady=5)
+		# self.separator = Separator(self, orient='horizontal')
+		# self.separator.grid(columnspan=2, column=0, row=1)
 
-		# Color mapping combobox
-		self.lblColorMapping = Label(self, text="Color mapping", justify='left', bg=bg, anchor='w')
-		self.cbColorMapping = Combobox(self, state="readonly", values=app.getSettingValues('colorMapping'), width=20, background=bg)
-		self.cbColorMapping.bind("<<ComboboxSelected>>",
-			lambda event:
-				self.app.setSetting('colorMapping', self.cbColorMapping.get())	
-		)
-		self.lblColorMapping.grid(sticky='W', columnspan=2, column=0, row=1, padx=5, pady=0)
-		self.cbColorMapping.grid(sticky='W', columnspan=2, column=0, row=2, padx=5, pady=0)
-		self.cbColorMapping.set(self.app.getSetting('colorMapping'))
+		self.row = 1
 
-		# Drawmode combobox with label
-		self.lblDrawMode = Label(self, text="Draw mode", background=bg, anchor='w')
-		self.cbDrawMode = Combobox(self, state="readonly", values=app.getSettingValues('drawMode'), width=20, background=bg)
-		self.cbDrawMode.bind("<<ComboboxSelected>>",
-			lambda event:
-				self.app.setSetting('drawMode', self.cbDrawMode.get())	
-		)
-		self.lblDrawMode.grid(sticky='W', columnspan=2, column=0, row=3, padx=5, pady=0)
-		self.cbDrawMode.grid(sticky='W', columnspan=2, column=0, row=4, padx=5, pady=0)
-		self.cbDrawMode.set(self.app.getSetting('drawMode'))
-
-		# Color palette combobox with label
-		self.lblColorPalette = Label(self, text="Color palette", width=25, background=bg, anchor='w')
-		self.cbColorPalette = Combobox(self, state="readonly", values=app.getSettingValues('colorPalette'), width=20, background=bg)
-		self.cbColorPalette.bind("<<ComboboxSelected>>",
-			lambda event:
-				self.app.setSetting('colorPalette', self.cbColorPalette.get())
-		)
-		self.lblColorPalette.grid(sticky='W', columnspan=2, column=0, row=5, padx=5, pady=0)
-		self.cbColorPalette.grid(sticky='W', columnspan=2, column=0, row=6, padx=5, pady=0)
-		self.cbColorPalette.set(self.app.getSetting('colorPalette'))
-		self.btnColor = Button(self, text="Edit colors", width=8, fg="green", bg=bg, highlightbackground=bg, command=lambda: self.app.onColorEdit())
-		self.btnColor.grid(column=0, row=7, pady=10)
-
-		calcParameters = self.app.fractal.getCalcParameters()
-		print(calcParameters)
-
-		# Iterations
-		self.lblIterations = Label(self, text="Max iterations:", justify='left', background=bg, anchor='w')
-		self.entIterations = Spinbox(self, from_=100, to=4000, width=6, justify='right')
-		self.lblIterations.grid(sticky='W', columnspan=2, column=0, row=8, padx=5, pady=0)
-		self.entIterations.grid(sticky='E', columnspan=2, column=0, row=8, padx=40, pady=0)
-		self.entIterations.insert(0, str(calcParameters[1]))
-
-		# Orbit diameter
-		self.lblDiameter = Label(self, text="Orbit diameter:", justify='left', background=bg, anchor='w')
-		self.sbDiameter = Spinbox(self, from_=0, to=10, width=4, justify='right', state='readonly')
-		self.lblDiameter.grid(sticky='W', columnspan=2, column=0, row=10, padx=5, pady=5)
-		self.sbDiameter.grid(sticky='E', columnspan=2, column=0, row=10, padx=40, pady=0)
-		self.sbDiameter.insert(0, str(calcParameters[2]))
-
+	def nextRow(self):
+		return self.row
 
 class Selection:
 

@@ -24,65 +24,67 @@ class Mandelbrot(frc.Fractal):
 	def __init__(self, corner: complex = complex(-2.25, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256):
 		super().__init__(size.real, size.imag, corner.real, corner.imag)
 
-		self.settings = tkc.TKConfigure({
+		self.settings.setParameterDefinition({
 			"Mandelbrot Set": {
 				"corner": {
-					"inputType": "complex",
-					"initValue": corner,
+					"inputtype": "complex",
+					"initvalue": corner,
 					"widget":    "TKCEntry",
-					"label":     "Corner"
+					"label":     "Corner",
+					"width":     10
 				},
 				"size": {
-					"inputType": "complex",
-					"initValue": size,
-					"widget":    "TKEntry",
-					"label":     "Size"
+					"inputtype": "complex",
+					"initvalue": size,
+					"widget":    "TKCEntry",
+					"label":     "Size",
+					"width":     10
 				},
 				"maxIter": {
-					"inputType": "int",
-					"valRange":  (10, 4000, 50),
-					"initValue": maxIter,
+					"inputtype": "int",
+					"valrange":  (10, 4000, 50),
+					"initvalue": maxIter,
 					"widget":    "TKCSpinbox",
-					"label":     "Max. iterations"
+					"label":     "Max. iterations",
+					"width":     6
 				},
 				"maxDiameter": {
-					"inputType": "int",
-					"valRange":  (0, 10),
-					"initValue": 10,
+					"inputtype": "int",
+					"valrange":  (0, 10),
+					"initvalue": 10,
 					"widget":    "TKCSpinbox",
-					"label":     "Max. diameter"
+					"label":     "Max. diameter",
+					"width":     6
 				},
 				"flags": {
-					"inputType": "int",
-					"valRange":  ["Potential", "Distance"],
-					"initValue": 0,
-					"wiget":     "TKCFlags",
-					"widgetAttr": {
+					"inputtype": "bits",
+					"valrange":  ["Potential", "Distance"],
+					"initvalue": 0,
+					"widget":     "TKCFlags",
+					"widgetattr": {
 						"text": "Calculation options"
 					}
 				}
 			}
 		})
 
-		# Calculate zoom factor
-		defSize = self.settings['size']
-		self.zoom = max(defSize.real / size.real, defSize.imag / size.imag)
-
-		if maxIter == -1:
-			self.maxIter = min(max(int(abs(1000 * log(1 / sqrt(self.zoom)))), 256), 4096)
-		else:
-			self.maxIter = maxIter
+	# Called by beginCalc() before calculation is started
+	def updateParameters(self):
+		self.settings.syncConfig()
+		corner = self.settings['corner']
+		size   = self.settings['size']
+		self.setDimensions(size.real, size.imag, corner.real, corner.imag)
 
 	def getParameterNames(self) -> list:
 		return self.settings.getIds()
-	
-	def getCalcParameters(self) -> tuple:
-		maxIter = 4096 if self.flags & _F_DISTANCE else self.maxIter
-		return (self.flags, maxIter, self.maxDiameter)
-	
-	def getMaxValue(self):
-		return 4096 if self.flags & _F_DISTANCE else self.maxIter
 
+	def getMaxValue(self):
+		return 4096 if self.settings['flags'] & _F_DISTANCE else self.settings['maxIter']
+
+	def getCalcParameters(self) -> tuple:
+		maxIter = self.getMaxValue()
+		return (self.settings['flags'], maxIter, self.settings['maxDiameter'])
+	
 # Iterate complex point
 # Return tuple with results
 @nb.njit(cache=True)
