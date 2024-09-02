@@ -129,22 +129,46 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 # Map calculation results to color
 #
 
-MAP_LINEAR = 0
-MAP_MODULO = 1
-MAP_RGB = 2
+# Flags
+_F_ITERLINEAR = 1
+_F_ITERMODULO = 2
+_F_ORBITCOLOR = 4   # Colorize orbits
+_F_POTENTIAL  = 8   # Colorize by fractal potential
+_F_DISTANCE   = 16  # Colorize by fractal distance
+_F_SHADING    = 32
+
+
+# Map iteration result to color depending on mapping method
+@njit(cache=True)
+def mapColorValue(palette: np.ndarray, value: float, maxValue: int, flags: int = 1) -> np.ndarray:
+	pLen = len(palette)-1
+	
+	if flags & _F_ITERLINEAR:
+		if value == maxValue: return palette[pLen]
+		return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
+	elif flags & _F_ITERMODULO:
+		if value == maxValue: return palette[pLen]
+		return palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
+	elif flags & _F_DISTANCE:
+		return palette[pLen] if value == 0 else palette[int(value * pLen)]
+	elif flags & _F_POTENTIAL:
+		return np.array([0, 0, 0], dtype=np.uint8)
 
 @njit(cache=True)
-def mapColorValue(palette: np.ndarray, value: int, maxValue: int, method = 0) -> np.ndarray:
+def mapColorValueNew(palette: np.ndarray, values: np.ndarray, maxValue: int, flags: int = 1) -> np.ndarray:
 	pLen = len(palette)-1
-	if value >= maxValue or value < 0:
-		return palette[pLen]
-	if maxValue == pLen:
-		return palette[value]
 	
-	if method == 1:
-		return palette[value % pLen]
-	else:
-		return palette[int(pLen / maxValue * value)]
+	if flags & _F_ITERLINEAR:
+		if values[0] == maxValue: return palette[pLen]
+		return palette[int(values[0])] if maxValue == pLen else palette[int(pLen / maxValue * values[0])]
+	elif flags & _F_ITERMODULO:
+		if values[0] == maxValue: return palette[pLen]
+		return palette[int(values[0])] if maxValue == pLen else palette[int(values[0]) % pLen]
+	elif flags & _F_DISTANCE:
+		return palette[pLen] if values[1] == 0 else palette[int(values[1] * pLen)]
+	elif flags & _F_POTENTIAL:
+		return np.array([0, 0, 0], dtype=np.uint8)
+
 	
 
 

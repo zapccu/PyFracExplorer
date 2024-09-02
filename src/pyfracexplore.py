@@ -2,7 +2,6 @@
 # PyFracExplore main
 
 import sys
-import os
 
 # Add path of submodule tkconfigure
 sys.path.insert(0, "./src/tkconfigure/src")
