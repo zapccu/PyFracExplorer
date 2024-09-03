@@ -54,7 +54,7 @@ class Mandelbrot(frc.Fractal):
 				},
 				"maxDiameter": {
 					"inputtype": "int",
-					"valrange":  (0, 20),
+					"valrange":  (0, 50),
 					"initvalue": 20,
 					"widget":    "TKCSpinbox",
 					"label":     "Max. diameter",
@@ -62,7 +62,7 @@ class Mandelbrot(frc.Fractal):
 				},
 				"flags": {
 					"inputtype": "bits",
-					"valrange":  ["Linear", "Modulo", "Orbits", "Potential", "Distance"],
+					"valrange":  ["Linear", "Modulo", "Orbits", "Potential", "Distance", "Shading"],
 					"initvalue": 1,
 					"widget":     "TKCFlags",
 					"widgetattr": {
@@ -89,73 +89,53 @@ class Mandelbrot(frc.Fractal):
 		maxIter = self.getMaxValue()
 		return (self.settings['flags'], maxIter, self.settings['maxDiameter'])
 
-@nb.njit(cache=True)
-def calculatePoint3D(C, P, flags, maxIter, maxDiameter):
-	h2 = 1.5  # height factor of the incoming light
-	angle = 45  # incoming direction of light
-	v = cmath.exp(complex(0,1) * angle * 2 * pi / 360)  # unit 2D vector in this direction
-	# incoming light 3D vector = (v.re,v.im,h2)
-
-	bailout = 10000.0  # do not take bailout too small
-
-	Z = C
-	dc = complex(1, 0)
-	der = dc
-
-	for i in range(0, maxIter+1):
-		nZ = Z.real * Z.real + Z.imag * Z.imag
-		if nZ > bailout: break
-
-		der = der * 2 * Z + dc
-		Z = Z * Z + C
-
-	if i >= maxIter:
-		return np.array([0, 0, 0], dtype=np.uint8)
-	else:
-		u = Z / der
-		u = u / abs(u)  # normal vector: (u.re,u.im,1) 
-		t = u.real * v.real + u.imag * v.imag + h2  # dot product with the incoming light
-		t = t / (1 + h2)  # rescale so that t does not get bigger than 1
-		if t < 0: t=0
-		color = int(255 * t)
-		return np.array([color, color, color], dtype=np.uint8)
-
-# Iterate complex point
-# Return tuple with results
+# Iterate complex point using formular Z = Z * Z + C
+# Return color
 @nb.njit(cache=True)
 def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 	dst       = 0.0
 	pot       = 0.0
 	diameter  = -1
-	bailout   = 10000.0 if flags & _F_POTENTIAL else 4.0
+	bailout   = 10000.0 if flags & _F_POTENTIAL or flags & _F_SHADING else 4.0
 
 	# Set initial values for calculation
 	D = complex(1.0)
 	Z = C
 
-	# if maxDiameter > 0: orbit = np.zeros(maxDiameter, dtype=np.float64)
 	period = 0
 	nZ1 = 0.0
-	# pow = 1
+	pow = 1
+
+	if flags & _F_ORBITCOLOR:
+		orbits = np.zeros(maxIter, dtype=np.float64)
 
 	for i in range(1, maxIter+1):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout: break
 
+		if flags & _F_ORBITCOLOR:
+			# Search for orbits (full periodicity check)
+			for n in range(i-2,max(i-maxDiameter,-1),-1):
+				if abs(nZ - orbits[n]) < 1e-15:
+					return col.mapColorValue(P, float(i), maxIter, _F_ORBITCOLOR)
+			orbits[i-1] = nZ
+		else:
+			# Simplified periodicity check
+			if abs(nZ - nZ1) < 1e-10:
+				i = maxIter
+				break
+			else:
+				period += 1
+				if period > maxDiameter:
+					period = 0
+					nZ1 = nZ
+
+		if flags & _F_DISTANCE or flags & _F_SHADING:
+			D = D * 2 * Z + 1
+
 		Z = Z * Z + C
 
-		if flags & _F_DISTANCE: D = Z * D * 2.0 + 1
-
-		if abs(nZ - nZ1) < 1e-10:
-			i = maxIter
-			break
-		else:
-			period += 1
-			if period > maxDiameter:
-				period = 0
-				nZ1 = nZ
-
-		# pow *= 2
+		pow *= 2
 
 	if i < maxIter:
 		if flags & _F_DISTANCE:
@@ -172,14 +152,23 @@ def calculatePointZ2(C, P, flags, maxIter, maxDiameter):
 			logZn = log(nZ)/2.0
 			pot = log(logZn / log(2)) / log(2)
 			return col.mapColorValue(P, pot, maxIter, flags)
+		
+		if flags & _F_SHADING:
+			h2 = 1.5    # height factor of the incoming light
+			angle = 45  # incoming direction of light
+			v = cmath.exp(complex(0,1) * angle * 2 * pi / 360)  # unit 2D vector in this direction
+			u = Z / D
+			u /= abs(u)  # normal vector: (u.re,u.im,1) 
+			t = u.real * v.real + u.imag * v.imag + h2  # dot product with the incoming light
+			t /= (1 + h2)  # rescale so that t does not get bigger than 1
+			return col.mapColorValue(P, max(t,0), maxIter, flags)
 
-	return col.mapColorValue(P, float(i), maxIter, flags)
+	return col.mapColorValue(P, float(i), maxIter, _F_ITERLINEAR)
 
 @nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
 def calculateVectorZ2(C, P, flags, maxIter, maxDiameter, R):
 	for p in range(C.shape[0]):
-		# R[p,:] = calculatePointZ2(C[p], P, flags, maxIter, maxDiameter)
-		R[p,:] = calculatePoint3D(C[p], P, flags, maxIter, maxDiameter)
+		R[p,:] = calculatePointZ2(C[p], P, flags, maxIter, maxDiameter)
 
 @nb.guvectorize([(nb.float64[:,:], nb.uint8[:,:], nb.int32, nb.int32,  nb.uint8[:,:])], '(n,m),(i,j),(),(),(n,k)', nopython=True, cache=True, target='parallel')
 def colorize(R, P, maxValue, flags, I):

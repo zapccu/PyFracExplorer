@@ -12,7 +12,6 @@ def main():
 	app = Application(1200, 800, "PyFracExplore")
 	app.run()
 
-
 if __name__ == "__main__":
 	main()
 	sys.exit(0)

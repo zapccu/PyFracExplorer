@@ -1,6 +1,7 @@
 
 import numpy as np
 import math
+import cmath
 import colorsys
 
 from numba import njit, prange
@@ -142,7 +143,11 @@ _F_SHADING    = 32
 @njit(cache=True)
 def mapColorValue(palette: np.ndarray, value: float, maxValue: int, flags: int = 1) -> np.ndarray:
 	pLen = len(palette)-1
-	
+
+	if flags == _F_ORBITCOLOR:
+		c = int(255 * (1 - value / maxValue))
+		return np.array([0, 0, c], dtype=np.uint8)
+			
 	if flags & _F_ITERLINEAR:
 		if value == maxValue: return palette[pLen]
 		return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
@@ -152,6 +157,11 @@ def mapColorValue(palette: np.ndarray, value: float, maxValue: int, flags: int =
 	elif flags & _F_DISTANCE:
 		return palette[pLen] if value == 0 else palette[int(value * pLen)]
 	elif flags & _F_POTENTIAL:
+		return np.array([0, 0, 0], dtype=np.uint8)
+	elif flags & _F_SHADING:
+		c = int(255 * value)
+		return np.array([c, c, c], dtype=np.uint8)
+	else:
 		return np.array([0, 0, 0], dtype=np.uint8)
 
 @njit(cache=True)
@@ -169,7 +179,6 @@ def mapColorValueNew(palette: np.ndarray, values: np.ndarray, maxValue: int, fla
 	elif flags & _F_POTENTIAL:
 		return np.array([0, 0, 0], dtype=np.uint8)
 
-	
 
 
 
