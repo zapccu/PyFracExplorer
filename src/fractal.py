@@ -12,7 +12,24 @@ import colors as col
 class Fractal:
 
 	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
-		self.settings = tkc.TKConfigure()
+		self.settings = tkc.TKConfigure({
+			"Fractal": {
+				"corner": {
+					"inputtype": "complex",
+					"initvalue": complex(offsetX, offsetY),
+					"widget":    "TKCEntry",
+					"label":     "Corner",
+					"width":     20
+				},
+				"size": {
+					"inputtype": "complex",
+					"initvalue": complex(fractalWidth, fractalHeight),
+					"widget":    "TKCEntry",
+					"label":     "Size",
+					"width":     20
+				}
+			}
+		})
 
 		self.fractalWidth  = fractalWidth
 		self.fractalHeight = fractalHeight
@@ -60,31 +77,33 @@ class Fractal:
 		self.fractalHeight = fractalHeight
 		self.offsetX = offsetX
 		self.offsetY = offsetY
+		self.settings.set('corner', complex(offsetX, offsetY), sync=True)
+		self.settings.set('size', complex(fractalWidth, fractalHeight), sync=True)
 
-	def dx(self) -> float:
-		return self.fractalWidth / (self.screenWidth - 1)
+	def dx(self, imageWidth: int) -> float:
+		return self.fractalWidth / (imageWidth - 1)
 	
-	def dy(self) -> float:
-		self.dy = self.fractalHeight / (self.screenHeight - 1)
+	def dy(self, imageHeight: int) -> float:
+		return self.fractalHeight / (imageHeight - 1)
 
-	def mapX(self, x: int) -> float:
-		return self.offsetX + x * self.dx()
+	def mapX(self, x: int, imageWidth: int) -> float:
+		return self.offsetX + x * self.dx(imageWidth)
 	
-	def mapY(self, y: int) -> float:
-		return self.offsetY + y * self.dy()
+	def mapY(self, y: int, imageHeight: int) -> float:
+		return self.offsetY + y * self.dy(imageHeight)
 
-	def mapXY(self, x: int, y: int) -> complex:
-		return complex(self.mapX(x), self.mapY(y))
+	def mapXY(self, x: int, y: int, imageWidth: int, imageHeight: int) -> complex:
+		return complex(self.mapX(x, imageWidth), self.mapY(y, imageHeight))
 		
-	def mapWH(self, width: int, height: int) -> complex:
-		return complex(self.dx() * width, self.dy() * height)
+	def mapWH(self, width: int, height: int, imageWidth: int, imageHeight: int) -> complex:
+		return complex(self.dx(imageWidth) * width, self.dy(imageHeight) * height)
 	
 	# Create matrix with mapping of screen coordinates to fractal coordinates
-	def mapScreenCoordinates(self, screenWidth: int, screenHeight: int):
-		dxTab = np.outer(np.ones((screenWidth,), dtype=np.float64),
-				   np.linspace(self.offsetX, self.offsetX+self.fractalWidth, screenWidth, dtype=np.float64))
-		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, screenHeight, dtype=np.float64),
-				   np.ones((screenHeight,), dtype=np.complex128))
+	def mapScreenCoordinates(self, imageWidth: int, imageHeight: int):
+		dxTab = np.outer(np.ones((imageWidth,), dtype=np.float64),
+				   np.linspace(self.offsetX, self.offsetX+self.fractalWidth, imageWidth, dtype=np.float64))
+		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY+self.fractalHeight, imageHeight, dtype=np.float64),
+				   np.ones((imageHeight,), dtype=np.complex128))
 		self.cplxGrid = dxTab + dyTab
 
 	def getMaxValue(self):

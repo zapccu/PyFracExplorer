@@ -86,8 +86,6 @@ class Drawer:
 		self.statCalc = 0
 		self.statSplit = 0
 		self.statOrbits = 0
-		self.minDiameter = 256
-		self.maxDiameter = -1
 
 		calcParameters = self.fractal.getCalcParameters()
 		drawFnc(x, y, x2, y2, iterFnc, calcParameters)
@@ -96,7 +94,6 @@ class Drawer:
 		print(f"Size={fractal.fractalWidth},{fractal.fractalHeight}")
 		print("Parameters=", calcParameters)
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
-		print(f"minDiameter={self.minDiameter} maxDiameter={self.maxDiameter}")
 
 		self.calcTime = self.fractal.endCalc()
 		self.bDrawing = False

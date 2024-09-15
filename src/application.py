@@ -17,6 +17,24 @@ class Application:
 
 		# Settings
 		self.settings = tkc.TKConfigure({
+			"Image parameters": {
+				"imageWidth": {
+					'inputtype': 'int',
+					'valrange':  (100, 4096, 100),
+					'initvalue': 1000,
+					'widget':    'TKCSpinbox',
+					'label':     'Width',
+					'width':     8
+				},
+				"imageHeight": {
+					'inputtype': 'int',
+					'valrange':  (100, 4096, 100),
+					'initvalue': 1000,
+					'widget':    'TKCSpinbox',
+					'label':     'Height',
+					'width':     8
+				}
+			},
 			"Fractal selection": {
 				"fractalType": {
 					'inputtype': 'str',
@@ -110,8 +128,10 @@ class Application:
 	def onApply(self):
 		if self.gui.selection.isAreaSelected():
 			x1, y1, x2, y2 = self.gui.selection.getArea()
-			size = self.fractal.mapWH(x2-x1+1, y2-y1+1)
-			corner = self.fractal.mapXY(x1, y1)
+			imageWidth = self.settings['imageWidth']
+			imageHeight = self.settings['imageHeight']
+			size = self.fractal.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
+			corner = self.fractal.mapXY(x1, y1, imageWidth, imageHeight)
 			self.fractal.setDimensions(size.real, size.imag, corner.real, corner.imag)
 		else:
 			self.settings.apply()
@@ -124,8 +144,11 @@ class Application:
 
 		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
 		self.onStatusUpdate({'drawing': 'Drawing ...'})
-		self.draw = Drawer(self, 800, 800)
-		self.draw.drawFractal(self.fractal, 0, 0, 800, 800, onStatus=self.onStatusUpdate)
+		w = self.settings['imageWidth']
+		h = self.settings['imageHeight']
+		print(f"Image size = {w} x {h}")
+		self.draw = Drawer(self, w, h)
+		self.draw.drawFractal(self.fractal, 0, 0, w, h, onStatus=self.onStatusUpdate)
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
 		
 		self.gui.selection.enable()

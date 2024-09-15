@@ -1,10 +1,8 @@
 
 import numpy as np
 import math
-import cmath
-import colorsys
 
-from numba import njit, prange
+from numba import njit
 
 
 #
@@ -29,19 +27,63 @@ def intToRGB(intColor: int) -> np.ndarray:
 def rgbToInt(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
-def hlsToRGB(hls: tuple[float, float, float]) -> np.ndarray:
-	r, g, b = colorsys.hls_to_rgb(*hls)
-	return (np.asarray([r, g, b])*255).astype(np.uint8)
+# Convert hsl to rgb
+@njit(cache=True)
+def hslToRGB(hue: float, saturation: float, lightness: float) -> np.ndarray:
+	if saturation == 0:
+		return (np.asarray([lightness, lightness, lightness]) * 255).astype(np.uint8)
 	
-def hsvToRGB(hsv: tuple[float, float, float]) -> np.ndarray:
-	r, g, b = colorsys.hsv_to_rgb(*hsv)
-	return (np.asarray([r, g, b])*255).astype(np.uint8)	
+	q = lightness * (1 + saturation) if lightness < 0.5 else lightness + saturation - lightness * saturation
+	p = 2 * lightness - q
+
+	r = int(_hueToRgb(p, q, hue + 1/3) * 255)
+	g = int(_hueToRgb(p, q, hue) * 255)
+	b = int(_hueToRgb(p, q, hue - 1/3) * 255)
+
+	return np.asarray([r, g, b]).astype(np.uint8)
+
+@njit(cache=True)
+def _hueToRgb(p, q, t):
+	if t < 0: t += 1
+	if t > 1: t -= 1
+	if t < 1/6: return p + (q - p) * 6 * t
+	if t < 1/2: return q
+	if t < 2/3: return p + (q - p) * (2/3 - t) * 6
+	return p
+
+# Convert hsb to rgb
+@njit(cache=True)
+def hsbToRGB(hue: float, saturation: float, brightness: float) -> np.ndarray:
+	if saturation == 0.0:
+		return np.asarray([int(brightness*255), int(brightness*255), int(brightness*255)]).astype(np.uint8)
+	i = int(hue * 6.0)
+	f = (hue * 6.0) - i
+	p = int(brightness * (1.0 - saturation) * 255)
+	q = int(brightness * (1.0 - saturation * f) * 255)
+	t = int(brightness * (1.0 - saturation * (1.0 - f)) * 255)
+	v = int(brightness * 255)
+	i = i % 6
+	if i == 0: return np.asarray([v, t, p]).astype(np.uint8)
+	if i == 1: return np.asarray([q, v, p]).astype(np.uint8)
+	if i == 2: return np.asarray([p, v, t]).astype(np.uint8)
+	if i == 3: return np.asarray([p, q, v]).astype(np.uint8)
+	if i == 4: return np.asarray([t, p, v]).astype(np.uint8)
+	if i == 5: return np.asarray([v, p, q]).astype(np.uint8)
 
 # Blinn Phong shading
-# Taken from https://github.com/jlesuffleur/gpu_mandelbrot/blob/master/mandelbrot.py
-def phong(normal: complex, light: list[float]):
+#  light:
+#    0 =
+#    1 =
+#    2 =
+#    3 = ambiant
+#    4 = diffuse
+#    5 = specular
+#    6 = shininess
+#
+@njit(cache=True)
+def phong(normal: complex, light):
 	## Lambert normal shading (diffuse light)
-	normal = normal / abs(normal)    
+	normal /= abs(normal)    
 
 	# theta: light angle; phi: light azimuth
 	# light vector: [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
@@ -130,53 +172,67 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 # Map calculation results to color
 #
 
-# Flags
-_F_ITERLINEAR = 1
-_F_ITERMODULO = 2
-_F_ORBITCOLOR = 4   # Colorize orbits
-_F_POTENTIAL  = 8   # Colorize by fractal potential
-_F_DISTANCE   = 16  # Colorize by fractal distance
-_F_SHADING    = 32
+# Colorization modes
+_C_ITERATIONS = 0
+_C_DISTANCE   = 1
+_C_POTENTIAL  = 2
+_C_SHADING    = 3
+_C_BLINNPHONG = 4
 
+# Colorization flags
+_F_LINEAR  = 1
+_F_MODULO  = 2
+_F_ORBITS  = 4   # Colorize orbits
+
+orbitColors = np.array([
+			[ 255, 0, 0 ],
+			[ 255, 255, 0 ],
+			[ 0, 255, 255 ],
+			[ 0, 255, 0 ],
+			[ 0, 0, 255 ],
+			[ 255, 0, 0 ],
+			[ 255, 255, 0 ],
+			[ 0, 255, 255 ],
+			[ 0, 255, 0 ],
+			[ 0, 0, 255 ]
+], dtype=np.uint8)
 
 # Map iteration result to color depending on mapping method
 @njit(cache=True)
-def mapColorValue(palette: np.ndarray, value: float, maxValue: int, flags: int = 1) -> np.ndarray:
+def mapColorValue(palette: np.ndarray, value: float, maxValue: int, colorize: int = 0, flags: int = 1) -> np.ndarray:
 	pLen = len(palette)-1
 
-	if flags == _F_ORBITCOLOR:
-		c = int(255 * (1 - value / maxValue))
-		return np.array([0, 0, c], dtype=np.uint8)
-			
-	if flags & _F_ITERLINEAR:
-		if value == maxValue: return palette[pLen]
-		return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
-	elif flags & _F_ITERMODULO:
-		if value == maxValue: return palette[pLen]
-		return palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
-	elif flags & _F_DISTANCE:
+	if colorize == _C_ITERATIONS:
+		if flags & _F_LINEAR:
+			if value == maxValue: return palette[pLen]
+			return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
+		elif flags & _F_MODULO:
+			if value == maxValue: return palette[pLen]
+			return palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
+	elif colorize == _C_DISTANCE:
 		return palette[pLen] if value == 0 else palette[int(value * pLen)]
-	elif flags & _F_POTENTIAL:
+	elif colorize == _C_POTENTIAL:
 		return np.array([0, 0, 0], dtype=np.uint8)
-	elif flags & _F_SHADING:
+	elif colorize == _C_SHADING or colorize == _C_BLINNPHONG:
 		c = int(255 * value)
 		return np.array([c, c, c], dtype=np.uint8)
 	else:
 		return np.array([0, 0, 0], dtype=np.uint8)
 
 @njit(cache=True)
-def mapColorValueNew(palette: np.ndarray, values: np.ndarray, maxValue: int, flags: int = 1) -> np.ndarray:
+def mapColorValueNew(palette: np.ndarray, values: np.ndarray, maxValue: int, colorize: int = 0, flags: int = 1) -> np.ndarray:
 	pLen = len(palette)-1
 	
-	if flags & _F_ITERLINEAR:
-		if values[0] == maxValue: return palette[pLen]
-		return palette[int(values[0])] if maxValue == pLen else palette[int(pLen / maxValue * values[0])]
-	elif flags & _F_ITERMODULO:
-		if values[0] == maxValue: return palette[pLen]
-		return palette[int(values[0])] if maxValue == pLen else palette[int(values[0]) % pLen]
-	elif flags & _F_DISTANCE:
+	if colorize == _C_ITERATIONS:
+		if flags & _F_LINEAR:
+			if values[0] == maxValue: return palette[pLen]
+			return palette[int(values[0])] if maxValue == pLen else palette[int(pLen / maxValue * values[0])]
+		elif flags & _F_MODULO:
+			if values[0] == maxValue: return palette[pLen]
+			return palette[int(values[0])] if maxValue == pLen else palette[int(values[0]) % pLen]
+	elif colorize == _C_DISTANCE:
 		return palette[pLen] if values[1] == 0 else palette[int(values[1] * pLen)]
-	elif flags & _F_POTENTIAL:
+	elif colorize == _C_POTENTIAL:
 		return np.array([0, 0, 0], dtype=np.uint8)
 
 

@@ -1,11 +1,7 @@
 
 #
-# Calculation of Mandelbrot set
+# Calculation of Julia set
 #
-# References:
-#
-#   - Orbit detection: https://observablehq.com/@mcmcclur/orbit-detection-for-the-mandelbrot-set
-#   - Blinn/Phong shading: https://github.com/jlesuffleur/gpu_mandelbrot/blob/master/mandelbrot.py
 #
 
 import time
@@ -37,13 +33,34 @@ _F_STRIPES = 8
 _F_NOORBITS = _F_LINEAR | _F_MODULO
 
 
-class Mandelbrot(frc.Fractal):
+class Julia(frc.Fractal):
 
-	def __init__(self, corner: complex = complex(-2.25, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 500):
+	def __init__(self, point: complex, corner: complex = complex(-2.25, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256):
 		super().__init__(size.real, size.imag, corner.real, corner.imag)
 
-		self.settings.updateParameterDefinition({
+		self.settings.setParameterDefinition({
 			"Mandelbrot Set": {
+				"corner": {
+					"inputtype": "complex",
+					"initvalue": corner,
+					"widget":    "TKCEntry",
+					"label":     "Corner",
+					"width":     10
+				},
+				"size": {
+					"inputtype": "complex",
+					"initvalue": size,
+					"widget":    "TKCEntry",
+					"label":     "Size",
+					"width":     10
+				},
+				"point": {
+					"inputtype": "complex",
+					"initvalue": point,
+					"widget":    "TKCEntry",
+					"label":     "Point",
+					"width":     10
+				},
 				"maxIter": {
 					"inputtype": "int",
 					"valrange":  (10, 4000, 50),
@@ -101,19 +118,13 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance: float):
 # Iterate complex point using standard Mandelbrot formular Z = Z * Z + C
 # Return color array [red, green, blue]
 @nb.njit(cache=True)
-def calculatePointZ2(C, P, colorize, flags, bailout, maxIter, light):
+def calculatePointZ2(Z, C, P, colorize, flags, bailout, maxIter, light):
 	dst = 0.0      # Distance
 	pot = 0.0      # Potential
 	dia = 0        # Orbit diameter
 	diaScale = maxIter/10.0
 
-	stripe_s = 0.0
-	stripe_sig = 0.9
-	stripe = stripe_s > 0 and stripe_sig > 0
-	stripe_a = 0.0
-
 	D = complex(1.0)   # 1st derivation
-	Z = C              # Shortcut for 1st iteration
 
 	period = 0         # Period counter for simplified orbit detection
 	nZ1 = 0.0          # Old value of abs(Z)^2
@@ -128,10 +139,6 @@ def calculatePointZ2(C, P, colorize, flags, bailout, maxIter, light):
 	for i in range(1, maxIter+1):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout: break
-
-		if flags & _F_STRIPES and stripe:
-			stripe_t = (math.sin(stripe_s*math.atan2(Z.imag, Z.real)) + 1) / 2
-			stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
 
 		if flags & _F_ORBITS:
 			# Search for orbits (full periodicity check)
@@ -197,8 +204,8 @@ def calculatePointZ2(C, P, colorize, flags, bailout, maxIter, light):
 
 	return col.mapColorValue(P, float(i), maxIter, colorize, flags & _F_NOORBITS)
 
-@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
-def calculateVectorZ2(C, P, colorize, flags, maxIter, R):
+@nb.guvectorize([(nb.complex128[:], nb.complex128, nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+def calculateVectorZ2(Z, C, P, colorize, flags, maxIter, R):
 	bailout = 10000.0 if colorize == _C_POTENTIAL or colorize == _C_SHADING or colorize == _C_BLINNPHONG else 4.0
 	if flags & _F_ORBITS: maxIter = max(maxIter, 1000)
 
@@ -208,10 +215,5 @@ def calculateVectorZ2(C, P, colorize, flags, maxIter, R):
 	light[1] = math.pi/2*light[1]/90
 
 	for p in range(C.shape[0]):
-		R[p,:] = calculatePointZ2(C[p], P, colorize, flags, bailout, maxIter, light)
+		R[p,:] = calculatePointZ2(Z[p], C, P, colorize, flags, bailout, maxIter, light)
 
-
-@nb.guvectorize([(nb.float64[:,:], nb.uint8[:,:], nb.int32, nb.int32,  nb.uint8[:,:])], '(n,m),(i,j),(),(),(n,k)', nopython=True, cache=True, target='parallel')
-def colorize(R, P, maxValue, flags, I):
-	for p in range(R.shape[0]):
-		I[p,:] = col.mapColorValueNew(P, R[p], maxValue, flags)
