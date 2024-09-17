@@ -5,11 +5,13 @@ from gui import *
 import colors as col
 import fractal as frc
 import mandelbrot as man
+import julia as jul
 
 from drawer import *
 from coloreditor import *
 
 import tkconfigure as tkc
+
 
 class Application:
 
@@ -47,7 +49,8 @@ class Application:
 					'width':     15,
 					'widgetattr': {
 						'justify': 'left'
-					}
+					},
+					'notify':    self.onFractalTypeChanged
 				},
 				"drawMode": {
 					'inputtype': 'str',
@@ -86,8 +89,11 @@ class Application:
 		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=300)
 
 		# Create settings widgets
-		row = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=5)
-		self.fractal.settings.createMask(self.gui.controlFrame, startrow=row, padx=2, pady=5)
+		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=5)
+		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
+
+		# We want to be notified if fractal type selection changed
+		# self.settings.notify(onchange=self.onSettingsChanged)
 
 		# Define selection handler
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
@@ -125,18 +131,31 @@ class Application:
 	# Command handling
 	#
 	
+	# Apply button pressed
 	def onApply(self):
+		imageWidth = self.settings['imageWidth']
+		imageHeight = self.settings['imageHeight']
+
 		if self.gui.selection.isAreaSelected():
+			# Zoom in
 			x1, y1, x2, y2 = self.gui.selection.getArea()
-			imageWidth = self.settings['imageWidth']
-			imageHeight = self.settings['imageHeight']
 			size = self.fractal.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
 			corner = self.fractal.mapXY(x1, y1, imageWidth, imageHeight)
 			self.fractal.setDimensions(size.real, size.imag, corner.real, corner.imag)
+		elif self.gui.selection.isPointSelected():
+			if self.settings['fractalType'] == 'Mandelbrot Set':
+				# Calculate Julia set at selected point
+				x, y = self.gui.selection.getPoint()
+				point = self.fractal.mapXY(x, y, imageWidth, imageHeight)
+				self.settings.set('fractalType', 'Julia Set', sync=True)
+				self.fractal.settings.deleteMask()
+				self.fractal = jul.Julia(point=point)
+				self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
 		else:
 			self.settings.apply()
 			self.fractal.settings.apply()
 
+	# Draw button pressed
 	def onDraw(self):
 
 		self.gui.drawFrame.clearCanvas()
@@ -153,6 +172,7 @@ class Application:
 		
 		self.gui.selection.enable()
 
+	# Cancel button pressed
 	def onCancel(self):
 		self.draw.cancel = True
 
@@ -163,6 +183,15 @@ class Application:
 	#
 	# Event handling
 	#
+
+	# Settings changed
+	def onFractalTypeChanged(self, oldValue, newValue):
+		self.fractal.settings.deleteMask()
+		if newValue == 'Mandelbrot Set':
+			self.fractal = man.Mandelbrot()
+		else:
+			self.fractal = jul.Julia()
+		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):

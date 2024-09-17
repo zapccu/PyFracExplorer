@@ -128,15 +128,12 @@ class Selection:
 	AREA        = 2
 	MOVEAREA    = 3
 
-	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, keepAR: bool = True, onPoint = None, onArea = None):
-		self.canvas    = canvas
-		self.color     = color
-		self.rectWidth = width
-		self.flipY     = flipY
-		self.keepAR    = keepAR
-		self.onPoint   = onPoint
-		self.onArea    = onArea
-
+	def __init__(self, canvas: object, color = 'red', width = 2, flipY: bool = False, keepAR: bool = True):
+		self.canvas     = canvas
+		self.color      = color
+		self.rectWidth  = width
+		self.flipY      = flipY
+		self.keepAR     = keepAR
 		self.selectRect = None
 
 		self.reset()
@@ -166,7 +163,7 @@ class Selection:
 		self.xs = self.ys = self.xe = self.ye = 0
 
 	# Return selected point
-	def getPoint(self):
+	def getPoint(self) -> tuple[int, int]:
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
 		print(f"getPoint {self.width},{self.height}")
@@ -177,7 +174,7 @@ class Selection:
 			return self.xs, self.ys
 	
 	# Return selected area
-	def getArea(self):
+	def getArea(self) -> tuple[int, int, int, int]:
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
 
@@ -196,6 +193,10 @@ class Selection:
 			elif abs(w) > abs(h):
 				return xe, self.ys+w
 		return xe, ye
+
+	# Right button click resets everything
+	def onRightButtonClicked(self, event) -> bool:
+		self.reset()
 
 	# Start selection. Called when left button is pressed => point selected
 	def onLeftButtonPressed(self, event) -> bool:
@@ -373,20 +374,23 @@ class GUI:
 		self.drawFrame.canvas.bind('<ButtonPress-1>',   self.onLeftButtonPressed)
 		self.drawFrame.canvas.bind('<B1-Motion>',       self.onLeftButtonDrag)
 		self.drawFrame.canvas.bind('<ButtonRelease-1>', self.onLeftButtonReleased)
+		self.drawFrame.canvas.bind('<Button-2>',        self.onRightButtonClicked)
 
-		# Selection handler
-		self.onPoint = None
-		self.onArea = None
+		# Registered callback functions for selections
+		self.onPoint  = None   # Point selected
+		self.onArea   = None   # Area selected
+		self.onCancel = None   # Selection cancelled
 
-	def setSelectionHandler(self, onPoint = None, onArea = None):
-		self.onPoint = onPoint
-		self.onArea  = onArea
+	def setSelectionHandler(self, onPoint = None, onArea = None, onCancel = None):
+		self.onPoint  = onPoint
+		self.onArea   = onArea
+		self.onCancel = onCancel
 
 	def onMove(self, event):
-		if not self.selection.isActive():
+		if not self.selection.isActive() and not self.selection.isSelected():
 			x = event.x
 			y = event.y
-			self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
+			self.statusFrame.setFieldValue('screenCoord', f"Pos: {x},{y}", fg='white')
 
 	def onLeftButtonPressed(self, event):
 		self.selection.onLeftButtonPressed(event)
@@ -396,14 +400,14 @@ class GUI:
 			x1, y1, x2, y2 = self.selection.getArea()
 			w = x2 - x1 + 1
 			h = y2 - y1 + 1
-			self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w} x {h}", fg='white')
+			self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {w}x{h}", fg='white')
 
 	def onLeftButtonReleased(self, event):
 		if self.selection.onLeftButtonReleased(event):
 			if self.selection.isSelected():
 				if self.selection.mode == Selection.POINT:
 					x, y = self.selection.getPoint()
-					self.statusFrame.setFieldValue('screenCoord', f"{x},{y}", fg='white')
+					self.statusFrame.setFieldValue('screenCoord', f"Point: {x},{y}", fg='white')
 
 					if self.onPoint is not None:
 						self.onPoint(x, y)
@@ -411,9 +415,16 @@ class GUI:
 					x1, y1, x2, y2 = self.selection.getArea()
 					w = x2-x1+1
 					h = y2-y1+1
-					self.statusFrame.setFieldValue('screenCoord', f"{x1},{y1} - {x2},{y2}", fg='white')
+					self.statusFrame.setFieldValue('screenCoord', f"Area: {x1},{y1} - {x2},{y2}", fg='white')
 
 					if self.onArea is not None:
 						self.onArea(x1, y1, x2, y2)
 			else:
 				self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
+				if self.onCancel is not None:
+					self.onCancel()
+
+	def onRightButtonClicked(self, event):
+		self.statusFrame.setFieldValue('screenCoord', "Cancelled selection")
+		if self.onCancel is not None:
+			self.onCancel()

@@ -9,6 +9,7 @@ import numba as nb
 import colors as col
 import fractal as frc
 import mandelbrot as man
+import julia as jul
 
 
 class Drawer:
@@ -23,7 +24,8 @@ class Drawer:
 		self.maxLen   = -1
 		self.palette  = app.colorTable[app['colorPalette']]
 		self.iterFnc = {
-			'Mandelbrot Set': man.calculateVectorZ2
+			'Mandelbrot Set': man.calculateVectorZ2,
+			'Julia Set': jul.calculateVectorZ2
 		}
 
 		self.drawFnc = {

@@ -24,8 +24,8 @@ _C_SHADING    = 3         # Colorize by distance with 3D shading
 _C_BLINNPHONG = 4         # Blinn/Phong 3D shading
 
 # Colorization flags
-_F_LINEAR  = 1            # Linear color mapping
-_F_MODULO  = 2            # Color mapping by modulo division
+_F_LINEAR  = 1            # Linear color mapping to selected palette
+_F_MODULO  = 2            # Color mapping by modulo division to selected palette
 _F_ORBITS  = 4            # Colorize orbits inside mandelbrot set
 _F_STRIPES = 8
 
@@ -35,31 +35,17 @@ _F_NOORBITS = _F_LINEAR | _F_MODULO
 
 class Julia(frc.Fractal):
 
-	def __init__(self, point: complex, corner: complex = complex(-2.25, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 256):
+	def __init__(self, point: complex = complex(-0.7269, 0.1889), corner: complex = complex(-1.5, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 500):
 		super().__init__(size.real, size.imag, corner.real, corner.imag)
 
-		self.settings.setParameterDefinition({
-			"Mandelbrot Set": {
-				"corner": {
-					"inputtype": "complex",
-					"initvalue": corner,
-					"widget":    "TKCEntry",
-					"label":     "Corner",
-					"width":     10
-				},
-				"size": {
-					"inputtype": "complex",
-					"initvalue": size,
-					"widget":    "TKCEntry",
-					"label":     "Size",
-					"width":     10
-				},
+		self.settings.updateParameterDefinition({
+			"Julia Set": {
 				"point": {
 					"inputtype": "complex",
 					"initvalue": point,
 					"widget":    "TKCEntry",
 					"label":     "Point",
-					"width":     10
+					"width":     20
 				},
 				"maxIter": {
 					"inputtype": "int",
@@ -105,7 +91,7 @@ class Julia(frc.Fractal):
 
 	def getCalcParameters(self) -> tuple:
 		maxIter = self.getMaxValue()
-		return (self.settings['colorize'], self.settings['flags'], maxIter)
+		return (self.settings['point'], self.settings['colorize'], self.settings['flags'], maxIter)
 
 @nb.njit(cache=True)
 def findOrbit(O: np.ndarray, Z: complex, tolerance: float):
@@ -118,7 +104,7 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance: float):
 # Iterate complex point using standard Mandelbrot formular Z = Z * Z + C
 # Return color array [red, green, blue]
 @nb.njit(cache=True)
-def calculatePointZ2(Z, C, P, colorize, flags, bailout, maxIter, light):
+def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
 	dst = 0.0      # Distance
 	pot = 0.0      # Potential
 	dia = 0        # Orbit diameter
@@ -204,8 +190,8 @@ def calculatePointZ2(Z, C, P, colorize, flags, bailout, maxIter, light):
 
 	return col.mapColorValue(P, float(i), maxIter, colorize, flags & _F_NOORBITS)
 
-@nb.guvectorize([(nb.complex128[:], nb.complex128, nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(),(i,j),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
-def calculateVectorZ2(Z, C, P, colorize, flags, maxIter, R):
+@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.complex128, nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+def calculateVectorZ2(Z, P, C, colorize, flags, maxIter, R):
 	bailout = 10000.0 if colorize == _C_POTENTIAL or colorize == _C_SHADING or colorize == _C_BLINNPHONG else 4.0
 	if flags & _F_ORBITS: maxIter = max(maxIter, 1000)
 
@@ -214,6 +200,6 @@ def calculateVectorZ2(Z, C, P, colorize, flags, maxIter, R):
 	light[0] = 2*math.pi*light[0]/360
 	light[1] = math.pi/2*light[1]/90
 
-	for p in range(C.shape[0]):
-		R[p,:] = calculatePointZ2(Z[p], C, P, colorize, flags, bailout, maxIter, light)
+	for p in range(Z.shape[0]):
+		R[p,:] = calculatePointZ2(Z[p], P, C, colorize, flags, bailout, maxIter, light)
 

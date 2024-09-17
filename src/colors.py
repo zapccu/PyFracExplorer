@@ -183,6 +183,8 @@ _C_BLINNPHONG = 4
 _F_LINEAR  = 1
 _F_MODULO  = 2
 _F_ORBITS  = 4   # Colorize orbits
+_F_STRIPES = 8
+_F_HUE     = 16
 
 orbitColors = np.array([
 			[ 255, 0, 0 ],
@@ -203,12 +205,14 @@ def mapColorValue(palette: np.ndarray, value: float, maxValue: int, colorize: in
 	pLen = len(palette)-1
 
 	if colorize == _C_ITERATIONS:
+		if value == maxValue: return palette[pLen]
 		if flags & _F_LINEAR:
-			if value == maxValue: return palette[pLen]
 			return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
 		elif flags & _F_MODULO:
-			if value == maxValue: return palette[pLen]
 			return palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
+		elif flags & _F_HUE:
+			h = math.pow((value/maxValue) * 360, 1.5) % 360
+			return hsbToRGB(h/360, 1.0, 1.0)
 	elif colorize == _C_DISTANCE:
 		return palette[pLen] if value == 0 else palette[int(value * pLen)]
 	elif colorize == _C_POTENTIAL:

@@ -32,9 +32,10 @@ _F_LINEAR  = 1            # Linear color mapping
 _F_MODULO  = 2            # Color mapping by modulo division
 _F_ORBITS  = 4            # Colorize orbits inside mandelbrot set
 _F_STRIPES = 8
+_F_HUE     = 16
 
 # Flag masks
-_F_NOORBITS = _F_LINEAR | _F_MODULO
+_F_NOORBITS = _F_LINEAR | _F_MODULO | _F_HUE
 
 
 class Mandelbrot(frc.Fractal):
@@ -63,7 +64,7 @@ class Mandelbrot(frc.Fractal):
 				},
 				"flags": {
 					"inputtype": "bits",
-					"valrange":  ["Linear", "Modulo", "Orbits", "Stripes"],
+					"valrange":  ["Linear", "Modulo", "Orbits", "Stripes", "Hue"],
 					"initvalue": 1,
 					"widget":     "TKCFlags",
 					"widgetattr": {
