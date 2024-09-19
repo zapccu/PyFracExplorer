@@ -23,18 +23,22 @@ class Application:
 				"imageWidth": {
 					'inputtype': 'int',
 					'valrange':  (100, 4096, 100),
-					'initvalue': 1000,
+					'initvalue': 800,
 					'widget':    'TKCSpinbox',
 					'label':     'Width',
-					'width':     8
+					'width':     8,
+					'row':       0,
+					'column':    0
 				},
 				"imageHeight": {
 					'inputtype': 'int',
 					'valrange':  (100, 4096, 100),
-					'initvalue': 1000,
+					'initvalue': 800,
 					'widget':    'TKCSpinbox',
 					'label':     'Height',
-					'width':     8
+					'width':     8,
+					'row':       0,
+					'column':    1
 				}
 			},
 			"Fractal selection": {

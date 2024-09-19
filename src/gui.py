@@ -1,6 +1,7 @@
 
 from tkinter import *
 from tkinter.ttk import Combobox, Style, Progressbar, Separator
+from tkinter.scrolledtext import ScrolledText
 
 """
 GUI
@@ -96,14 +97,21 @@ class DrawFrame(Frame):
 class ControlFrame(Frame):
 
 	def __init__(self, gui: object, app: object, width: int, height: int, bg='grey'):
-		super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg=bg)
+		# Use ScrolledText as parent for control frame
+		self.controlFrameText = ScrolledText(gui.mainWindow, state='disable')
+		self.controlFrameText.pack(fill='both', expand=True)
+
+		super().__init__(self.controlFrameText, width=width, height=height, padx=0, pady=0, bg=bg)
+
+		# super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg=bg)
 
 		self.gui = gui
 		self.app = app
 
 		self.pack_propagate(False)
-		self.pack(side=RIGHT, expand=False, fill=Y, anchor='ne')
-		
+		#self.pack(side=RIGHT, expand=False, fill=Y, anchor='ne')
+		self.controlFrameText.window_create('1.0', window=self)
+
 		# Draw and Cancel Buttons
 		self.btnFrame = LabelFrame(self)
 		self.btnFrame.grid(columnspan=2, column=0, row=0)
@@ -113,8 +121,6 @@ class ControlFrame(Frame):
 		self.btnApply.grid(column=0, row=0, padx=5, pady=5)
 		self.btnDraw.grid(column=1, row=0, padx=5, pady=5)
 		self.btnCancel.grid(column=2, row=0, pady=5)
-		# self.separator = Separator(self, orient='horizontal')
-		# self.separator.grid(columnspan=2, column=0, row=1)
 
 		self.row = 1
 

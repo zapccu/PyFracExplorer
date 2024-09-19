@@ -82,7 +82,9 @@ class Fractal:
 					"widget":     "TKCFlags",
 					"widgetattr": {
 						"text": "Colorization options"
-					}
+					},
+					"row": 0,
+					"column": 1
 				}
 			}
 		})
