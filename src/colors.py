@@ -1,8 +1,9 @@
 
-import numpy as np
 import math
+import cmath
 
-from numba import njit
+import numpy as np
+import numba as nb
 
 
 #
@@ -28,7 +29,7 @@ def rgbToInt(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
 # Convert hsl to rgb
-@njit(cache=True)
+@nb.njit(cache=True)
 def hslToRGB(hue: float, saturation: float, lightness: float) -> np.ndarray:
 	if saturation == 0:
 		return (np.asarray([lightness, lightness, lightness]) * 255).astype(np.uint8)
@@ -42,7 +43,7 @@ def hslToRGB(hue: float, saturation: float, lightness: float) -> np.ndarray:
 
 	return np.asarray([r, g, b]).astype(np.uint8)
 
-@njit(cache=True)
+@nb.njit(cache=True)
 def _hueToRgb(p, q, t):
 	if t < 0: t += 1
 	if t > 1: t -= 1
@@ -52,7 +53,7 @@ def _hueToRgb(p, q, t):
 	return p
 
 # Convert hsb to rgb
-@njit(cache=True)
+@nb.njit(cache=True)
 def hsbToRGB(hue: float, saturation: float, brightness: float) -> np.ndarray:
 	if saturation == 0.0:
 		return np.asarray([int(brightness*255), int(brightness*255), int(brightness*255)]).astype(np.uint8)
@@ -70,6 +71,51 @@ def hsbToRGB(hue: float, saturation: float, brightness: float) -> np.ndarray:
 	if i == 4: return np.asarray([t, p, v]).astype(np.uint8)
 	if i == 5: return np.asarray([v, p, q]).astype(np.uint8)
 
+# Convert lch to rgb, luma = [0..1], chroma = [0..1], hue = [0..359]
+# https://gist.github.com/cjgajard/743450e26d81d33ede98ebd291e1970e
+@nb.njit(cache=True)
+def lchToRGB(luma: float, chroma: float, hue: float) -> np.ndarray:
+	hrad = hue * math.pi / 180.0
+	a = math.cos(hrad) * chroma * 100
+	b = math.sin(hrad) * chroma * 100
+
+	CRE = 6.0 / 29.0
+
+	y = (luma + 16) / 116.0
+	x = y + a / 500.0
+	z = y - b / 200.0
+
+	x = 96422 * (x ** 3 if x > CRE else (116 * x - 16) / 903.3)
+	y = 1.0 * (y ** 3 if luma > 8 else luma / 903.3)
+	z = 0.82521 * (z ** 3 if z > CRE else (116 * z - 16) / 903.3)
+
+	x =  0.9555766 * x - 0.0230393 * y + 0.0631636 * z
+	y = -0.0282895 * x + 1.0099416 * y + 0.0210077 * z
+	z =  0.0122982 * x - 0.0204830 * y + 1.3299098 * z
+
+	r = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
+	g = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
+	b = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
+
+	r = 12.92 * r if r < 0.0031308 else 1.055 * math.pow(r, 1 / 2.4) - 0.055
+	g = 12.92 * g if g < 0.0031308 else 1.055 * math.pow(g, 1 / 2.4) - 0.055
+	b = 12.92 * b if b < 0.0031308 else 1.055 * math.pow(b, 1 / 2.4) - 0.055
+
+	r = int(min(max(r, 0), 1) * 255)
+	g = int(min(max(g, 0), 1) * 255)
+	b = int(min(max(b, 0), 1) * 255)
+
+	return np.asarray([r, g, b]).astype(np.uint8)
+
+@nb.njit(cache=True)
+def simple3D(normal: complex, angle: float) -> float:
+	h2 = 1.5    # height factor of the incoming light
+	v = cmath.exp(complex(0,1) * angle * 2 * math.pi / 360)  # unit 2D vector in this direction
+	normal /= abs(normal)  # normal vector: (u.re,u.im,1) 
+	t = normal.real * v.real + normal.imag * v.imag + h2  # dot product with the incoming light
+
+	return t / (1 + h2)   # rescale so that t does not get bigger than 1
+
 # Blinn Phong shading
 #  light:
 #    0 =
@@ -80,8 +126,8 @@ def hsbToRGB(hue: float, saturation: float, brightness: float) -> np.ndarray:
 #    5 = specular
 #    6 = shininess
 #
-@njit(cache=True)
-def phong(normal: complex, light):
+@nb.njit(cache=True)
+def phong3D(normal: complex, light: list[float]) -> float:
 	## Lambert normal shading (diffuse light)
 	normal /= abs(normal)    
 
@@ -168,84 +214,3 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0, 0, 0)):
 	)
 	return np.vstack(((colors * 255).astype(np.uint8, copy=False), np.array(defColor, dtype=np.uint8)))
 
-#
-# Map calculation results to color
-#
-
-# Colorization modes
-_C_ITERATIONS = 0
-_C_DISTANCE   = 1
-_C_POTENTIAL  = 2
-_C_SHADING    = 3
-_C_BLINNPHONG = 4
-
-# Colorization flags
-_F_LINEAR  = 1
-_F_MODULO  = 2
-_F_ORBITS  = 4   # Colorize orbits
-_F_STRIPES = 8
-_F_HUE     = 16
-
-orbitColors = np.array([
-			[ 255, 0, 0 ],
-			[ 255, 255, 0 ],
-			[ 0, 255, 255 ],
-			[ 0, 255, 0 ],
-			[ 0, 0, 255 ],
-			[ 255, 0, 0 ],
-			[ 255, 255, 0 ],
-			[ 0, 255, 255 ],
-			[ 0, 255, 0 ],
-			[ 0, 0, 255 ]
-], dtype=np.uint8)
-
-# Map iteration result to color depending on mapping method
-@njit(cache=True)
-def mapColorValue(palette: np.ndarray, value: float, maxValue: int, colorize: int = 0, flags: int = 1) -> np.ndarray:
-	pLen = len(palette)-1
-
-	if colorize == _C_ITERATIONS:
-		if value == maxValue: return palette[pLen]
-		if flags & _F_LINEAR:
-			return palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
-		elif flags & _F_MODULO:
-			return palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
-		elif flags & _F_HUE:
-			h = math.pow((value/maxValue) * 360, 1.5) % 360
-			return hsbToRGB(h/360, 1.0, 1.0)
-	elif colorize == _C_DISTANCE:
-		return palette[pLen] if value == 0 else palette[int(value * pLen)]
-	elif colorize == _C_POTENTIAL:
-		return np.array([0, 0, 0], dtype=np.uint8)
-	elif colorize == _C_SHADING or colorize == _C_BLINNPHONG:
-		c = int(255 * value)
-		return np.array([c, c, c], dtype=np.uint8)
-	else:
-		return np.array([0, 0, 0], dtype=np.uint8)
-
-@njit(cache=True)
-def mapColorValueNew(palette: np.ndarray, values: np.ndarray, maxValue: int, colorize: int = 0, flags: int = 1) -> np.ndarray:
-	pLen = len(palette)-1
-	
-	if colorize == _C_ITERATIONS:
-		if flags & _F_LINEAR:
-			if values[0] == maxValue: return palette[pLen]
-			return palette[int(values[0])] if maxValue == pLen else palette[int(pLen / maxValue * values[0])]
-		elif flags & _F_MODULO:
-			if values[0] == maxValue: return palette[pLen]
-			return palette[int(values[0])] if maxValue == pLen else palette[int(values[0]) % pLen]
-	elif colorize == _C_DISTANCE:
-		return palette[pLen] if values[1] == 0 else palette[int(values[1] * pLen)]
-	elif colorize == _C_POTENTIAL:
-		return np.array([0, 0, 0], dtype=np.uint8)
-
-
-
-
-"""
-	elif method == 2:
-		startCol = rgbToInt(palette[0])
-		endCol   = rgbToInt(palette[1])
-		return intToRGB(startCol + int((endCol - startCol) / maxValue * value))
-
-"""

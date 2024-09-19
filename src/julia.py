@@ -5,32 +5,14 @@
 #
 
 import time
+import math
 
 import numpy as np
 import numba as nb
 
-import math
-import cmath
-
 import fractal as frc
 import colors as col
 import tkconfigure as tkc
-
-# Colorization modes
-_C_ITERATIONS = 0         # Colorize by iterations
-_C_DISTANCE   = 1         # Colorize by distance to mandelbrot set
-_C_POTENTIAL  = 2         # Colorize by potential
-_C_SHADING    = 3         # Colorize by distance with 3D shading
-_C_BLINNPHONG = 4         # Blinn/Phong 3D shading
-
-# Colorization flags
-_F_LINEAR  = 1            # Linear color mapping to selected palette
-_F_MODULO  = 2            # Color mapping by modulo division to selected palette
-_F_ORBITS  = 4            # Colorize orbits inside mandelbrot set
-_F_STRIPES = 8
-
-# Flag masks
-_F_NOORBITS = _F_LINEAR | _F_MODULO
 
 
 class Julia(frc.Fractal):
@@ -54,24 +36,6 @@ class Julia(frc.Fractal):
 					"widget":    "TKCSpinbox",
 					"label":     "Max. iterations",
 					"width":     6
-				},
-				"colorize": {
-					"inputtype": "int",
-					"valrange":  ["Iterations", "Distance", "Potential", "Shading", "Blinn/Phong"],
-					"initvalue": 0,
-					"widget":    "TKCRadiobuttons",
-					"widgetattr": {
-						"text": "Colorization options"
-					}
-				},
-				"flags": {
-					"inputtype": "bits",
-					"valrange":  ["Linear", "Modulo", "Orbits", "Stripes"],
-					"initvalue": 1,
-					"widget":     "TKCFlags",
-					"widgetattr": {
-						"text": "Colorization flags"
-					}
 				}
 			}
 		})
@@ -87,28 +51,27 @@ class Julia(frc.Fractal):
 		return self.settings.getIds()
 
 	def getMaxValue(self):
-		return 4096 if self.settings['colorize'] == _C_DISTANCE else self.settings['maxIter']
+		return 4096 if self.settings['colorize'] == frc._C_DISTANCE else self.settings['maxIter']
 
 	def getCalcParameters(self) -> tuple:
 		maxIter = self.getMaxValue()
-		return (self.settings['point'], self.settings['colorize'], self.settings['flags'], maxIter)
-
-@nb.njit(cache=True)
-def findOrbit(O: np.ndarray, Z: complex, tolerance: float):
-	for n in range(O.shape[0], -1, -1):
-		d = Z - O[n]
-		if d.real * d.real + d.imag * d.imag < tolerance:
-			return n
-	return -1
+		return super().getCalcParameters() + (self.settings['point'], maxIter)
 
 # Iterate complex point using standard Mandelbrot formular Z = Z * Z + C
 # Return color array [red, green, blue]
 @nb.njit(cache=True)
-def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
+def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, light):
+	bailout = 4.0 if colorize == frc._C_ITERATIONS and paletteMode != frc._P_HUE and colorOptions == 0 else 10000.0
+
 	dst = 0.0      # Distance
 	pot = 0.0      # Potential
 	dia = 0        # Orbit diameter
 	diaScale = maxIter/10.0
+
+	stripe_s = 0.0
+	stripe_sig = 0.9
+	stripe = stripe_s > 0 and stripe_sig > 0
+	stripe_a = 0.0
 
 	D = complex(1.0)   # 1st derivation
 
@@ -116,7 +79,7 @@ def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
 	nZ1 = 0.0          # Old value of abs(Z)^2
 	pow = 1            # Power of 2 for potential calculation
 
-	if flags & _F_ORBITS:
+	if colorOptions & frc._O_ORBITS:
 		# Create array for periodicity check
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 		orbits[0] = complex(0,0)
@@ -126,12 +89,14 @@ def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout: break
 
-		if flags & _F_ORBITS:
+		if colorOptions & frc._O_STRIPES and stripe:
+			stripe_t = (math.sin(stripe_s*math.atan2(Z.imag, Z.real)) + 1) / 2
+			stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
+
+		if colorOptions & frc._O_ORBITS:
 			# Search for orbits (full periodicity check)
-			idx = findOrbit(orbits[:i], Z, 1e-15)
+			idx = frc.findOrbit(orbits[:i], Z, 1e-15, 1e-11)
 			if idx > -1:
-				# Be more tolerant
-				idx = findOrbit(orbits[:i], Z, 1e-11)
 				dia = i - idx
 				return col.hsbToRGB(min(1.0,dia/maxIter*diaScale), 1.0, 1-i/maxIter)
 			orbits[oc] = Z
@@ -147,7 +112,7 @@ def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
 					period = 0
 					nZ1 = nZ
 
-		if colorize == _C_DISTANCE or colorize == _C_SHADING or colorize == _C_BLINNPHONG:
+		if colorize == frc._C_DISTANCE or colorOptions & frc._O_SHADING:
 			D = D * 2 * Z + 1
 
 		Z = Z * Z + C
@@ -155,45 +120,34 @@ def calculatePointZ2(Z, P, C, colorize, flags, bailout, maxIter, light):
 		pow *= 2
 
 	if i < maxIter:
-		if colorize == _C_ITERATIONS:
-			return col.mapColorValue(P, float(i), maxIter, colorize, flags & _F_NOORBITS)
-		
-		if colorize == _C_DISTANCE:
+		if colorize == frc._C_DISTANCE:
 			aZ = abs(Z)
-			dst = math.sqrt(aZ / abs(D)) * 0.5 * math.log(aZ)
+			value = math.sqrt(aZ / abs(D)) * 0.5 * math.log(aZ)
 			# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
 			# distance = aZ / abs(distance) * 2.0 * log(aZ)
 			# Convert to value between 0 and 1:
 			# np.tanh(distance*resolution/size)
-			return col.mapColorValue(P, dst, maxIter, colorize, flags & _F_NOORBITS)
-
-		elif colorize == _C_POTENTIAL:
-			# pot = log(nZ)/pow
+		elif colorize == frc._C_POTENTIAL:
 			logZn = math.log(nZ)/2.0
-			pot = math.log(logZn / math.log(2)) / math.log(2)
-			return col.mapColorValue(P, pot, maxIter, colorize, flags & _F_NOORBITS)
-		
-		elif colorize == _C_SHADING:
-			h2 = 1.5    # height factor of the incoming light
-			angle = 45  # incoming direction of light
-			v = cmath.exp(complex(0,1) * angle * 2 * math.pi / 360)  # unit 2D vector in this direction
-			u = Z / D
-			u /= abs(u)  # normal vector: (u.re,u.im,1) 
-			t = u.real * v.real + u.imag * v.imag + h2  # dot product with the incoming light
-			t /= (1 + h2)  # rescale so that t does not get bigger than 1
-			return col.mapColorValue(P, max(t,0), maxIter, colorize, flags & _F_NOORBITS)
-		
-		elif colorize == _C_BLINNPHONG:
-			u = Z / D
-			b = col.phong(u, light)
-			return col.mapColorValue(P, b, maxIter, colorize, flags & _F_NOORBITS)
+			value = math.log(logZn / math.log(2)) / math.log(2)		
+		else:
+			value = float(i)
 
-	return col.mapColorValue(P, float(i), maxIter, colorize, flags & _F_NOORBITS)
+		if colorOptions & frc._O_SIMPLE_3D:
+			shading = col.simple3D(Z/D, light[0])
+		elif colorOptions & frc._O_BLINNPHONG_3D:
+			shading = col.phong3D(Z/D, light)
+		else:
+			shading = 1.0
 
-@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.complex128, nb.int32, nb.int32, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
-def calculateVectorZ2(Z, P, C, colorize, flags, maxIter, R):
-	bailout = 10000.0 if colorize == _C_POTENTIAL or colorize == _C_SHADING or colorize == _C_BLINNPHONG else 4.0
-	if flags & _F_ORBITS: maxIter = max(maxIter, 1000)
+		return frc.mapColorValue(P, value, maxIter, shading, colorize, paletteMode)
+	
+	else:
+		return frc.mapColorValue(P, float(i), maxIter)
+
+@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.complex128, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+def calculateVectorZ2(Z, P, colorize, paletteMode, colorOptions, C, maxIter, R):
+	if colorOptions & frc._O_ORBITS: maxIter = max(maxIter, 1000)
 
 	# Light source for phong shading
 	light = [45., 45., .75, .2, .5, .5, 20]
@@ -201,5 +155,4 @@ def calculateVectorZ2(Z, P, C, colorize, flags, maxIter, R):
 	light[1] = math.pi/2*light[1]/90
 
 	for p in range(Z.shape[0]):
-		R[p,:] = calculatePointZ2(Z[p], P, C, colorize, flags, bailout, maxIter, light)
-
+		R[p,:] = calculatePointZ2(Z[p], P, C, colorize, paletteMode, colorOptions, maxIter, light)
