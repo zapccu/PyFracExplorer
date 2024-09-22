@@ -194,40 +194,95 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 
 # Map iteration result to color depending on mapping method
 @nb.njit(cache=True)
-def mapColorValue(palette: np.ndarray, value: float, maxValue: int, shading: float = 1.0, colorize: int = 0, palettemode: int = 0) -> np.ndarray:
+def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, stripe_a: float,
+				  light, colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
 	pLen = len(palette)-1
-	color = palette[pLen]
+	ncycle = 30
+
+	if colorOptions & _O_SIMPLE_3D:
+		shading = col.simple3D(normal, light[0])
+	elif colorOptions & _O_BLINNPHONG_3D:
+		shading = col.phong3D(normal, light)
+	else:
+		shading = 1.0
 
 	if colorize == _C_ITERATIONS:
-		# value = iteration count
-		if value == maxValue: return color
 		if palettemode == _P_LINEAR:
-			color = palette[int(value)] if maxValue == pLen else palette[int(pLen / maxValue * value)]
+			color = palette[int(pLen * iter)] * shading
 		elif palettemode == _P_MODULO:
-			color = palette[int(value)] if maxValue == pLen else palette[int(value) % pLen]
+			color = palette[int(iter * pLen) % ncycle] * shading
 		elif palettemode == _P_HUE:
-			return col.hsbToRGB(palette[0,0], palette[0,1], shading)
+			color = col.hsb2rgb(palette[0,0], palette[0,1], shading)
 		elif palettemode == _P_HUEDYN:
-			h = math.pow((value/maxValue) * 360, 1.5) % 360
+			h = math.pow((iter) * 360, 1.5) % 360
 			# For hsl model saturation must be set to 0.5
-			return col.hsbToRGB(h/360, 1.0, shading)
+			color = col.hsb2rgb(h/360, 1.0, shading)
 		elif palettemode == _P_LCHDYN:
-			s = value/maxValue
-			v = 1.0 - math.pow(math.cos(math.pi * s), 2.0)
-			return col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * s, 1.5) % 360)
+			v = 1.0 - math.pow(math.cos(math.pi * iter), 2.0)
+			color = col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * iter, 1.5) % 360) * shading
 		
 	elif colorize == _C_DISTANCE:
-		# value = distance
-		if value <= 0: return color
-		color = palette[int(value * pLen)]
+		color = palette[int(iter * pLen)] * shading
 
 	elif colorize == _C_POTENTIAL:
-		# value = potential
-		if value <= 0: return color
-		color = palette[int(value * pLen)]
+		color = palette[int(iter * pLen)] * shading
 
-	return (color * shading).astype(np.uint8)
+	return (color * 255).astype(np.uint8)
+	# return col.rgb2rgbi(color * shading)
 
+@nb.njit
+def mapColor(palette, niter, stripe_a, step_s, dist, normal, ncycle, light):
+	pLen = len(palette)-1
+
+    # Cycle through palette
+	niter = math.sqrt(niter) % ncycle / ncycle
+	palIdx = round(niter * pLen)
+
+	overlay = lambda x, y, gamma: (2 * x * y if 2 * y < 1 else 1 - 2 * (1 - x) * (1 - y)) * gamma + x * (1 - gamma)
+    
+    # Calculate brightness with Blinn Phong shading
+	bright = col.phong3D(normal, light)
+
+    # dem: log transform and sigmoid on [0,1] => [0,1]
+	dist = -math.log(dist) / 12
+	dist = 1 / (1 + math.exp(-10 * ((2 * dist - 1)/2)))
+
+    # Shaders: steps and/or stripes
+	nshader = 0
+	shader = 0
+
+    # Stripe shading
+	if stripe_a > 0:
+		nshader += 1
+		shader += stripe_a
+
+    # Step shading
+	if step_s > 0:
+		# Color update: constant color on each major step
+		step_s = 1/step_s                                 
+		palIdx = round((niter - niter % step_s)* pLen)
+
+		# Major step: step_s frequency
+		x = niter % step_s / step_s
+		light_step = 6 * (1 - x**5 - (1 - x)**100) / 10
+
+		# Minor step: n for each major step
+		step_s = step_s/8
+		x = niter % step_s / step_s
+		light_step2 = 6 * (1 - x**5 - (1 - x)**30) / 10
+
+		# Overlay merge between major and minor steps
+		light_step = overlay(light_step2, light_step, 1)
+		nshader += 1
+		shader += light_step
+
+    # Applying shaders to brightness
+	if nshader > 0:
+		bright = overlay(bright, shader/nshader, 1) * (1-dist) + dist * bright
+
+	color = overlay(palette[palIdx], bright, 1)
+
+	return col.rgb2rgbi(color.clip(0, 1))
 	
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 # orientation: 0 = horizontal, 1 = vertical

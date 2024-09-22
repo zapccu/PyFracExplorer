@@ -43,7 +43,6 @@ class Drawer:
 		# Create graphics environment
 		self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
 
-
 	# Set drawing color palette
 	def setPalette(self, palette: np.ndarray):
 		self.palette = palette

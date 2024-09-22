@@ -105,11 +105,11 @@ class Application:
 		maxValue = self.fractal.getMaxValue()
 		self.colorTable = {
 			'Monochrome':   col.createLinearPalette(self.fractal.getMaxValue()),
-			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [(80,80,80), (255,255,255)], defColor=(0, 0, 0)),
+			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [col.rgbf(80, 80, 80), (1.,1.,1.)], defColor=(0., 0., 0.)),
 			'Sinus':        col.createSinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
 			'SinusCosinus': col.createSinusCosinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
-			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [(125,30,0),(30,255,30),(0,30,125)]),
-			'BlueGrey':     col.createLinearPalette(maxValue, [(100,100,100),(200,200,200),(0,0,255)])
+			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [col.rgbf(125,30,0),col.rgbf(30,255,30),col.rgbf(0,30,125)]),
+			'BlueGrey':     col.createLinearPalette(maxValue, [col.rgbf(100,100,100),col.rgbf(200,200,200),col.rgbf(0,0,255)])
 		}
 
 	def __getitem__(self, index: str):

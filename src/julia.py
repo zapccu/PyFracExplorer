@@ -65,7 +65,6 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, ligh
 
 	dst = 0.0      # Distance
 	pot = 0.0      # Potential
-	dia = 0        # Orbit diameter
 	diaScale = maxIter/10.0
 
 	stripe_s = 0.0
@@ -97,8 +96,7 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, ligh
 			# Search for orbits (full periodicity check)
 			idx = frc.findOrbit(orbits[:i], Z, 1e-15, 1e-11)
 			if idx > -1:
-				dia = i - idx
-				return col.hsbToRGB(min(1.0,dia/maxIter*diaScale), 1.0, 1-i/maxIter)
+				return col.rgb2rgbi(col.hsb2rgb(min(1.0,(i-idx)/maxIter*diaScale), 1.0, 1-i/maxIter))
 			orbits[oc] = Z
 			oc += 1
 		else:
@@ -119,33 +117,33 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, ligh
 
 		pow *= 2
 
-	if i < maxIter:
-		if colorize == frc._C_DISTANCE:
-			aZ = abs(Z)
-			value = math.sqrt(aZ / abs(D)) * 0.5 * math.log(aZ)
-			# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
-			# distance = aZ / abs(distance) * 2.0 * log(aZ)
-			# Convert to value between 0 and 1:
-			# np.tanh(distance*resolution/size)
-		elif colorize == frc._C_POTENTIAL:
-			logZn = math.log(nZ)/2.0
-			value = math.log(logZn / math.log(2)) / math.log(2)		
-		else:
-			value = float(i)
-
-		if colorOptions & frc._O_SIMPLE_3D:
-			shading = col.simple3D(Z/D, light[0])
-		elif colorOptions & frc._O_BLINNPHONG_3D:
-			shading = col.phong3D(Z/D, light)
-		else:
-			shading = 1.0
-
-		return frc.mapColorValue(P, value, maxIter, shading, colorize, paletteMode)
+	if i == maxIter:
+		return col.rgb2rgbi(P[-1])
 	
+	if colorize == frc._C_DISTANCE:
+		aZ = abs(Z)
+		value = math.sqrt(aZ / abs(D)) * 0.5 * math.log(aZ)
+		# From https://github.com/makeyourownmandelbrot/Second_Edition/blob/main/DEM_Mandelbrot.ipynb
+		# distance = aZ / abs(distance) * 2.0 * log(aZ)
+		# Convert to value between 0 and 1:
+		# np.tanh(distance*resolution/size)
+	elif colorize == frc._C_POTENTIAL:
+		logZn = math.log(nZ)/2.0
+		value = math.log(logZn / math.log(2)) / math.log(2)		
 	else:
-		return frc.mapColorValue(P, float(i), maxIter)
+		value = float(i)
 
-@nb.guvectorize([(nb.complex128[:], nb.uint8[:,:], nb.int32, nb.int32, nb.int32, nb.complex128, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
+	if colorOptions & frc._O_SIMPLE_3D:
+		shading = col.simple3D(Z/D, light[0])
+	elif colorOptions & frc._O_BLINNPHONG_3D:
+		shading = col.phong3D(Z/D, light)
+	else:
+		shading = 1.0
+
+	return frc.mapColorValue(P, value, maxIter, shading, colorize, paletteMode)
+
+
+@nb.guvectorize([(nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.complex128, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(),() -> (n,j)', nopython=True, cache=True, target='parallel')
 def calculateVectorZ2(Z, P, colorize, paletteMode, colorOptions, C, maxIter, R):
 	if colorOptions & frc._O_ORBITS: maxIter = max(maxIter, 1000)
 
