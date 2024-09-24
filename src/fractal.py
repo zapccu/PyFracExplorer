@@ -7,6 +7,95 @@ import numba as nb
 import tkconfigure as tkc
 import colors as col
 
+#####################################################################
+# Fractal presets
+#####################################################################
+
+presets = {
+	'crown': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.5503295086752807, -0.5503293049351449, -0.6259346555912755, -0.625934541001796],
+		'stripes':    2,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.11, .02, .92]
+	},
+	'pow': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.9854527029227764, -1.9854527027615938, 0.00019009159314173224, 0.00019009168379912058],
+		'stripes':    0,
+		'steps':      10,
+		'ncycle':     8,
+		'rgb_thetas': [.29, .02, 0.9]
+	},
+	'octogone': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.749289287806423, -1.7492892878054118, -1.8709586016347623e-06, -1.8709580332005737e-06],
+		'stripes':    5,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.83, .01, .99]
+	},
+	'julia': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.9415524417847085, -1.9415524394561112, 0.00013385928801614168, 0.00013386059768851223],
+		'stripes':    0,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.87, .83, .77]
+	},
+	'lightning': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.19569582393630502, -0.19569331188751315, 1.1000276413181806, 1.10002905416902],
+		'stripes':    8,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.54, .38, .35]
+	},
+	'web': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.7497082019887222, -1.749708201971718, -1.3693697170765535e-07, -1.369274301311596e-07],
+		'stripes':    0,
+		'steps':      20,
+		'ncycle':     32,
+		'rgb_thetas': [.47, .51, .63]
+	},
+	'wave': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.8605721473418524, -1.860572147340747, -3.1800170324714687e-06, -3.180016406837821e-06],
+		'stripes':    12,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.6, .57, .45]
+	},
+	'tiles': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.7545217835886875, -0.7544770820676441, 0.05716740181493137, 0.05719254327783547],
+		'stripes':    0,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.63, .83, .98]
+	},
+	'velvet': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.6241199193994318, -1.624119919281773, -0.00013088931048083944, -0.0001308892443058033],
+		'stripes':    5,
+		'steps':      0,
+		'ncycle':     32,
+		'rgb_thetas': [.29, .52, .59]
+	}
+}
+
+
 
 #####################################################################
 # Calculation and color mapping constants
@@ -29,7 +118,9 @@ _O_ORBITS        = 1      # Draw orbits
 _O_STRIPES       = 2      # Draw stripes
 _O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 _O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
-_O_SHADING       = 12     # Mask for shading
+_O_STEPS         = 16     # Steps
+
+_O_SHADING       = 30
 
 
 #####################################################################
@@ -38,7 +129,8 @@ _O_SHADING       = 12     # Mask for shading
 
 class Fractal:
 
-	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
+	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0,
+			  stripes: int = 0, steps: int = 0, ncycle: int = 1):
 		self.settings = tkc.TKConfigure({
 			"Fractal": {
 				"corner": {
@@ -77,14 +169,38 @@ class Fractal:
 				},
 				"colorOptions": {
 					"inputtype": "bits",
-					"valrange":  ["Orbits", "Stripes", "Simple 3D", "Blinn/Phong 3D" ],
+					"valrange":  ["Orbits", "Stripes", "Simple 3D", "Blinn/Phong 3D", "Steps" ],
 					"initvalue": 0,
 					"widget":     "TKCFlags",
 					"widgetattr": {
 						"text": "Colorization options"
-					},
-					"row": 0,
-					"column": 1
+					}
+				}
+			},
+			"Color Parameters": {
+				"stripes": {
+					"inputtype": "int",
+					"valrange":  (0, 32),
+					"initvalue": stripes,
+					"widget":    "TKCSlider",
+					"label":     "Stripes",
+					"width":     12
+				},
+				"steps": {
+					"inputtype": "int",
+					"valrange":  (0, 100),
+					"initvalue": steps,
+					"widget":    "TKCSlider",
+					"label":     "Steps",
+					"width":     12
+				},
+				"ncycle": {
+					"inputtype": "int",
+					"valrange":  (1, 200),
+					"initvalue": ncycle,
+					"widget":    "TKCSlider",
+					"label":     "Cycles",
+					"width":     12
 				}
 			}
 		})
@@ -109,6 +225,10 @@ class Fractal:
 		self.offsetY = offsetY
 		self.settings.set('corner', complex(offsetX, offsetY), sync=True)
 		self.settings.set('size', complex(fractalWidth, fractalHeight), sync=True)
+
+	# Change fractal coordinates
+	def setCoordinates(self, left: float, right: float, bottom: float, top: float):
+		self.setDimensions(right-left, top-bottom, left, bottom)
 
 	# Zoom into screen area
 	def zoomArea(self, imageWidth: int, imageHeight: int, x1: int, y1: int, x2: int, y2: int):
@@ -193,45 +313,54 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 	return -1
 
 # Map iteration result to color depending on mapping method
+#
+#   colorPar
+#     0 = stripe_a
+#     1 = step_s
+#     2 = ncycle
+#
 @nb.njit(cache=True)
-def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, stripe_a: float,
-				  light, colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
+def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, colorPar: list[float],
+				  light: list[float], colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
 	pLen = len(palette)-1
-	ncycle = 30
 
 	if colorOptions & _O_SIMPLE_3D:
-		shading = col.simple3D(normal, light[0])
+		bright = col.simple3D(normal, light[0])
 	elif colorOptions & _O_BLINNPHONG_3D:
-		shading = col.phong3D(normal, light)
+		bright = col.phong3D(normal, light)
 	else:
-		shading = 1.0
+		bright = 1.0
+
+	if colorOptions & _O_STRIPES or colorOptions & _O_STEPS:
+		color = shading(palette, iter, dist, normal, colorPar, bright)
 
 	if colorize == _C_ITERATIONS:
 		if palettemode == _P_LINEAR:
-			color = palette[int(pLen * iter)] * shading
+			color = palette[int(pLen * iter)] * bright
 		elif palettemode == _P_MODULO:
-			color = palette[int(iter * pLen) % ncycle] * shading
+			color = palette[int(iter * pLen) % int(colorPar[2])] * bright
 		elif palettemode == _P_HUE:
-			color = col.hsb2rgb(palette[0,0], palette[0,1], shading)
+			color = col.hsb2rgb(palette[0,0], palette[0,1], bright)
 		elif palettemode == _P_HUEDYN:
 			h = math.pow((iter) * 360, 1.5) % 360
 			# For hsl model saturation must be set to 0.5
-			color = col.hsb2rgb(h/360, 1.0, shading)
+			color = col.hsb2rgb(h/360, 1.0, bright)
 		elif palettemode == _P_LCHDYN:
 			v = 1.0 - math.pow(math.cos(math.pi * iter), 2.0)
-			color = col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * iter, 1.5) % 360) * shading
+			color = col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * iter, 1.5) % 360) * bright
 		
 	elif colorize == _C_DISTANCE:
-		color = palette[int(iter * pLen)] * shading
+		color = palette[int(iter * pLen)] * bright
 
 	elif colorize == _C_POTENTIAL:
-		color = palette[int(iter * pLen)] * shading
+		color = palette[int(iter * pLen)] * bright
 
 	return (color * 255).astype(np.uint8)
-	# return col.rgb2rgbi(color * shading)
+	# return col.rgb2rgbi(color * bright)
 
 @nb.njit
-def mapColor(palette, niter, stripe_a, step_s, dist, normal, ncycle, light):
+def shading(palette, niter, dist, normal, colorPar, bright):
+	stripe_a, step_s, ncycle = colorPar
 	pLen = len(palette)-1
 
     # Cycle through palette
@@ -241,7 +370,7 @@ def mapColor(palette, niter, stripe_a, step_s, dist, normal, ncycle, light):
 	overlay = lambda x, y, gamma: (2 * x * y if 2 * y < 1 else 1 - 2 * (1 - x) * (1 - y)) * gamma + x * (1 - gamma)
     
     # Calculate brightness with Blinn Phong shading
-	bright = col.phong3D(normal, light)
+	# bright = col.phong3D(normal, light)
 
     # dem: log transform and sigmoid on [0,1] => [0,1]
 	dist = -math.log(dist) / 12
@@ -282,7 +411,7 @@ def mapColor(palette, niter, stripe_a, step_s, dist, normal, ncycle, light):
 
 	color = overlay(palette[palIdx], bright, 1)
 
-	return col.rgb2rgbi(color.clip(0, 1))
+	return color.clip(0, 1)
 	
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 # orientation: 0 = horizontal, 1 = vertical

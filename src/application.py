@@ -17,6 +17,16 @@ class Application:
 
 	def __init__(self, width: int, height: int, title: str):
 
+		self.colorTable = {
+			'Monochrome':   col.createLinearPalette(4096),
+			'Grey':         col.createLinearPalette(4096, [col.rgbf(80, 80, 80), (1.,1.,1.)], defColor=(0., 0., 0.)),
+			'Sinus':        col.createSinusPalette(4096, defColor=(0, 0, 0)),
+			'SinusCosinus': col.createSinusCosinusPalette(4096, defColor=(0, 0, 0)),
+			'RedGreenBlue': col.createLinearPalette(4096, [col.rgbf(125,30,0),col.rgbf(30,255,30),col.rgbf(0,30,125)]),
+			'BlueGrey':     col.createLinearPalette(4096, [col.rgbf(100,100,100),col.rgbf(200,200,200),col.rgbf(0,0,255)]),
+			'Preset':       col.createSinusPalette(4096, defColor=(0, 0, 0))
+		}
+
 		# Settings
 		self.settings = tkc.TKConfigure({
 			"Image parameters": {
@@ -42,6 +52,15 @@ class Application:
 				}
 			},
 			"Fractal selection": {
+				"preset": {
+					'inputtype': 'str',
+					'valrange':  ['None'] + list(frc.presets.keys()),
+					'initvalue': 'None',
+					'widget':    'TKCListbox',
+					'label':     'Preset',
+					'width':     15,
+					'notify':    self.onPresetSelected
+				},
 				"fractalType": {
 					'inputtype': 'str',
 					'valrange':  [
@@ -71,9 +90,7 @@ class Application:
 				},
 				'colorPalette': {
 					'inputtype': 'str',
-					'valrange':  [
-						'Monochrome', 'Grey', 'Sinus', 'SinusCosinus', 'RedGreenBlue', 'BlueGrey'
-					],
+					'valrange':  list(self.colorTable.keys()),
 					'initvalue': 'Grey',
 					'widget':    'TKCListbox',
 					'label':     'Color palette:',
@@ -102,15 +119,7 @@ class Application:
 		# Define selection handler
 		self.gui.setSelectionHandler(self.onPointSelected, self.onAreaSelected)
 
-		maxValue = self.fractal.getMaxValue()
-		self.colorTable = {
-			'Monochrome':   col.createLinearPalette(self.fractal.getMaxValue()),
-			'Grey':         col.createLinearPalette(self.fractal.getMaxValue(), [col.rgbf(80, 80, 80), (1.,1.,1.)], defColor=(0., 0., 0.)),
-			'Sinus':        col.createSinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
-			'SinusCosinus': col.createSinusCosinusPalette(self.fractal.getMaxValue(), defColor=(0, 0, 0)),
-			'RedGreenBlue': col.createLinearPalette(self.fractal.getMaxValue(), [col.rgbf(125,30,0),col.rgbf(30,255,30),col.rgbf(0,30,125)]),
-			'BlueGrey':     col.createLinearPalette(maxValue, [col.rgbf(100,100,100),col.rgbf(200,200,200),col.rgbf(0,0,255)])
-		}
+
 
 	def __getitem__(self, index: str):
 		return self.settings.get(index)
@@ -189,6 +198,22 @@ class Application:
 	#
 
 	# Settings changed
+	def onPresetSelected(self, oldValue, newValue):
+		if newValue != 'None':
+			self.fractal.settings.deleteMask()
+			corner = complex(frc.presets[newValue]['coord'][0], frc.presets[newValue]['coord'][2])
+			size = complex(frc.presets[newValue]['coord'][1]-frc.presets[newValue]['coord'][0], frc.presets[newValue]['coord'][3]-frc.presets[newValue]['coord'][2])
+			if frc.presets[newValue]['type'] == 'Mandelbrot':
+				self.fractal = man.Mandelbrot(corner, size, maxIter=frc.presets[newValue]['maxIter'], stripes=frc.presets[newValue]['stripes'],
+								  steps=frc.presets[newValue]['steps'], ncycle=frc.presets[newValue]['ncycle'])
+			else:
+				self.fractal = jul.Julia()
+			self.colorTable['Preset'] = col.createSinusPalette(4096, thetas=frc.presets[newValue]['rgb_thetas'])
+			self.settings.set('colorPalette', 'Preset', sync=True)
+			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
+		elif oldValue == 'Preset':
+			self.settings.set('colorPalette', 'Grey', sync=True)
+
 	def onFractalTypeChanged(self, oldValue, newValue):
 		self.fractal.settings.deleteMask()
 		if newValue == 'Mandelbrot Set':
