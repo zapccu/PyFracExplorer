@@ -216,7 +216,11 @@ class Application:
 				self.fractal = jul.Julia()
 
 			self.fractal.settings.setValues(colorize=preset['colorize'], colorOptions=preset['colorOptions'])
-			self.colorTable['Preset'] = col.createSinusPalette(4096, thetas=preset['rgb_thetas'])
+
+			# Dynamically create color palette
+			palette = preset['palette']
+			fnc = col.paletteFunctions[palette['type']]
+			self.colorTable['Preset'] = fnc(palette['size'], **palette['par'])
 			self.settings.set('colorPalette', 'Preset', sync=True)
 
 			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)

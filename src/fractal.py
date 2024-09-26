@@ -50,7 +50,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.11, .02, .92]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.11, .02, .92]
+			}
+		}
 	},
 	'pow': {
 		'type':       'Mandelbrot',
@@ -61,7 +67,13 @@ presets = {
 		'ncycle':     8,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.29, .02, 0.9]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.29, .02, 0.9]
+			}
+		}
 	},
 	'octogone': {
 		'type':       'Mandelbrot',
@@ -72,7 +84,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.83, .01, .99]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.83, .01, .99]
+			}
+		}
 	},
 	'julia': {
 		'type':       'Mandelbrot',
@@ -83,7 +101,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.87, .83, .77]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.87, .83, .77]
+			}
+		}
 	},
 	'lightning': {
 		'type':       'Mandelbrot',
@@ -94,7 +118,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.54, .38, .35]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.54, .38, .35]
+			}
+		}
 	},
 	'web': {
 		'type':       'Mandelbrot',
@@ -105,7 +135,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.47, .51, .63]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.47, .51, .63]
+			}
+		}
 	},
 	'wave': {
 		'type':       'Mandelbrot',
@@ -116,7 +152,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.6, .57, .45]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.6, .57, .45]
+			}
+		}
 	},
 	'tiles': {
 		'type':       'Mandelbrot',
@@ -127,7 +169,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.63, .83, .98]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.63, .83, .98]
+			}
+		}
 	},
 	'velvet': {
 		'type':       'Mandelbrot',
@@ -138,7 +186,13 @@ presets = {
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.29, .52, .59]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.29, .52, .59]
+			}
+		}
 	},
 	"colorvortex": {
 		'type':       'Mandelbrot',
@@ -150,7 +204,13 @@ presets = {
 		'ncycle':     19,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
-		'rgb_thetas': [.85, .0, .15]
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.85, .0, .15]
+			}
+		}
 	}
 }
 

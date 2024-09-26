@@ -216,11 +216,11 @@ def createRGBPalette(numColors: int, startColor: tuple = (0., 0., 0.), endColor:
 def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple = (0., 0., 0.)) -> np.ndarray:
 	numColors = max(numColors, 2)
 	ct = np.linspace(0, 1, numColors, dtype=np.float64)
-	colors = np.column_stack(((
-		ct + thetas[0]) * 2 * math.pi,
+	colors = np.column_stack((
+		(ct + thetas[0]) * 2 * math.pi,
 		(ct + thetas[1]) * 2 * math.pi,
-		(ct + thetas[2]) * 2 * math.pi)
-	)
+		(ct + thetas[2]) * 2 * math.pi
+	))
 	return np.vstack(((0.5 + 0.5 * np.sin(colors)), np.array(defColor, dtype=np.float64)))
 
 def createSinusCosinusPalette(numColors: int, defColor: tuple = (0., 0., 0.)) -> np.ndarray:
@@ -232,3 +232,8 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple = (0., 0., 0.)) ->
 	)
 	return np.vstack((colors, np.array(defColor, dtype=np.float64)))
 
+paletteFunctions = {
+	"Linear": createLinearPalette,
+	"Sinus": createSinusPalette,
+	"SinusCosinus": createSinusCosinusPalette
+}
