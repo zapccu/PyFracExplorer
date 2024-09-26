@@ -146,15 +146,16 @@ class Application:
 	
 	# Apply button pressed
 	def onApply(self):
-		imageWidth = self.settings['imageWidth']
+		imageWidth  = self.settings['imageWidth']
 		imageHeight = self.settings['imageHeight']
 
 		if self.gui.selection.isAreaSelected():
 			# Zoom in
 			x1, y1, x2, y2 = self.gui.selection.getArea()
-			size = self.fractal.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
+			size   = self.fractal.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
 			corner = self.fractal.mapXY(x1, y1, imageWidth, imageHeight)
-			self.fractal.setDimensions(size.real, size.imag, corner.real, corner.imag)
+			self.fractal.setDimensions(corner, size)
+
 		elif self.gui.selection.isPointSelected():
 			if self.settings['fractalType'] == 'Mandelbrot Set':
 				# Calculate Julia set at selected point
@@ -177,7 +178,6 @@ class Application:
 		self.onStatusUpdate({'drawing': 'Drawing ...'})
 		w = self.settings['imageWidth']
 		h = self.settings['imageHeight']
-		print(f"Image size = {w} x {h}")
 		self.draw = Drawer(self, w, h)
 		self.draw.drawFractal(self.fractal, 0, 0, w, h, onStatus=self.onStatusUpdate)
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
@@ -202,8 +202,12 @@ class Application:
 			self.fractal.settings.deleteMask()
 
 			preset = frc.presets[newValue]
-			corner = complex(preset['coord'][0], preset['coord'][2])
-			size   = complex(preset['coord'][1]-preset['coord'][0], preset['coord'][3]-preset['coord'][2])
+			if 'corner' in preset and 'size' in preset:
+				corner = preset['corner']
+				size   = preset['size']
+			else:
+				corner = complex(preset['coord'][0], preset['coord'][2])
+				size   = complex(preset['coord'][1]-preset['coord'][0], preset['coord'][3]-preset['coord'][2])
 
 			if frc.presets[newValue]['type'] == 'Mandelbrot':
 				self.fractal = man.Mandelbrot(corner, size, maxIter=preset['maxIter'], stripes=preset['stripes'],

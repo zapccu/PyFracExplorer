@@ -139,6 +139,18 @@ presets = {
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
 		'rgb_thetas': [.29, .52, .59]
+	},
+	"colorvortex": {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'corner':     -0.6656224884756315+0.3546631894271655j,
+		'size':       0.0018369561502944544+0.0018369561502944544j,
+		'stripes':    4,
+		'steps':      0,
+		'ncycle':     19,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.85, .0, .15]
 	}
 }
 
@@ -269,7 +281,7 @@ class Fractal:
 		diag = abs(self.settings['size'])
 		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), math.sqrt(self.settings['ncycle']), diag]
 
-		# Light source for phong shading
+		# Light source for shading
 		#  0 = Angle 0-360 degree
 		#  1 = Angle elevation 0-90
 		#  2 = opacity 0-1
