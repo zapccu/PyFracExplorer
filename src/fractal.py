@@ -7,95 +7,6 @@ import numba as nb
 import tkconfigure as tkc
 import colors as col
 
-#####################################################################
-# Fractal presets
-#####################################################################
-
-presets = {
-	'crown': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-0.5503295086752807, -0.5503293049351449, -0.6259346555912755, -0.625934541001796],
-		'stripes':    2,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.11, .02, .92]
-	},
-	'pow': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.9854527029227764, -1.9854527027615938, 0.00019009159314173224, 0.00019009168379912058],
-		'stripes':    0,
-		'steps':      10,
-		'ncycle':     8,
-		'rgb_thetas': [.29, .02, 0.9]
-	},
-	'octogone': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.749289287806423, -1.7492892878054118, -1.8709586016347623e-06, -1.8709580332005737e-06],
-		'stripes':    5,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.83, .01, .99]
-	},
-	'julia': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.9415524417847085, -1.9415524394561112, 0.00013385928801614168, 0.00013386059768851223],
-		'stripes':    0,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.87, .83, .77]
-	},
-	'lightning': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-0.19569582393630502, -0.19569331188751315, 1.1000276413181806, 1.10002905416902],
-		'stripes':    8,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.54, .38, .35]
-	},
-	'web': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.7497082019887222, -1.749708201971718, -1.3693697170765535e-07, -1.369274301311596e-07],
-		'stripes':    0,
-		'steps':      20,
-		'ncycle':     32,
-		'rgb_thetas': [.47, .51, .63]
-	},
-	'wave': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.8605721473418524, -1.860572147340747, -3.1800170324714687e-06, -3.180016406837821e-06],
-		'stripes':    12,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.6, .57, .45]
-	},
-	'tiles': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-0.7545217835886875, -0.7544770820676441, 0.05716740181493137, 0.05719254327783547],
-		'stripes':    0,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.63, .83, .98]
-	},
-	'velvet': {
-		'type':       'Mandelbrot',
-		'maxIter':    5000,
-		'coord':      [-1.6241199193994318, -1.624119919281773, -0.00013088931048083944, -0.0001308892443058033],
-		'stripes':    5,
-		'steps':      0,
-		'ncycle':     32,
-		'rgb_thetas': [.29, .52, .59]
-	}
-}
-
-
 
 #####################################################################
 # Calculation and color mapping constants
@@ -120,7 +31,116 @@ _O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 _O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 _O_STEPS         = 16     # Steps
 
-_O_SHADING       = 30
+_O_SHADING       = 30     # Combination of _O_STEPS, _O_BLINNPHONG_3D, _O_SIMPLE_3D, _O_STRIPES
+
+
+###############################################################################
+# Fractal presets
+#
+# Taken from https://github.com/jlesuffleur/gpu_mandelbrot/tree/master
+###############################################################################
+
+presets = {
+	'crown': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.5503295086752807, -0.5503293049351449, -0.6259346555912755, -0.625934541001796],
+		'stripes':    2,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.11, .02, .92]
+	},
+	'pow': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.9854527029227764, -1.9854527027615938, 0.00019009159314173224, 0.00019009168379912058],
+		'stripes':    0,
+		'steps':      10,
+		'ncycle':     8,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.29, .02, 0.9]
+	},
+	'octogone': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.749289287806423, -1.7492892878054118, -1.8709586016347623e-06, -1.8709580332005737e-06],
+		'stripes':    5,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.83, .01, .99]
+	},
+	'julia': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.9415524417847085, -1.9415524394561112, 0.00013385928801614168, 0.00013386059768851223],
+		'stripes':    0,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.87, .83, .77]
+	},
+	'lightning': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.19569582393630502, -0.19569331188751315, 1.1000276413181806, 1.10002905416902],
+		'stripes':    8,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.54, .38, .35]
+	},
+	'web': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.7497082019887222, -1.749708201971718, -1.3693697170765535e-07, -1.369274301311596e-07],
+		'stripes':    0,
+		'steps':      20,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.47, .51, .63]
+	},
+	'wave': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.8605721473418524, -1.860572147340747, -3.1800170324714687e-06, -3.180016406837821e-06],
+		'stripes':    12,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.6, .57, .45]
+	},
+	'tiles': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-0.7545217835886875, -0.7544770820676441, 0.05716740181493137, 0.05719254327783547],
+		'stripes':    2,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.63, .83, .98]
+	},
+	'velvet': {
+		'type':       'Mandelbrot',
+		'maxIter':    5000,
+		'coord':      [-1.6241199193994318, -1.624119919281773, -0.00013088931048083944, -0.0001308892443058033],
+		'stripes':    5,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'rgb_thetas': [.29, .52, .59]
+	}
+}
 
 
 #####################################################################
@@ -129,20 +149,24 @@ _O_SHADING       = 30
 
 class Fractal:
 
-	def __init__(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0,
-			  stripes: int = 0, steps: int = 0, ncycle: int = 1):
+	def __init__(self, corner: complex, size: complex, stripes: int = 0, steps: int = 0, ncycle: int = 1):
+
+		colorOptions = 0
+		if stripes > 0: colorOptions |= _O_STRIPES
+		if steps > 0:   colorOptions |= _O_STEPS
+
 		self.settings = tkc.TKConfigure({
 			"Fractal": {
 				"corner": {
 					"inputtype": "complex",
-					"initvalue": complex(offsetX, offsetY),
+					"initvalue": corner,
 					"widget":    "TKCEntry",
 					"label":     "Corner",
 					"width":     20
 				},
 				"size": {
 					"inputtype": "complex",
-					"initvalue": complex(fractalWidth, fractalHeight),
+					"initvalue": size,
 					"widget":    "TKCEntry",
 					"label":     "Size",
 					"width":     20
@@ -170,7 +194,7 @@ class Fractal:
 				"colorOptions": {
 					"inputtype": "bits",
 					"valrange":  ["Orbits", "Stripes", "Simple 3D", "Blinn/Phong 3D", "Steps" ],
-					"initvalue": 0,
+					"initvalue": colorOptions,
 					"widget":     "TKCFlags",
 					"widgetattr": {
 						"text": "Colorization options"
@@ -201,34 +225,55 @@ class Fractal:
 					"widget":    "TKCSlider",
 					"label":     "Cycles",
 					"width":     12
+				},
+				"oversampling": {
+					"inputtype": "int",
+					"valrange":  (1, 3),
+					"initvalue": 1,
+					"widget":    "TKCSlider",
+					"label":     "Oversampling",
+					"width":     12
+				}
+			},
+			"Light": {
+				"angle": {
+					"inputtype": "float",
+					"valrange":  (0, 360),
+					"initvalue": 45.0,
+					"widget":    "TKCSlider",
+					"label":     "Angle",
+					"width":     12
 				}
 			}
 		})
 
-		self.fractalWidth  = fractalWidth
-		self.fractalHeight = fractalHeight
-		self.offsetX       = offsetX
-		self.offsetY       = offsetY
-
 		self.startTime = 0
 		self.calcTime  = 0
-	
+
 	# Return list of calculation parameters depending on fractal type
 	def getCalcParameters(self) -> tuple:
-		return (self.settings['colorize'], self.settings['paletteMode'], self.settings['colorOptions'])
+		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), float(self.settings['ncycle'])]
+		# Light source for phong shading
+		# 0 = Angle 0-360 degree
+		# 1 = Angle elevation 0-90
+		# 2 = opacity 0-1
+		# 3 = ambiant 0-1
+		# 4 = diffuse 0-1
+		# 5 = spectral 0-1
+		# 6 = shininess 0-?
+		light = [self.settings['angle'], 45., .75, .2, .5, .5, 20.]
+		light[0] = 2*math.pi*light[0]/360
+		light[1] = math.pi/2*light[1]/90
+		return (self.settings['colorize'], self.settings['paletteMode'], self.settings['colorOptions'], colorPar, light)
 
 	# Change fractal dimensions
-	def setDimensions(self, fractalWidth: float, fractalHeight: float, offsetX: float = 0.0, offsetY: float = 0.0):
-		self.fractalWidth  = fractalWidth
-		self.fractalHeight = fractalHeight
-		self.offsetX = offsetX
-		self.offsetY = offsetY
-		self.settings.set('corner', complex(offsetX, offsetY), sync=True)
-		self.settings.set('size', complex(fractalWidth, fractalHeight), sync=True)
+	def setDimensions(self, corner: complex, size: complex, sync: bool = True):
+		self.settings.set('corner', corner, sync=sync)
+		self.settings.set('size', size, sync=sync)
 
 	# Change fractal coordinates
-	def setCoordinates(self, left: float, right: float, bottom: float, top: float):
-		self.setDimensions(right-left, top-bottom, left, bottom)
+	def setCoordinates(self, left: float, right: float, bottom: float, top: float, sync: bool = True):
+		self.setDimensions(complex(left, bottom), complex(right-left, top-bottom), sync=sync)
 
 	# Zoom into screen area
 	def zoomArea(self, imageWidth: int, imageHeight: int, x1: int, y1: int, x2: int, y2: int):
@@ -246,32 +291,56 @@ class Fractal:
 		x1 = int(x - w / 2) if x > 0 else int((imageWidth - w) / 2)
 		y1 = int(y - h / 2) if y > 0 else int((imageHeight - h) / 2)
 
-		size = self.mapWH(w, h, imageWidth, imageHeight)
+		size   = self.mapWH(w, h, imageWidth, imageHeight)
 		corner = self.mapXY(x1, y1, imageWidth, imageHeight)
-		self.setDimensions(size.real, size.imag, corner.real, corner.imag)
+		self.setDimensions(corner, size)
 
 	# Pixel distance
 	def dx(self, imageWidth: int) -> float:
-		return self.fractalWidth / (imageWidth - 1)
+		size = self.settings['size']
+		return size.real / (imageWidth - 1)
 	def dy(self, imageHeight: int) -> float:
-		return self.fractalHeight / (imageHeight - 1)
+		size = self.settings['size']
+		return size.imag / (imageHeight - 1)
 
 	# Map screen coordinates to fractal coordinates
 	def mapX(self, x: int, imageWidth: int) -> float:
-		return self.offsetX + x * self.dx(imageWidth)
+		corner = self.settings['corner']
+		return corner.real + x * self.dx(imageWidth)
 	def mapY(self, y: int, imageHeight: int) -> float:
-		return self.offsetY + y * self.dy(imageHeight)
+		corner = self.settings['corner']
+		return corner.imag + y * self.dy(imageHeight)
 	def mapXY(self, x: int, y: int, imageWidth: int, imageHeight: int) -> complex:
 		return complex(self.mapX(x, imageWidth), self.mapY(y, imageHeight))
 	def mapWH(self, width: int, height: int, imageWidth: int, imageHeight: int) -> complex:
 		return complex(self.dx(imageWidth) * width, self.dy(imageHeight) * height)
 	
+	# Adjust fractal aspect ratio to image aspect ratio
+	def adjustAspectRatio(self, imageWidth: int, imageHeight: int, corner: complex, size: complex) -> tuple[complex]:
+		imageRatio = imageWidth/imageHeight
+		fractalRatio = size.real / size.imag
+
+		if imageRatio != fractalRatio:
+			fractalHeight = size.real / imageRatio
+			corner = complex(corner.real, corner.imag + (size.imag - fractalHeight) / 2)
+			size   = complex(size.real, fractalHeight)
+			self.settings.set('corner', corner, sync=True)
+			self.settings.set('size', size, sync=True)
+
+		return (corner, size)
+
 	# Create matrix with mapping of screen coordinates to fractal coordinates
-	def mapScreenCoordinates(self, imageWidth: int, imageHeight: int):
-		dxTab = np.outer(np.ones((imageWidth,), dtype=np.float64),
-				   np.linspace(self.offsetX, self.offsetX+self.fractalWidth, imageWidth, dtype=np.float64))
-		dyTab = np.outer(1j * np.linspace(self.offsetY, self.offsetY + self.fractalHeight, imageHeight, dtype=np.float64),
-				   np.ones((imageHeight,), dtype=np.complex128))
+	def mapScreenCoordinates(self, imageWidth: int, imageHeight: int, aspectRatio: bool = True):
+		corner = self.settings['corner']
+		size = self.settings['size']
+
+		if aspectRatio:
+			corner, size = self.adjustAspectRatio(imageWidth, imageHeight, corner, size)
+
+		dxTab = np.outer(np.ones((imageHeight,), dtype=np.float64),
+				   np.linspace(corner.real, corner.real + size.real, imageWidth, dtype=np.float64))
+		dyTab = np.outer(1j * np.linspace(corner.imag, corner.imag + size.imag, imageHeight, dtype=np.float64),
+				   np.ones((imageWidth,), dtype=np.complex128))
 		self.cplxGrid = dxTab + dyTab
 
 	# Maximum calculation value (i.e. max iterations)
@@ -296,7 +365,7 @@ class Fractal:
 
 
 # Find orbit
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 	for n in range(O.shape[0], -1, -1):
 		d = Z - O[n]
@@ -318,8 +387,9 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 #     0 = stripe_a
 #     1 = step_s
 #     2 = ncycle
+#     3 = maxIter
 #
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, colorPar: list[float],
 				  light: list[float], colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
 	pLen = len(palette)-1
@@ -333,12 +403,11 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 
 	if colorOptions & _O_STRIPES or colorOptions & _O_STEPS:
 		color = shading(palette, iter, dist, normal, colorPar, bright)
-
-	if colorize == _C_ITERATIONS:
+	elif colorize == _C_ITERATIONS:
 		if palettemode == _P_LINEAR:
-			color = palette[int(pLen * iter)] * bright
+			color = palette[int(pLen * iter/colorPar[3])] * bright
 		elif palettemode == _P_MODULO:
-			color = palette[int(iter * pLen) % int(colorPar[2])] * bright
+			color = palette[int(pLen * iter/colorPar[3]) % int(colorPar[2])] * bright
 		elif palettemode == _P_HUE:
 			color = col.hsb2rgb(palette[0,0], palette[0,1], bright)
 		elif palettemode == _P_HUEDYN:
@@ -350,29 +419,34 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 			color = col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * iter, 1.5) % 360) * bright
 		
 	elif colorize == _C_DISTANCE:
-		color = palette[int(iter * pLen)] * bright
+		color = palette[int(math.tanh(dist) * pLen)] * bright
 
 	elif colorize == _C_POTENTIAL:
-		color = palette[int(iter * pLen)] * bright
+		color = palette[int(pLen * iter/colorPar[3])] * bright
 
 	return (color * 255).astype(np.uint8)
 	# return col.rgb2rgbi(color * bright)
 
 @nb.njit
+def overlay(x, y, gamma):
+	if (2*y) < 1:
+		out = 2*x*y
+	else:
+		out = 1 - 2 * (1 - x) * (1 - y)
+	return out * gamma + x * (1-gamma)
+
+@nb.njit
 def shading(palette, niter, dist, normal, colorPar, bright):
-	stripe_a, step_s, ncycle = colorPar
-	pLen = len(palette)-1
+	stripe_a, step_s, ncycle, maxIter = colorPar
+	pLen = len(palette)-2
 
     # Cycle through palette
 	niter = math.sqrt(niter) % ncycle / ncycle
 	palIdx = round(niter * pLen)
 
-	overlay = lambda x, y, gamma: (2 * x * y if 2 * y < 1 else 1 - 2 * (1 - x) * (1 - y)) * gamma + x * (1 - gamma)
+	# overlay = lambda x, y, gamma: (2 * x * y if 2 * y < 1 else 1 - 2 * (1 - x) * (1 - y)) * gamma + x * (1 - gamma)
     
-    # Calculate brightness with Blinn Phong shading
-	# bright = col.phong3D(normal, light)
-
-    # dem: log transform and sigmoid on [0,1] => [0,1]
+    # distance estimation: log transform and sigmoid on [0,1] => [0,1]
 	dist = -math.log(dist) / 12
 	dist = 1 / (1 + math.exp(-10 * ((2 * dist - 1)/2)))
 
@@ -389,7 +463,7 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 	if step_s > 0:
 		# Color update: constant color on each major step
 		step_s = 1/step_s                                 
-		palIdx = round((niter - niter % step_s)* pLen)
+		palIdx = round((niter - niter % step_s) * pLen)
 
 		# Major step: step_s frequency
 		x = niter % step_s / step_s
@@ -409,9 +483,15 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 	if nshader > 0:
 		bright = overlay(bright, shader/nshader, 1) * (1-dist) + dist * bright
 
-	color = overlay(palette[palIdx], bright, 1)
+	# color = overlay(palette[palIdx], bright, 1)
+	color = np.zeros(3, dtype=np.float64)
+	for i in range(3):
+		color[i] = palette[palIdx,i]
+		color[i] = overlay(color[i], bright, 1)
+		color[i] = max(0,min(1, color[i]))
+	return color
 
-	return color.clip(0, 1)
+	# return color.clip(0, 1)
 	
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 # orientation: 0 = horizontal, 1 = vertical

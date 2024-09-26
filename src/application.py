@@ -110,8 +110,8 @@ class Application:
 		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=300)
 
 		# Create settings widgets
-		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=5)
-		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
+		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=3)
+		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 		# We want to be notified if fractal type selection changed
 		# self.settings.notify(onchange=self.onSettingsChanged)
@@ -163,14 +163,13 @@ class Application:
 				self.settings.set('fractalType', 'Julia Set', sync=True)
 				self.fractal.settings.deleteMask()
 				self.fractal = jul.Julia(point=point)
-				self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
+				self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 		else:
 			self.settings.apply()
 			self.fractal.settings.apply()
 
 	# Draw button pressed
 	def onDraw(self):
-
 		self.gui.drawFrame.clearCanvas()
 		self.gui.selection.reset()
 
@@ -201,18 +200,27 @@ class Application:
 	def onPresetSelected(self, oldValue, newValue):
 		if newValue != 'None':
 			self.fractal.settings.deleteMask()
-			corner = complex(frc.presets[newValue]['coord'][0], frc.presets[newValue]['coord'][2])
-			size = complex(frc.presets[newValue]['coord'][1]-frc.presets[newValue]['coord'][0], frc.presets[newValue]['coord'][3]-frc.presets[newValue]['coord'][2])
+
+			preset = frc.presets[newValue]
+			corner = complex(preset['coord'][0], preset['coord'][2])
+			size   = complex(preset['coord'][1]-preset['coord'][0], preset['coord'][3]-preset['coord'][2])
+
 			if frc.presets[newValue]['type'] == 'Mandelbrot':
-				self.fractal = man.Mandelbrot(corner, size, maxIter=frc.presets[newValue]['maxIter'], stripes=frc.presets[newValue]['stripes'],
-								  steps=frc.presets[newValue]['steps'], ncycle=frc.presets[newValue]['ncycle'])
+				self.fractal = man.Mandelbrot(corner, size, maxIter=preset['maxIter'], stripes=preset['stripes'],
+								  steps=preset['steps'], ncycle=preset['ncycle'])
 			else:
 				self.fractal = jul.Julia()
-			self.colorTable['Preset'] = col.createSinusPalette(4096, thetas=frc.presets[newValue]['rgb_thetas'])
+
+			self.fractal.settings.setValues(colorize=preset['colorize'], colorOptions=preset['colorOptions'])
+			self.colorTable['Preset'] = col.createSinusPalette(4096, thetas=preset['rgb_thetas'])
 			self.settings.set('colorPalette', 'Preset', sync=True)
-			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
-		elif oldValue == 'Preset':
+
+			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
+		elif oldValue != 'None':
+			self.fractal.settings.deleteMask()
+			self.fractal = man.Mandelbrot()
 			self.settings.set('colorPalette', 'Grey', sync=True)
+			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 	def onFractalTypeChanged(self, oldValue, newValue):
 		self.fractal.settings.deleteMask()
@@ -220,7 +228,7 @@ class Application:
 			self.fractal = man.Mandelbrot()
 		else:
 			self.fractal = jul.Julia()
-		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=5)
+		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):

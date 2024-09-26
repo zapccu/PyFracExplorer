@@ -48,7 +48,7 @@ class Drawer:
 		self.palette = palette
 
 	@staticmethod
-	@nb.njit(cache=True)
+	@nb.njit(cache=False)
 	def getLineColor(x1: int, y1: int, x2: int, y2: int, imageMap: np.ndarray) -> np.ndarray:
 		bUnique = 2
 		if y1 == y2 and np.all(imageMap[y1, x1:x2+1] == imageMap[y1,x1,:]):
@@ -70,14 +70,20 @@ class Drawer:
 		if width == -1: width = self.width
 		if height == -1: height = self.height
 
-		self.maxLen = max(int(min(width, height)/2), 16)
-		self.minLen = min(max(int(min(width, height)/8), 16), self.maxLen)
+		oversampling = max(1, min(3, fractal.settings['oversampling']))
+		print(f"oversampling={oversampling}")
+		
+		oWidth = width * oversampling
+		oHeight = height * oversampling
 
-		x2 = x + width -1
-		y2 = y + width -1
+		self.maxLen = max(int(min(oWidth, oHeight)/2), 16)
+		self.minLen = min(max(int(min(oWidth, oHeight)/8), 16), self.maxLen)
+
+		x2 = x + oWidth -1
+		y2 = y + oHeight -1
 
 		if self.bDrawing == False:
-			if self.fractal.beginCalc(width, height) == False: return False
+			if self.fractal.beginCalc(oWidth, oHeight) == False: return False
 			self.cancel = False
 			self.bDrawing = True
 		else:
@@ -89,11 +95,20 @@ class Drawer:
 		self.statOrbits = 0
 
 		calcParameters = self.fractal.getCalcParameters()
+
+		self.fractal.settings.dumpConfig()
+		print("Calc parameters=", calcParameters)
+
+		# Prepare image map for oversampling
+		if oversampling > 1:
+			self.imageMap = np.resize(self.imageMap, (oHeight, oWidth, 3))
+			
 		drawFnc(x, y, x2, y2, iterFnc, calcParameters)
 
-		print(f"Corner={fractal.offsetX},{fractal.offsetY}")
-		print(f"Size={fractal.fractalWidth},{fractal.fractalHeight}")
-		print("Parameters=", calcParameters)
+		# Reduce image map to original size
+		if oversampling > 1:
+			self.imageMap = self.imageMap.reshape((height, oversampling, width, oversampling, 3)).mean(3).mean(1).astype(np.uint8)
+
 		print(f"statCalc={self.statCalc} statFill={self.statFill} statSplit={self.statSplit} statOrbits={self.statOrbits}")
 
 		self.calcTime = self.fractal.endCalc()

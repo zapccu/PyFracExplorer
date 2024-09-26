@@ -26,7 +26,7 @@ def rgbf(red: int, green: int, blue: int) -> tuple[float, float, float]:
 	return (red/255, green/255, blue/255)
 
 # Convert rgb to rgbi
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def rgb2rgbi(rgb: np.ndarray) -> np.ndarray:
 	return (rgb * 255).astype(np.uint8)
 
@@ -47,7 +47,7 @@ def rgbi2int(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
 # Convert hsl to rgb
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def hsl2rgb(hue: float, saturation: float, lightness: float) -> np.ndarray:
 	if saturation == 0:
 		return np.asarray([lightness, lightness, lightness])
@@ -61,7 +61,7 @@ def hsl2rgb(hue: float, saturation: float, lightness: float) -> np.ndarray:
 
 	return np.asarray([r, g, b], dtype=np.float64)
 
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def _hueToRgb(p, q, t):
 	if t < 0: t += 1
 	if t > 1: t -= 1
@@ -71,7 +71,7 @@ def _hueToRgb(p, q, t):
 	return p
 
 # Convert hsb to rgb
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 	if saturation == 0.0:
 		return np.asarray([brightness, brightness, brightness])
@@ -91,7 +91,7 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 
 # Convert lch to rgb, luma = [0..1], chroma = [0..1], hue = [0..359]
 # https://gist.github.com/cjgajard/743450e26d81d33ede98ebd291e1970e
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def lchToRGB(luma: float, chroma: float, hue: float) -> np.ndarray:
 	hrad = hue * math.pi / 180.0
 	a = math.cos(hrad) * chroma * 100
@@ -125,7 +125,7 @@ def lchToRGB(luma: float, chroma: float, hue: float) -> np.ndarray:
 
 	return np.asarray([r, g, b]).astype(np.float64).clip(0, 1)
 
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def simple3D(normal: complex, angle: float) -> float:
 	h2 = 1.5    # height factor of the incoming light
 	v = cmath.exp(complex(0,1) * angle * 2 * math.pi / 360)  # unit 2D vector in this direction
@@ -144,7 +144,7 @@ def simple3D(normal: complex, angle: float) -> float:
 #    5 = specular
 #    6 = shininess
 #
-@nb.njit(cache=True)
+@nb.njit(cache=False)
 def phong3D(normal: complex, light: list[float]) -> float:
 	## Lambert normal shading (diffuse light)
 	normal /= abs(normal)    
@@ -212,19 +212,6 @@ def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defC
 	
 def createRGBPalette(numColors: int, startColor: tuple = (0., 0., 0.), endColor: tuple = (1., 1., 1.), defColor: tuple = (0., 0., 0.)) -> np.ndarray:
 	return np.array([startColor, endColor, defColor], dtype=np.float64)
-
-thetaList = [
-	[.85, .0, .15],
-	[.11, .02, .92],
-	[.29, .02, 0.9],
-	[.83, .01, .99],
-	[.87, .83, .77],
-	[.54, .38, .35],
-	[.47, .51, .63],
-	[.6, .57, .45],
-	[.63, .83, .98],
-	[.29, .52, .59]
-]
 
 def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple = (0., 0., 0.)) -> np.ndarray:
 	numColors = max(numColors, 2)
