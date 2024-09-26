@@ -102,6 +102,7 @@ class Mandelbrot(frc.Fractal):
 #                         Range 0-100, 0 = No steps, default = 0
 #      [3] = ncycle     - Number of iteration before cycling the colortable
 #                         Range 1-200, 1 = No cycling, default = 32
+#      [4] = diag       - Distance normalization value
 #
 #   light - Light parameters for shading
 #
@@ -118,8 +119,8 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	dist = 0.0
 	pot = 0.0
 	stripe_a = 0.0
-	stripe_s, stripe_sig, step_s, ncycle = colorPar
-	
+	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
+
 	bStripe = colorOptions & frc._O_STRIPES
 	bStep   = colorOptions & frc._O_STEPS
 	bOrbits = colorOptions & frc._O_ORBITS
@@ -160,7 +161,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter)]
 
-			return frc.mapColorValue(P, float(i+smooth_i), nZ, Z/D, dist, mapColorPar, light, colorize, paletteMode, colorOptions)
+			return frc.mapColorValue(P, float(i+smooth_i), nZ, Z/D, dist/diag, mapColorPar, light, colorize, paletteMode, colorOptions)
 
 		if bOrbits:
 			# Search for orbits (full periodicity check)

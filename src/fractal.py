@@ -243,6 +243,14 @@ class Fractal:
 					"widget":    "TKCSlider",
 					"label":     "Angle",
 					"width":     12
+				},
+				"elevation": {
+					"inputtype": "float",
+					"valrange":  (0, 90),
+					"initvalue": 45.0,
+					"widget":    "TKCSlider",
+					"label":     "Elevation",
+					"width":     12
 				}
 			}
 		})
@@ -252,18 +260,27 @@ class Fractal:
 
 	# Return list of calculation parameters depending on fractal type
 	def getCalcParameters(self) -> tuple:
-		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), float(self.settings['ncycle'])]
+		# Color related parameters
+		#  0 = stripes
+		#  1 = stripe_sig (0.9)
+		#  2 = steps
+		#  3 = sqrt(ncycle)
+		#  4 = diag
+		diag = abs(self.settings['size'])
+		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), math.sqrt(self.settings['ncycle']), diag]
+
 		# Light source for phong shading
-		# 0 = Angle 0-360 degree
-		# 1 = Angle elevation 0-90
-		# 2 = opacity 0-1
-		# 3 = ambiant 0-1
-		# 4 = diffuse 0-1
-		# 5 = spectral 0-1
-		# 6 = shininess 0-?
-		light = [self.settings['angle'], 45., .75, .2, .5, .5, 20.]
-		light[0] = 2*math.pi*light[0]/360
-		light[1] = math.pi/2*light[1]/90
+		#  0 = Angle 0-360 degree
+		#  1 = Angle elevation 0-90
+		#  2 = opacity 0-1
+		#  3 = ambiant 0-1
+		#  4 = diffuse 0-1
+		#  5 = spectral 0-1
+		#  6 = shininess 0-?
+		light = [self.settings['angle'], self.settings['elevation'], .75, .2, .5, .5, 20.]
+		light[0] = 2 * math.pi * light[0] / 360
+		light[1] = math.pi / 2 * light[1] / 90
+
 		return (self.settings['colorize'], self.settings['paletteMode'], self.settings['colorOptions'], colorPar, light)
 
 	# Change fractal dimensions
