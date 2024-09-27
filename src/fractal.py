@@ -31,13 +31,13 @@ _O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 _O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 _O_STEPS         = 16     # Steps
 
-_O_SHADING       = 30     # Combination of _O_STEPS, _O_BLINNPHONG_3D, _O_SIMPLE_3D, _O_STRIPES
+_O_SHADING       = 12     # Combination of _O_BLINNPHONG_3D, _O_SIMPLE_3D
 
 
 ###############################################################################
 # Fractal presets
 #
-# Taken from https://github.com/jlesuffleur/gpu_mandelbrot/tree/master
+# Some taken from https://github.com/jlesuffleur/gpu_mandelbrot/tree/master
 ###############################################################################
 
 presets = {
@@ -194,7 +194,7 @@ presets = {
 			}
 		}
 	},
-	"colorvortex": {
+	"color-vortex": {
 		'type':       'Mandelbrot',
 		'maxIter':    5000,
 		'corner':     -0.6656224884756315+0.3546631894271655j,
@@ -204,6 +204,25 @@ presets = {
 		'ncycle':     19,
 		'colorize':   _C_DISTANCE,
 		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.85, .0, .15]
+			}
+		}
+	},
+	"blue-julia": {
+		'type':       'Julia',
+		'maxIter':    2000,
+		'corner':     -1.5-1.5j,
+		'size':       3+3j,
+		'point':      -0.7269+0.1889j,
+		'stripes':    0,
+		'steps':      0,
+		'ncycle':     1,
+		'colorize':   _C_ITERATIONS,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -484,7 +503,7 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 	pLen = len(palette)-1
 
 	if colorOptions & _O_SIMPLE_3D:
-		bright = col.simple3D(normal, light[0])
+		bright = col.simple3D(normal, light[0], light[1])
 	elif colorOptions & _O_BLINNPHONG_3D:
 		bright = col.phong3D(normal, light)
 	else:
@@ -494,7 +513,7 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		color = shading(palette, iter, dist, normal, colorPar, bright)
 	elif colorize == _C_ITERATIONS:
 		if palettemode == _P_LINEAR:
-			color = palette[int(pLen * iter/colorPar[3])] * bright
+			color = palette[int(iter/colorPar[3] * pLen)] * bright
 		elif palettemode == _P_MODULO:
 			color = palette[int(pLen * iter/colorPar[3]) % int(colorPar[2])] * bright
 		elif palettemode == _P_HUE:

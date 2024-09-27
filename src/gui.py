@@ -115,7 +115,7 @@ class ControlFrame(Frame):
 		# Draw and Cancel Buttons
 		self.btnFrame = LabelFrame(self)
 		self.btnFrame.grid(columnspan=2, column=0, row=0)
-		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onApply())
+		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, bg=bg, highlightbackground=bg, state=DISABLED, command=lambda: self.app.onApply())
 		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onDraw())
 		self.btnCancel = Button(self.btnFrame, text="Cancel", width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onCancel())
 		self.btnApply.grid(column=0, row=0, padx=5, pady=5)

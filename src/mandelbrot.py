@@ -8,7 +8,6 @@
 #   - Blinn/Phong shading: https://github.com/jlesuffleur/gpu_mandelbrot/blob/master/mandelbrot.py
 #
 
-import time
 import math
 
 import numpy as np
@@ -130,12 +129,13 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	nZ1 = 0.0               # Old value of abs(Z)^2
 	D = complex(1.0, 0.0)   # 1st derivation
 	period = 0              # Period counter for simplified orbit detection
+	smooth_i = 0
 
 	if bOrbits:
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
-		if bDist:
+		if bDist or colorOptions & frc._O_SHADING:
 			D = D * 2 * Z + 1
 
 		Z = Z * Z + C
@@ -145,17 +145,16 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout:
-			aZ = math.sqrt(nZ)
-			if bStripe or bStep:
+			if bDist:
+				aZ = math.sqrt(nZ)
 				log_ratio = 2*math.log(aZ) / math.log(bailout)
 				smooth_i = 1 - math.log(log_ratio) / math.log(2)
+				dist = aZ * math.log(aZ) / abs(D) / 2
 
 			if bStripe:
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
-			if bDist:
-				dist = aZ * math.log(aZ) / abs(D) / 2
-			elif colorize == frc._C_POTENTIAL:
+			if colorize == frc._C_POTENTIAL:
 				logZn = math.log(nZ)/2.0
 				pot = math.log(logZn / math.log(2)) / math.log(2)	
 

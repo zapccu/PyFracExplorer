@@ -22,7 +22,11 @@ class Drawer:
 		self.height   = height
 		self.minLen   = -1
 		self.maxLen   = -1
-		self.palette  = app.colorTable[app['colorPalette']]
+
+		# Create color table
+		fnc = col.paletteFunctions[app.palette['type']]
+		self.palette = fnc(app.palette['size'], **app.palette['par'])
+
 		self.iterFnc = {
 			'Mandelbrot Set': man.calculateVectorZ2,
 			'Julia Set': jul.calculateVectorZ2

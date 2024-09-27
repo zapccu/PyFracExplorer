@@ -17,8 +17,9 @@ import tkconfigure as tkc
 
 class Julia(frc.Fractal):
 
-	def __init__(self, point: complex = complex(-0.7269, 0.1889), corner: complex = complex(-1.5, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 500):
-		super().__init__(size.real, size.imag, corner.real, corner.imag)
+	def __init__(self, point: complex = complex(-0.7269, 0.1889), corner: complex = complex(-1.5, -1.5) , size: complex = complex(3.0, 3.0), maxIter: int = 500,
+				stripes: int = 0, steps: int = 0, ncycle: int = 1):
+		super().__init__(corner, size, stripes, steps, ncycle)
 
 		self.settings.updateParameterDefinition({
 			"Julia Set": {
@@ -43,9 +44,6 @@ class Julia(frc.Fractal):
 	# Called by beginCalc() before calculation is started
 	def updateParameters(self):
 		self.settings.syncConfig()
-		corner = self.settings['corner']
-		size   = self.settings['size']
-		self.setDimensions(size.real, size.imag, corner.real, corner.imag)
 
 	def getParameterNames(self) -> list:
 		return self.settings.getIds()
@@ -70,24 +68,26 @@ class Julia(frc.Fractal):
 def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, bailout, colorPar, light):
 	diaScale = maxIter/10.0
 
-	dist = -1.0
-	pot = -1.0
-
+	dist = 0.0
+	pot = 0.0
 	stripe_a = 0.0
-	stripe_s, stripe_sig, step_s, ncycle = colorPar
+	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
+
 	bStripe = colorOptions & frc._O_STRIPES
 	bStep   = colorOptions & frc._O_STEPS
 	bOrbits = colorOptions & frc._O_ORBITS
+	bDist   = colorize == frc._C_DISTANCE or bStripe or bStep
 
 	nZ1 = 0.0               # Old value of abs(Z)^2
 	D = complex(1.0, 0.0)   # 1st derivation
 	period = 0              # Period counter for simplified orbit detection
+	smooth_i = 0
 
 	if bOrbits:
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
-		if colorize == frc._C_DISTANCE or colorOptions & frc._O_SHADING or bStripe:
+		if bDist or colorOptions & frc._O_SHADING:
 			D = D * 2 * Z + 1
 
 		Z = Z * Z + C
@@ -97,25 +97,22 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, bail
 
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout:
-			aZ = math.sqrt(nZ)
-			if bStripe or bStep:
+			if bDist:
+				aZ = math.sqrt(nZ)
 				log_ratio = 2*math.log(aZ) / math.log(bailout)
 				smooth_i = 1 - math.log(log_ratio) / math.log(2)
-				i += smooth_i
+				dist = aZ * math.log(aZ) / abs(D) / 2
 
 			if bStripe:
-				# stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
-				# stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
-
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
-			if colorize == frc._C_DISTANCE or bStripe:
-				dist = aZ * math.log(aZ) / abs(D) / 2
-			elif colorize == frc._C_POTENTIAL:
+			if colorize == frc._C_POTENTIAL:
 				logZn = math.log(nZ)/2.0
-				pot = math.log(logZn / math.log(2)) / math.log(2)		
+				pot = math.log(logZn / math.log(2)) / math.log(2)	
 
-			return frc.mapColorValue(P, i/maxIter, nZ, Z/D, dist, [stripe_a, step_s, ncycle], light, colorize, paletteMode, colorOptions)
+			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter)]
+
+			return frc.mapColorValue(P, float(i+smooth_i), nZ, Z/D, dist/diag, mapColorPar, light, colorize, paletteMode, colorOptions)
 
 		if bOrbits:
 			# Search for orbits (full periodicity check)

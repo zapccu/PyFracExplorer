@@ -5,6 +5,55 @@ import cmath
 import numpy as np
 import numba as nb
 
+#
+# Predefined color tables
+#
+
+colorTables = {
+	"Monochrome": {
+		"type": "Linear",
+		"size": 4096,
+		"par": {
+			"colorPoints": [(1., 1., 1.)]
+		}
+	},
+	"Grey": {
+		"type": "Linear",
+		"size": 4096,
+		"par": {
+			"colorPoints": [(80/255, 80/255, 80/255), (1., 1., 1.)]
+		}
+	},
+	"Blue - Grey - Blue": {
+		"type": "Linear",
+		"size": 4096,
+		"par": {
+			"colorPoints": [(.4, .4, .5), (.0, .0, 1.), (.4, .4, 128/255)]
+		}
+	},
+	"Sinus - [.85, .0, .15]": {
+		"type": "Sinus",
+		"size": 4096,
+		"par": {
+			"thetas": [.85, .0, .15]
+		}
+	},
+	"Sinus Cosinus": {
+		"type": "SinusCosinus",
+		"size": 4096,
+		"par": {
+			"defColor": (0., 0., 0.)
+		}
+	},
+	"Preset": {
+		"type": "Sinus",
+		"size": 4096,
+		"par": {
+			"thetas": [.85, .0, .15]
+		}
+	}
+}
+
 
 #
 # Color conversion functions
@@ -126,8 +175,9 @@ def lchToRGB(luma: float, chroma: float, hue: float) -> np.ndarray:
 	return np.asarray([r, g, b]).astype(np.float64).clip(0, 1)
 
 @nb.njit(cache=False)
-def simple3D(normal: complex, angle: float) -> float:
-	h2 = 1.5    # height factor of the incoming light
+def simple3D(normal: complex, angle: float, elevation: float) -> float:
+	h2 = 1 + elevation / 90.0
+	#h2 = 1.5    # height factor of the incoming light
 	v = cmath.exp(complex(0,1) * angle * 2 * math.pi / 360)  # unit 2D vector in this direction
 	normal /= abs(normal)  # normal vector: (u.re,u.im,1) 
 	t = normal.real * v.real + normal.imag * v.imag + h2  # dot product with the incoming light
