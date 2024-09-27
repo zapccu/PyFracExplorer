@@ -139,9 +139,8 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, bail
 
 @nb.guvectorize([(nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.complex128, nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(k),(l),(),() -> (n,j)', nopython=True, cache=False, target='parallel')
 def calculateVectorZ2(Z, P, colorize, paletteMode, colorOptions, colorPar, light, C, maxIter, R):
-	bailout = 4.0 if colorize == frc._C_ITERATIONS and paletteMode != frc._P_HUE and colorOptions == 0 else 10000.0
+	bailout = 4.0 if colorize == frc._C_ITERATIONS and paletteMode != frc._P_HUE and colorOptions == 0 else 10**10
 
 	for p in range(Z.shape[0]):
 		R[p,:] = calculatePointZ2(Z[p], P, C, colorize, paletteMode, colorOptions, maxIter, bailout, colorPar, light)
-
 

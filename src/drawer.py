@@ -24,12 +24,13 @@ class Drawer:
 		self.maxLen   = -1
 
 		# Create color table
-		fnc = col.paletteFunctions[app.palette['type']]
-		self.palette = fnc(app.palette['size'], **app.palette['par'])
+		palette = col.colorTables[app.palette]
+		fnc = col.paletteFunctions[palette['type']]
+		self.palette = fnc(palette['size'], **palette['par'])
 
 		self.iterFnc = {
-			'Mandelbrot Set': man.calculateVectorZ2,
-			'Julia Set': jul.calculateVectorZ2
+			'Mandelbrot': man.calculateVectorZ2,
+			'Julia': jul.calculateVectorZ2
 		}
 
 		self.drawFnc = {
@@ -129,6 +130,7 @@ class Drawer:
 		return True
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
+		print("Fractal type =", type(self.fractal))
 		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
 		
 	"""

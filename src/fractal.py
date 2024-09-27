@@ -253,14 +253,14 @@ class Fractal:
 					"initvalue": corner,
 					"widget":    "TKCEntry",
 					"label":     "Corner",
-					"width":     20
+					"width":     25
 				},
 				"size": {
 					"inputtype": "complex",
 					"initvalue": size,
 					"widget":    "TKCEntry",
 					"label":     "Size",
-					"width":     20
+					"width":     25
 				}
 			},
 			"Colorization": {
@@ -333,7 +333,10 @@ class Fractal:
 					"initvalue": 45.0,
 					"widget":    "TKCSlider",
 					"label":     "Angle",
-					"width":     12
+					"width":     12,
+					"widgetattr": {
+						"length": 120
+					}
 				},
 				"elevation": {
 					"inputtype": "float",
@@ -341,7 +344,21 @@ class Fractal:
 					"initvalue": 45.0,
 					"widget":    "TKCSlider",
 					"label":     "Elevation",
-					"width":     12
+					"width":     12,
+					"widgetattr": {
+						"length": 120
+					}
+				},
+				"brightOffset": {
+					"inputtype": "float",
+					"valrange":  (0.0, 0.7, 0.1),
+					"initvalue": 0.0,
+					"widget":    "TKCSlider",
+					"label":     "Offset",
+					"width":     12,
+					"widgetattr": {
+						"length": 120
+					}
 				}
 			}
 		})
@@ -368,7 +385,8 @@ class Fractal:
 		#  4 = diffuse 0-1
 		#  5 = spectral 0-1
 		#  6 = shininess 0-?
-		light = [self.settings['angle'], self.settings['elevation'], .75, .2, .5, .5, 20.]
+		#  7 = brightness offset 0-0.5
+		light = [self.settings['angle'], self.settings['elevation'], .75, .2, .5, .5, 20., self.settings['brightOffset']]
 		light[0] = 2 * math.pi * light[0] / 360
 		light[1] = math.pi / 2 * light[1] / 90
 
@@ -508,6 +526,7 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		bright = col.phong3D(normal, light)
 	else:
 		bright = 1.0
+	bright = min(1.0, bright + light[7])
 
 	if colorOptions & _O_STRIPES or colorOptions & _O_STEPS:
 		color = shading(palette, iter, dist, normal, colorPar, bright)
