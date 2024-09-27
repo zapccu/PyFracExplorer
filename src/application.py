@@ -1,5 +1,6 @@
 
 from tkinter import *
+from tkinter import filedialog as fd
 from gui import *
 
 import colors as col
@@ -16,16 +17,6 @@ import tkconfigure as tkc
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
-
-		self.colorTable = {
-			'Monochrome':   col.createLinearPalette(4096),
-			'Grey':         col.createLinearPalette(4096, [col.rgbf(80, 80, 80), (1.,1.,1.)], defColor=(0., 0., 0.)),
-			'Sinus':        col.createSinusPalette(4096, defColor=(0, 0, 0)),
-			'SinusCosinus': col.createSinusCosinusPalette(4096, defColor=(0, 0, 0)),
-			'RedGreenBlue': col.createLinearPalette(4096, [col.rgbf(125,30,0),col.rgbf(30,255,30),col.rgbf(0,30,125)]),
-			'BlueGrey':     col.createLinearPalette(4096, [col.rgbf(100,100,100),col.rgbf(200,200,200),col.rgbf(0,0,255)]),
-			'Preset':       col.createSinusPalette(4096, defColor=(0, 0, 0))
-		}
 
 		# Settings
 		self.settings = tkc.TKConfigure({
@@ -109,8 +100,26 @@ class Application:
 		# Default color palette
 		self.palette = 'Grey'
 
+		self.draw = None
+
 		# Create GUI
 		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=300)
+
+		# Create menu
+		self.menubar = Menu(self.gui.mainWindow)
+
+		self.fileMenu = Menu(self.menubar, tearoff=0)
+		self.fileMenu.add_command(label="Open", command=self.onFileOpen)
+		self.fileMenu.add_command(label="Save as", command=self.onFileSaveAs)
+		self.fileMenu.add_separator()
+		self.fileMenu.add_command(label="Exit", command=self.gui.mainWindow.quit)
+		self.menubar.add_cascade(label="File", menu=self.fileMenu)
+
+		self.imageMenu = Menu(self.menubar, tearoff=0)
+		self.imageMenu.add_command(label="Save as", state="disabled", command=self.onImageSaveAs)
+		self.menubar.add_cascade(label="Image", menu=self.imageMenu)
+
+		self.gui.mainWindow.config(menu=self.menubar)
 
 		# Create settings widgets
 		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=3)
@@ -158,6 +167,29 @@ class Application:
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 		return True
+
+	#
+	# Menu command handling
+	#
+
+	def onFileOpen(self):
+		fileTypes = (
+			('Fractal definition', '*.frc'),
+			('All files', '*')
+		)
+		fileName = fd.askopenfilename(filetypes=fileTypes)
+
+	def onFileSaveAs(self):
+		fileTypes = (
+			('Fractal definition', '*.frc')
+		)
+		fileName = fd.asksaveasfilename(filetypes=fileTypes)
+
+	def onImageSaveAs(self):
+		fileTypes = [('PNG Image', '*.png')]
+		fileName = fd.asksaveasfilename(filetypes=fileTypes, initialfile="image.png", defaultextension="png")
+		if fileName is not None and self.draw is not None and self.draw.image is not None:
+			self.draw.image.save(fileName, "png")
 
 	#
 	# Screen selection handling
@@ -217,6 +249,7 @@ class Application:
 		self.draw.drawFractal(self.fractal, 0, 0, w, h, onStatus=self.onStatusUpdate)
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
 		
+		self.imageMenu.entryconfig('Save as', state="normal")
 		self.gui.selection.enable()
 
 	# Cancel button pressed

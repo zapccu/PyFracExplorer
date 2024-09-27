@@ -22,6 +22,7 @@ class Drawer:
 		self.height   = height
 		self.minLen   = -1
 		self.maxLen   = -1
+		self.image    = None
 
 		# Create color table
 		palette = col.colorTables[app.palette]
@@ -121,7 +122,6 @@ class Drawer:
 
 		self.image = Img.fromarray(self.imageMap, 'RGB').transpose(Img.Transpose.FLIP_TOP_BOTTOM)
 		self.tkImage = ImageTk.PhotoImage(self.image)
-		# self.image.save("test.png", "png")
 		self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
 		self.canvas.update()
 
