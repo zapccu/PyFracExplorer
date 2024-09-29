@@ -26,10 +26,8 @@ _P_LCHDYN = 4
 
 # Colorization options
 _O_ORBITS        = 1      # Draw orbits
-_O_STRIPES       = 2      # Draw stripes
 _O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 _O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
-_O_STEPS         = 16     # Steps
 
 _O_SHADING       = 12     # Combination of _O_BLINNPHONG_3D, _O_SIMPLE_3D
 
@@ -49,7 +47,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -66,7 +64,7 @@ presets = {
 		'steps':      10,
 		'ncycle':     8,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -83,7 +81,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -100,7 +98,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -117,7 +115,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -134,7 +132,7 @@ presets = {
 		'steps':      20,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STEPS | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -151,7 +149,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -168,7 +166,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -185,7 +183,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     32,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -203,7 +201,7 @@ presets = {
 		'steps':      0,
 		'ncycle':     19,
 		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_STRIPES | _O_BLINNPHONG_3D,
+		'colorOptions': _O_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -243,8 +241,6 @@ class Fractal:
 	def __init__(self, corner: complex, size: complex, stripes: int = 0, steps: int = 0, ncycle: int = 1):
 
 		colorOptions = 0
-		if stripes > 0: colorOptions |= _O_STRIPES
-		if steps > 0:   colorOptions |= _O_STEPS
 
 		self.settings = tkc.TKConfigure({
 			"Fractal": {
@@ -474,7 +470,7 @@ class Fractal:
 		return 1
 	
 	def updateParameters(self):
-		pass
+		self.settings.syncConfig()
 	
 	# Called before calculation is started
 	def beginCalc(self, screenWidth: int, screenHeight: int) -> bool:
@@ -519,6 +515,7 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, colorPar: list[float],
 				  light: list[float], colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
 	pLen = len(palette)-1
+	stripe_a, step_s, ncycle, maxIter = colorPar
 
 	if colorOptions & _O_SIMPLE_3D:
 		bright = col.simple3D(normal, light[0], light[1])
@@ -528,13 +525,13 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		bright = 1.0
 	bright = min(1.0, bright + light[7])
 
-	if colorOptions & _O_STRIPES or colorOptions & _O_STEPS:
+	if stripe_a > 0 or step_s > 0:
 		color = shading(palette, iter, dist, normal, colorPar, bright)
 	elif colorize == _C_ITERATIONS:
 		if palettemode == _P_LINEAR:
-			color = palette[int(iter/colorPar[3] * pLen)] * bright
+			color = palette[int(iter/maxIter * pLen)] * bright
 		elif palettemode == _P_MODULO:
-			color = palette[int(pLen * iter/colorPar[3]) % int(colorPar[2])] * bright
+			color = palette[int(pLen * iter/maxIter) % int(ncycle)] * bright
 		elif palettemode == _P_HUE:
 			color = col.hsb2rgb(palette[0,0], palette[0,1], bright)
 		elif palettemode == _P_HUEDYN:
@@ -552,7 +549,6 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		color = palette[int(pLen * iter/colorPar[3])] * bright
 
 	return (color * 255).astype(np.uint8)
-	# return col.rgb2rgbi(color * bright)
 
 @nb.njit
 def overlay(x, y, gamma):
@@ -571,8 +567,6 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 	niter = math.sqrt(niter) % ncycle / ncycle
 	palIdx = round(niter * pLen)
 
-	# overlay = lambda x, y, gamma: (2 * x * y if 2 * y < 1 else 1 - 2 * (1 - x) * (1 - y)) * gamma + x * (1 - gamma)
-    
     # distance estimation: log transform and sigmoid on [0,1] => [0,1]
 	dist = -math.log(dist) / 12
 	dist = 1 / (1 + math.exp(-10 * ((2 * dist - 1)/2)))
@@ -610,15 +604,10 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 	if nshader > 0:
 		bright = overlay(bright, shader/nshader, 1) * (1-dist) + dist * bright
 
-	# color = overlay(palette[palIdx], bright, 1)
-	color = np.zeros(3, dtype=np.float64)
+	color = np.copy(palette[palIdx])
 	for i in range(3):
-		color[i] = palette[palIdx,i]
 		color[i] = overlay(color[i], bright, 1)
-		color[i] = max(0,min(1, color[i]))
-	return color
-
-	# return color.clip(0, 1)
+	return color.clip(0, 1)
 	
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')
 # orientation: 0 = horizontal, 1 = vertical

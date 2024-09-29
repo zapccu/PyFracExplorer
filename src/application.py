@@ -69,7 +69,7 @@ class Application:
 				"drawMode": {
 					'inputtype': 'str',
 					'valrange':  [
-						'Vectorized', 'SQEM Recursive', 'SQEM Linear'
+						'Vectorized', 'Line by line', 'SQEM Recursive', 'SQEM Linear'
 					],
 					'initvalue': 'Vectorized',
 					'widget':    'TKCListbox',
@@ -173,16 +173,16 @@ class Application:
 	#
 
 	def onFileOpen(self):
-		fileTypes = (
+		fileTypes = [
 			('Fractal definition', '*.frc'),
 			('All files', '*')
-		)
+		]
 		fileName = fd.askopenfilename(filetypes=fileTypes)
 
 	def onFileSaveAs(self):
-		fileTypes = (
+		fileTypes = [
 			('Fractal definition', '*.frc')
-		)
+		]
 		fileName = fd.asksaveasfilename(filetypes=fileTypes)
 
 	def onImageSaveAs(self):

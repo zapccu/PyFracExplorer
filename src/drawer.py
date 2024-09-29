@@ -36,6 +36,7 @@ class Drawer:
 
 		self.drawFnc = {
 			'Vectorized': self.drawVectorized,
+			'Line by line': self.drawLineByLine,
 			'SQEM Recursive': self.drawSquareEstimationRec,
 			'SQEM Linear': self.drawSquareEstimation
 		}
@@ -130,14 +131,18 @@ class Drawer:
 		return True
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
-		print("Fractal type =", type(self.fractal))
 		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
-		
-	"""
-	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, colorMapping, calcParameters: tuple):
-		for y in range(y1, y2+1):
-			self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
-	"""
+
+	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
+		#for y in range(y1, y2+1):
+		#	self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
+
+		colorize, paletteMode, colorOptions, colorPar, light, maxIter = calcParameters
+		w = x2-x1+1
+		h = y2-y1+1
+		for y in range(h):
+			for x in range(w):
+				self.imageMap[y,x] = man.calculatePointZ2(self.fractal.cplxGrid[y,x], self.palette, colorize, paletteMode, colorOptions, maxIter, 4.0, colorPar, light)
 	
 	# Calculate and draw a line, detect unique color
 	def drawLine(self, C, x1, y1, x2, y2, iterFnc, calcParameters):

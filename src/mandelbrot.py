@@ -38,11 +38,6 @@ class Mandelbrot(frc.Fractal):
 			}
 		})
 
-	# Called by beginCalc() before calculation is started
-	def updateParameters(self):
-		# Read parameters from widgets
-		self.settings.syncConfig()
-
 	def getParameterNames(self) -> list:
 		return self.settings.getIds()
 
@@ -120,8 +115,8 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	stripe_a = 0.0
 	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
 
-	bStripe = colorOptions & frc._O_STRIPES
-	bStep   = colorOptions & frc._O_STEPS
+	bStripe = stripe_s > 0
+	bStep   = step_s > 0
 	bOrbits = colorOptions & frc._O_ORBITS
 	bDist   = colorize == frc._C_DISTANCE or bStripe or bStep
 
