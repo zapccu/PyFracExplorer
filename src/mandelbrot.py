@@ -42,9 +42,7 @@ class Mandelbrot(frc.Fractal):
 		return self.settings.getIds()
 
 	def getMaxValue(self):
-		maxIter      = self.settings['maxIter']
-		colorOptions = self.settings['colorOptions']
-		colorize     = self.settings['colorize']
+		maxIter, colorOptions, colorize = self.settings.getValues(['maxIter', 'colorOptions', 'colorize'])
 
 		if colorOptions & frc._O_ORBITS: maxIter = max(maxIter, 1000)
 		if colorize == frc._C_DISTANCE or colorize == frc._C_POTENTIAL: maxIter = max(maxIter, 4096)

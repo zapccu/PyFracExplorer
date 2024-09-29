@@ -409,8 +409,7 @@ class Fractal:
 
 	# Change fractal dimensions
 	def setDimensions(self, corner: complex, size: complex, sync: bool = True):
-		self.settings.set('corner', corner, sync=sync)
-		self.settings.set('size', size, sync=sync)
+		self.settings.setValues(sync=sync, corner=corner, size=size)
 
 	# Change fractal coordinates
 	def setCoordinates(self, left: float, right: float, bottom: float, top: float, sync: bool = True):
@@ -465,15 +464,13 @@ class Fractal:
 			fractalHeight = size.real / imageRatio
 			corner = complex(corner.real, corner.imag + (size.imag - fractalHeight) / 2)
 			size   = complex(size.real, fractalHeight)
-			self.settings.set('corner', corner, sync=True)
-			self.settings.set('size', size, sync=True)
+			self.settings.setValues(sync=True, corner=corner, size=size)
 
 		return (corner, size)
 
 	# Create matrix with mapping of screen coordinates to fractal coordinates
 	def mapScreenCoordinates(self, imageWidth: int, imageHeight: int, aspectRatio: bool = True):
-		corner = self.settings['corner']
-		size = self.settings['size']
+		corner, size = self.settings.getValues(['corner', 'size'])
 
 		if aspectRatio:
 			corner, size = self.adjustAspectRatio(imageWidth, imageHeight, corner, size)

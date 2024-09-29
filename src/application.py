@@ -44,11 +44,12 @@ class Application:
 				"autoScale": {
 					'inputtype': 'int',
 					'valrange':  (0, 1),
-					'initvalue': 0,
+					'initvalue': 1,
 					'widget':    'TKCCheckbox',
 					'widgetattr': {
-						'text': 'Autoscale'
-					}
+						'text':  'Autoscale'
+					},
+					'notify':     self.onAutoscale
 				}
 			},
 			"Fractal selection": {
@@ -78,7 +79,7 @@ class Application:
 				"drawMode": {
 					'inputtype': 'str',
 					'valrange':  [
-						'Vectorized', 'Line by line', 'SQEM Recursive', 'SQEM Linear'
+						'Vectorized', 'SQEM Recursive', 'SQEM Linear'
 					],
 					'initvalue': 'Vectorized',
 					'widget':    'TKCListbox',
@@ -109,6 +110,7 @@ class Application:
 		# Default color palette
 		self.palette = 'Grey'
 
+		# Image drawer
 		self.draw = None
 
 		# Create GUI
@@ -170,8 +172,7 @@ class Application:
 
 		col.colorTables['Preset'] = preset['palette']
 		self.palette = 'Preset'
-		self.settings.set('colorPalette', 'Preset', sync=True)
-		self.settings.set('fractalType', preset['type'], sync=True)
+		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
 
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
@@ -181,6 +182,7 @@ class Application:
 	# Menu command handling
 	#
 
+	# Open fractal definition
 	def onFileOpen(self):
 		fileTypes = [
 			('Fractal definition', '*.frc'),
@@ -188,12 +190,14 @@ class Application:
 		]
 		fileName = fd.askopenfilename(filetypes=fileTypes)
 
+	# Save fractal definition
 	def onFileSaveAs(self):
 		fileTypes = [
 			('Fractal definition', '*.frc')
 		]
 		fileName = fd.asksaveasfilename(filetypes=fileTypes)
 
+	# Save image
 	def onImageSaveAs(self):
 		fileTypes = [('PNG Image', '*.png')]
 		fileName = fd.asksaveasfilename(filetypes=fileTypes, initialfile="image.png", defaultextension="png")
@@ -222,8 +226,7 @@ class Application:
 	
 	# Apply button pressed
 	def onApply(self):
-		imageWidth  = self.settings['imageWidth']
-		imageHeight = self.settings['imageHeight']
+		imageWidth, imageHeight = self.settings.getValues(['imageWidth', 'imageHeight'])
 
 		if self.gui.selection.isAreaSelected():
 			# Zoom in
@@ -252,8 +255,7 @@ class Application:
 
 		self.gui.statusFrame.setFieldValue('drawing', 'Drawing ...')
 		self.onStatusUpdate({'drawing': 'Drawing ...'})
-		w = self.settings['imageWidth']
-		h = self.settings['imageHeight']
+		w, h = self.settings.getValues(['imageWidth', 'imageHeight'])
 		self.draw = Drawer(self, w, h)
 		self.draw.drawFractal(self.fractal, 0, 0, w, h, onStatus=self.onStatusUpdate)
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
@@ -270,8 +272,12 @@ class Application:
 		return
 
 	#
-	# Event handling
+	# Widget event handling
 	#
+
+	# Autoscale enabled/disabled
+	def onAutoscale(self, oldValue, newValue):
+		self.draw.showImage(scale=newValue)
 
 	# Fractal preset selected
 	def onPresetSelected(self, oldValue, newValue):

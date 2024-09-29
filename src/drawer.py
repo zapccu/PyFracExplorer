@@ -36,7 +36,6 @@ class Drawer:
 
 		self.drawFnc = {
 			'Vectorized': self.drawVectorized,
-			'Line by line': self.drawLineByLine,
 			'SQEM Recursive': self.drawSquareEstimationRec,
 			'SQEM Linear': self.drawSquareEstimation
 		}
@@ -66,6 +65,25 @@ class Drawer:
 		# Return [ red, green, blue, bUnique ] of start point of line
 		return np.append(imageMap[y1, x1], bUnique)
 
+	def showImage(self, scale: int):
+		if self.image is not None:
+			maxImageRes = max(self.width, self.height)
+			minFrameRes = min(self.app.gui.drawFrame.winfo_width(), self.app.gui.drawFrame.winfo_height())
+			if scale == 1 and maxImageRes > minFrameRes:
+				# Reduce image size to fit in drawing frame if autoScale=1
+				self.scaleFactor = minFrameRes / maxImageRes
+				newWidth = int(self.width * self.scaleFactor)
+				newHeight = int(self.height * self.scaleFactor)
+				self.canvas.configure(width=newWidth, height=newHeight, scrollregion=(0, 0, newWidth, newHeight))
+				self.zoomImage = self.image.resize((newWidth, newHeight))
+				self.tkImage = ImageTk.PhotoImage(self.zoomImage)
+			else:
+				self.scaleFactor = 1.0
+				self.canvas.configure(width=self.width, height=self.height, scrollregion=(0, 0, self.width, self.height))
+				self.tkImage = ImageTk.PhotoImage(self.image)
+			self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
+			self.canvas.update()
+
 	def drawFractal(self, fractal: Type[frc.Fractal], x: int, y: int, width: int = -1, height: int = -1, onStatus=None):
 		self.fractal = fractal
 		self.onStatus = onStatus
@@ -74,8 +92,14 @@ class Drawer:
 		drawFnc = self.drawFnc[self.app['drawMode']]
 		iterFnc = self.iterFnc[self.app['fractalType']]
 
-		if width == -1: width = self.width
-		if height == -1: height = self.height
+		if width == -1:
+			width = self.width
+		else:
+			self.width = width
+		if height == -1:
+			height = self.height
+		else:
+			self.height = height
 
 		oversampling = max(1, min(3, fractal.settings['oversampling']))
 		print(f"oversampling={oversampling}")
@@ -124,21 +148,8 @@ class Drawer:
 		# Full size image
 		self.image = Img.fromarray(self.imageMap, 'RGB').transpose(Img.Transpose.FLIP_TOP_BOTTOM)
 
-		# Reduze image size to fit in drawing frame if autoScale=1
-		maxImageRes = max(width, height)
-		minFrameRes = min(self.app.gui.drawFrame.winfo_width(), self.app.gui.drawFrame.winfo_height())
-		if self.app['autoScale'] == 1 and maxImageRes > minFrameRes:
-			self.scaleFactor = minFrameRes / maxImageRes
-			newWidth = int(width * self.scaleFactor)
-			newHeight = int(height * self.scaleFactor)
-			self.canvas.configure(width=newWidth, height=newHeight, scrollregion=(0, 0, newWidth, newHeight))
-			self.zoomImage = self.image.resize((newWidth, newHeight))
-			self.tkImage = ImageTk.PhotoImage(self.zoomImage)
-		else:
-			self.scaleFactor = 1.0
-			self.tkImage = ImageTk.PhotoImage(self.image)
-		self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
-		self.canvas.update()
+		# Show image
+		self.showImage(self.app['autoScale'])
 
 		print(f"{self.calcTime} seconds")
 
