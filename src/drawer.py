@@ -121,8 +121,22 @@ class Drawer:
 		self.calcTime = self.fractal.endCalc()
 		self.bDrawing = False
 
+		# Full size image
 		self.image = Img.fromarray(self.imageMap, 'RGB').transpose(Img.Transpose.FLIP_TOP_BOTTOM)
-		self.tkImage = ImageTk.PhotoImage(self.image)
+
+		# Reduze image size to fit in drawing frame if autoScale=1
+		maxImageRes = max(width, height)
+		minFrameRes = min(self.app.gui.drawFrame.winfo_width(), self.app.gui.drawFrame.winfo_height())
+		if self.app['autoScale'] == 1 and maxImageRes > minFrameRes:
+			self.scaleFactor = minFrameRes / maxImageRes
+			newWidth = int(width * self.scaleFactor)
+			newHeight = int(height * self.scaleFactor)
+			self.canvas.configure(width=newWidth, height=newHeight, scrollregion=(0, 0, newWidth, newHeight))
+			self.zoomImage = self.image.resize((newWidth, newHeight))
+			self.tkImage = ImageTk.PhotoImage(self.zoomImage)
+		else:
+			self.scaleFactor = 1.0
+			self.tkImage = ImageTk.PhotoImage(self.image)
 		self.canvas.create_image(0, 0, image=self.tkImage, state='normal', anchor='nw')
 		self.canvas.update()
 
@@ -134,15 +148,8 @@ class Drawer:
 		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
-		#for y in range(y1, y2+1):
-		#	self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
-
-		colorize, paletteMode, colorOptions, colorPar, light, maxIter = calcParameters
-		w = x2-x1+1
-		h = y2-y1+1
-		for y in range(h):
-			for x in range(w):
-				self.imageMap[y,x] = man.calculatePointZ2(self.fractal.cplxGrid[y,x], self.palette, colorize, paletteMode, colorOptions, maxIter, 4.0, colorPar, light)
+		for y in range(y1, y2+1):
+			self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
 	
 	# Calculate and draw a line, detect unique color
 	def drawLine(self, C, x1, y1, x2, y2, iterFnc, calcParameters):

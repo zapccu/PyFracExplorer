@@ -145,12 +145,14 @@ class Selection:
 		self.reset()
 
 	# Enable selection
-	def enable(self):
+	def enable(self, scalefactor: float = 1.0):
+		self.scaleFactor = scalefactor
 		self.canvas.config(cursor='cross')
 		self.enabled = True
 	
 	# Disable selection
 	def disable(self):
+		self.scaleFactor = 1.0
 		self.canvas.config(cursor='arrow')
 		self.enabled = False
 
@@ -168,16 +170,19 @@ class Selection:
 		self.active   = False
 		self.xs = self.ys = self.xe = self.ye = 0
 
+	# Scale coordinates
+	def scale(self, x: int, y: int) -> tuple[int]:
+		return int(x / self.scaleFactor), int(y / self.scaleFactor)
+	
 	# Return selected point
 	def getPoint(self) -> tuple[int, int]:
 		self.width  = self.canvas.winfo_reqwidth()
 		self.height = self.canvas.winfo_reqheight()
-		print(f"getPoint {self.width},{self.height}")
 
 		if self.flipY:
-			return self.xs, self.height-self.ys-1
+			return self.scale(self.xs, self.height-self.ys-1)
 		else:
-			return self.xs, self.ys
+			return self.scale(self.xs, self.ys)
 	
 	# Return selected area
 	def getArea(self) -> tuple[int, int, int, int]:
@@ -185,12 +190,12 @@ class Selection:
 		self.height = self.canvas.winfo_reqheight()
 
 		if self.flipY:
-			return self.xs, self.height-self.ye, self.xe, self.height-self.ys
+			return self.scale(self.xs, self.height-self.ye) + self.scale(self.xe, self.height-self.ys)
 		else:
-			return self.xs, self.ys, self.xe, self.ye
+			return self.scale(self.xs, self.ys) + self.scale(self.xe, self.ye)
 		
 	# Adjust coordinates to keep aspect ratio
-	def keepAspectRatio(self, xe: int, ye: int):
+	def keepAspectRatio(self, xe: int, ye: int) -> tuple[int, int]:
 		if self.keepAR:
 			w = xe-self.xs
 			h = ye-self.ys

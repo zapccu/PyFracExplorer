@@ -40,6 +40,15 @@ class Application:
 					'width':     8,
 					'row':       0,
 					'column':    1
+				},
+				"autoScale": {
+					'inputtype': 'int',
+					'valrange':  (0, 1),
+					'initvalue': 0,
+					'widget':    'TKCCheckbox',
+					'widgetattr': {
+						'text': 'Autoscale'
+					}
 				}
 			},
 			"Fractal selection": {
@@ -103,7 +112,7 @@ class Application:
 		self.draw = None
 
 		# Create GUI
-		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=300)
+		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=400)
 
 		# Create menu
 		self.menubar = Menu(self.gui.mainWindow)
@@ -250,7 +259,7 @@ class Application:
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
 		
 		self.imageMenu.entryconfig('Save as', state="normal")
-		self.gui.selection.enable()
+		self.gui.selection.enable(scalefactor=self.draw.scaleFactor)
 
 	# Cancel button pressed
 	def onCancel(self):

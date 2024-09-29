@@ -26,6 +26,7 @@ _P_LCHDYN = 4
 
 # Colorization options
 _O_ORBITS        = 1      # Draw orbits
+_O_INSIDE_DIST   = 2      # Distance inside set
 _O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 _O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 
@@ -210,6 +211,24 @@ presets = {
 			}
 		}
 	},
+	"double-swirl": {
+		'type':       'Mandelbrot',
+		'maxIter':    2000,
+		'corner':     -0.6941676462049772+0.2919259663249364j,
+		'size':       3.568563540681529e-05+3.568563540681529e-05j,
+		'stripes':    2,
+		'steps':      0,
+		'ncycle':     32,
+		'colorize':   _C_DISTANCE,
+		'colorOptions': _O_BLINNPHONG_3D,
+		'palette': {
+			"type": "Sinus",
+			'size': 4096,
+			'par': {
+				'thetas': [.85, .0, .15]
+			}
+		}
+	},
 	"blue-julia": {
 		'type':       'Julia',
 		'maxIter':    2000,
@@ -280,7 +299,7 @@ class Fractal:
 				},
 				"colorOptions": {
 					"inputtype": "bits",
-					"valrange":  ["Orbits", "Stripes", "Simple 3D", "Blinn/Phong 3D", "Steps" ],
+					"valrange":  ["Orbits", "Inside distance", "Simple 3D", "Blinn/Phong 3D" ],
 					"initvalue": colorOptions,
 					"widget":     "TKCFlags",
 					"widgetattr": {

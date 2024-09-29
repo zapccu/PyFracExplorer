@@ -9,7 +9,7 @@ sys.path.insert(0, "./src/tkconfigure/src")
 from application import *
 
 def main():
-	app = Application(1200, 800, "PyFracExplore")
+	app = Application(1400, 900, "PyFracExplore")
 	app.run()
 
 if __name__ == "__main__":
