@@ -4,6 +4,7 @@ from tkinter import filedialog as fd
 from gui import *
 
 import colors as col
+import presets as ps
 import fractal as frc
 import mandelbrot as man
 import julia as jul
@@ -55,7 +56,7 @@ class Application:
 			"Fractal selection": {
 				"preset": {
 					'inputtype': 'str',
-					'valrange':  ['None'] + list(frc.presets.keys()),
+					'valrange':  ['None'] + list(ps.presets.keys()),
 					'initvalue': 'None',
 					'widget':    'TKCListbox',
 					'label':     'Preset',
@@ -283,7 +284,7 @@ class Application:
 	def onPresetSelected(self, oldValue, newValue):
 		if newValue != 'None':
 			# Apply new preset
-			self.applyPreset(frc.presets[newValue])
+			self.applyPreset(ps.presets[newValue])
 
 		elif oldValue != 'None':
 			# Reset to default
