@@ -505,14 +505,16 @@ class Fractal:
 # Find orbit
 @nb.njit(cache=False)
 def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
-	for n in range(O.shape[0], -1, -1):
+	l = O.shape[0]
+	e = max(-1, l-100)
+	for n in range(l, e, -1):
 		d = Z - O[n]
 		if d.real * d.real + d.imag * d.imag < tolerance1:
 			break
 	else:
 		return -1
 	
-	for n in range(O.shape[0], -1, -1):
+	for n in range(l, e, -1):
 		d = Z - O[n]
 		if d.real * d.real + d.imag * d.imag < tolerance2:
 			return n
