@@ -54,7 +54,6 @@ colorTables = {
 	}
 }
 
-
 #
 # Color conversion functions
 #
@@ -62,15 +61,15 @@ colorTables = {
 # A rgbi value is a numpy array of type uint8 with 3 elements (red, green, blue)
 #
 
-# Construct a rgb value
+# Construct a rgb value. red, green, blue are in range 0..1
 def rgb(red: float, green: float, blue: float) -> np.ndarray:
 	return np.asarray([red, green, blue], dtype=np.float64)
 
-# Construct a rgbi value
+# Construct a rgbi value. red, green, blue are in range 0..255
 def rgbi(red: int, green: int, blue: int) -> np.ndarray:
 	return np.asarray([red, green, blue], dtype=np.uint8)
 
-# Convert rgbi values to rgb values
+# Convert rgbi values to rgbf values
 def rgbf(red: int, green: int, blue: int) -> tuple[float, float, float]:
 	return (red/255, green/255, blue/255)
 
@@ -85,15 +84,25 @@ def rgbi2rgb(rgbi: np.ndarray) -> np.ndarray:
 
 # Convert rgbi value to html color string
 def rgbi2str(rgb: np.ndarray) -> str:
-	return '#{:02X}{:02X}{:02X}'.format(rgb[0], rgb[1], rgb[2])
+	return '#{:02X}{:02X}{:02X}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
 
 # Convert integer value to rgb value
 def int2rgbi(intColor: int) -> np.ndarray:
 	return np.asarray(((intColor >> 16) & 0xFF, (intColor >> 8) & 0xFF, intColor & 0xFF), dtype=np.uint8)
 
-# Convert rgb value to integer value
+# Convert rgb value to integer value: 0xrrggbb
 def rgbi2int(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
+
+def rgb2XYZ(rgb: np.ndarray) -> np.ndarray:
+    arr = np.swapaxes(rgb, 0, 1)
+    arr = np.where(arr > 0.04045, ((arr + 0.055) / 1.055) ** 2.4, arr / 12.92)
+    matrix = np.array([
+		[0.4124, 0.3576, 0.1805],
+        [0.2126, 0.7152, 0.0722],
+        [0.0193, 0.1192, 0.9505]
+	])
+    return np.swapaxes(np.dot(matrix, arr), 0, 1)
 
 # Convert hsl to rgb
 @nb.njit(cache=False)
@@ -287,3 +296,14 @@ paletteFunctions = {
 	"Sinus": createSinusPalette,
 	"SinusCosinus": createSinusCosinusPalette
 }
+
+def createPaletteFromDef(paletteDef: dict, size: int = -1) -> np.ndarray:
+	entries = size if size != -1 else paletteDef['size']
+	fnc = paletteFunctions[paletteDef['type']]
+	return fnc(entries, **paletteDef['par'])
+
+def createPalette(name: str, size: int = -1) -> np.ndarray:
+	if name not in colorTables:
+		raise ValueError(f"Palette defintion {name} not found")
+	return createPaletteFromDef(colorTables[name])
+

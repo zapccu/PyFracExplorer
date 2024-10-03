@@ -130,10 +130,7 @@ class Fractal:
 					"initvalue": 45.0,
 					"widget":    "TKCSlider",
 					"label":     "Angle",
-					"width":     12,
-					"widgetattr": {
-						"length": 120
-					}
+					"width":     120
 				},
 				"elevation": {
 					"inputtype": "float",
@@ -141,10 +138,7 @@ class Fractal:
 					"initvalue": 45.0,
 					"widget":    "TKCSlider",
 					"label":     "Elevation",
-					"width":     12,
-					"widgetattr": {
-						"length": 120
-					}
+					"width":     120
 				},
 				"brightOffset": {
 					"inputtype": "float",
@@ -152,10 +146,7 @@ class Fractal:
 					"initvalue": 0.0,
 					"widget":    "TKCSlider",
 					"label":     "Offset",
-					"width":     12,
-					"widgetattr": {
-						"length": 120
-					}
+					"width":     120
 				}
 			}
 		})

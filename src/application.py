@@ -10,7 +10,6 @@ import mandelbrot as man
 import julia as jul
 
 from drawer import *
-from coloreditor import *
 
 import tkconfigure as tkc
 
@@ -47,9 +46,7 @@ class Application:
 					'valrange':  (0, 1),
 					'initvalue': 1,
 					'widget':    'TKCCheckbox',
-					'widgetattr': {
-						'text':  'Autoscale'
-					},
+					'label':     'Autoscale',
 					'notify':     self.onAutoscale
 				}
 			},
@@ -101,6 +98,13 @@ class Application:
 						'justify': 'left'
 					},
 					'notify': self.onPaletteChanged
+				},
+				'colorTable': {
+					'inputtype': 'list',
+					'initvalue': col.createLinearPalette(300, [(80/255, 80/255, 80/255), (1., 1., 1.)]).tolist(),
+					'widget':    'TKCColortable',
+					'width':     250,
+					'notify':    self.onColortableClicked
 				}
 			}
 		})
@@ -174,6 +178,9 @@ class Application:
 		col.colorTables['Preset'] = preset['palette']
 		self.palette = 'Preset'
 		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
+
+		colorTable = col.createPalette('Preset', size=300).tolist()
+		self.settings.set('colorTable', colorTable, sync=True)
 
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
@@ -268,10 +275,6 @@ class Application:
 	def onCancel(self):
 		self.draw.cancel = True
 
-	def onColorEdit(self):
-		ce = ColorEditor(self.gui.mainWindow)
-		return
-
 	#
 	# Widget event handling
 	#
@@ -307,6 +310,11 @@ class Application:
 	# Color palette changed
 	def onPaletteChanged(self, oldValue, newValue):
 		self.palette = newValue
+		colorTable = col.createPalette(newValue, size=300).tolist()
+		self.settings.set('colorTable', colorTable, sync=True)
+
+	def onColortableClicked(self, oldValue, newValue):
+		self.gui.colorEditor.show(self.palette)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):

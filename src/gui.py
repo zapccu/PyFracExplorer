@@ -3,6 +3,8 @@ from tkinter import *
 from tkinter.ttk import Combobox, Style, Progressbar, Separator
 from tkinter.scrolledtext import ScrolledText
 
+import coloreditor as ce
+
 """
 GUI
 
@@ -96,14 +98,12 @@ class DrawFrame(Frame):
 
 class ControlFrame(Frame):
 
-	def __init__(self, gui: object, app: object, width: int, height: int, bg='grey'):
+	def __init__(self, gui: object, app: object, width: int, height: int):
 		# Use ScrolledText as parent for control frame
 		self.controlFrameText = ScrolledText(gui.mainWindow, state='disable')
 		self.controlFrameText.pack(fill='both', expand=True)
 
-		super().__init__(self.controlFrameText, width=width, height=height, padx=0, pady=0, bg=bg)
-
-		# super().__init__(gui.mainWindow, width=width, height=height, padx=0, pady=0, bg=bg)
+		super().__init__(self.controlFrameText, width=width, height=height, padx=0, pady=0)
 
 		self.gui = gui
 		self.app = app
@@ -115,9 +115,9 @@ class ControlFrame(Frame):
 		# Draw and Cancel Buttons
 		self.btnFrame = LabelFrame(self)
 		self.btnFrame.grid(columnspan=2, column=0, row=0)
-		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, bg=bg, highlightbackground=bg, state=DISABLED, command=lambda: self.app.onApply())
-		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onDraw())
-		self.btnCancel = Button(self.btnFrame, text="Cancel", width=8, bg=bg, highlightbackground=bg, command=lambda: self.app.onCancel())
+		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, state=DISABLED, command=lambda: self.app.onApply())
+		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=8, command=lambda: self.app.onDraw())
+		self.btnCancel = Button(self.btnFrame, text="Cancel", width=8, command=lambda: self.app.onCancel())
 		self.btnApply.grid(column=0, row=0, padx=5, pady=5)
 		self.btnDraw.grid(column=1, row=0, padx=5, pady=5)
 		self.btnCancel.grid(column=2, row=0, pady=5)
@@ -370,6 +370,9 @@ class GUI:
 		self.statusFrame  = StatusFrame(self, self.app, width, statusHeight)
 		self.drawFrame    = DrawFrame(self, self.app, width-controlWidth, height-statusHeight, bg='white')
 		self.controlFrame = ControlFrame(self, self.app, controlWidth, height-statusHeight)
+
+		# Color editor
+		self.colorEditor = ce.ColorEditor(self.mainWindow, 400, 450)
 
 		# Add fields to statusframe
 		self.statusFrame.addLabel('screenCoord', 25, value="0,0")
