@@ -96,7 +96,7 @@ class Fractal:
 					"initvalue": stripes,
 					"widget":    "TKCSlider",
 					"label":     "Stripes",
-					"width":     12
+					"width":     120
 				},
 				"steps": {
 					"inputtype": "int",
@@ -104,7 +104,7 @@ class Fractal:
 					"initvalue": steps,
 					"widget":    "TKCSlider",
 					"label":     "Steps",
-					"width":     12
+					"width":     120
 				},
 				"ncycle": {
 					"inputtype": "int",
@@ -112,7 +112,7 @@ class Fractal:
 					"initvalue": ncycle,
 					"widget":    "TKCSlider",
 					"label":     "Cycles",
-					"width":     12
+					"width":     120
 				},
 				"oversampling": {
 					"inputtype": "int",
@@ -120,7 +120,7 @@ class Fractal:
 					"initvalue": 1,
 					"widget":    "TKCSlider",
 					"label":     "Oversampling",
-					"width":     12
+					"width":     120
 				}
 			},
 			"Light": {
@@ -331,8 +331,9 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 			color = col.hsb2rgb(h/360, 1.0, bright)
 		elif palettemode == _P_LCHDYN:
 			v = 1.0 - math.pow(math.cos(math.pi * iter), 2.0)
-			color = col.lchToRGB((75 - (75 * v))/100, (28 + (75 - (75 * v)))/130, math.pow(360 * iter, 1.5) % 360) * bright
-		
+			# /100, /130
+			color = col.lch2rgb(np.array([(75 - (75 * v)), (28 + (75 - (75 * v))), math.pow(360 * iter, 1.5) % 360])) * bright
+
 	elif colorize == _C_DISTANCE:
 		color = palette[int(math.tanh(dist) * pLen)] * bright
 

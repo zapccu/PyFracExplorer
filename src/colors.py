@@ -9,67 +9,75 @@ import numba as nb
 # Predefined color tables
 #
 
-colorTables = {
-	"Monochrome": {
+colorTables = [
+	{
+		"name": "Monochrome",
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(1., 1., 1.)]
 		}
 	},
-	"Grey": {
+	{
+		"name": "Grey",
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(80/255, 80/255, 80/255), (1., 1., 1.)]
 		}
 	},
-	"Blue - Grey - Blue": {
+	{
+		"name": "Blue - Grey - Blue",
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(.4, .4, .5), (.0, .0, 1.), (.4, .4, 128/255)]
 		}
 	},
-	"Sinus - [.85, .0, .15]": {
+	{
+		"name": "Sinus - [.85, .0, .15]",
 		"type": "Sinus",
 		"size": 4096,
 		"par": {
 			"thetas": [.85, .0, .15]
 		}
 	},
-	"Sinus Cosinus": {
+	{
+		"name": "Sinus Cosinus",
 		"type": "SinusCosinus",
 		"size": 4096,
-		"par": {
-			"defColor": (0., 0., 0.)
-		}
+		"par": {}
 	},
-	"Preset": {
+	{
+		"name": "Preset",
 		"type": "Sinus",
 		"size": 4096,
 		"par": {
 			"thetas": [.85, .0, .15]
 		}
 	}
-}
+]
 
+###############################################################################
+# Construct colors
 #
-# Color conversion functions
-#
-# A rgb value is a numpy array of type float64 with 3 elements (red, green, blue)
-# A rgbi value is a numpy array of type uint8 with 3 elements (red, green, blue)
-#
+# rgb is a numpy array of type float64 with elements [red, green, blue]
+# rgbi is a numpy array of type uint8 with elements [red, green, blue]
+###############################################################################
 
-# Construct a rgb value. red, green, blue are in range 0..1
+# Construct a rgb array. red, green, blue are in range 0..1
 def rgb(red: float, green: float, blue: float) -> np.ndarray:
 	return np.asarray([red, green, blue], dtype=np.float64)
 
-# Construct a rgbi value. red, green, blue are in range 0..255
+# Construct a rgbi array. red, green, blue are in range 0..255
 def rgbi(red: int, green: int, blue: int) -> np.ndarray:
 	return np.asarray([red, green, blue], dtype=np.uint8)
 
-# Convert rgbi values to rgbf values
+###############################################################################
+# RGB functions
+###############################################################################
+
+# Convert rgbi values to rgb values
 def rgbf(red: int, green: int, blue: int) -> tuple[float, float, float]:
 	return (red/255, green/255, blue/255)
 
@@ -82,11 +90,23 @@ def rgb2rgbi(rgb: np.ndarray) -> np.ndarray:
 def rgbi2rgb(rgbi: np.ndarray) -> np.ndarray:
 	return (rgbi / 255).astype(np.float64)
 
-# Convert rgbi value to html color string
-def rgbi2str(rgb: np.ndarray) -> str:
-	return '#{:02X}{:02X}{:02X}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+# Convert rgbi to html color string
+def rgbi2str(rgbi: np.ndarray) -> str:
+	return '#{:02X}{:02X}{:02X}'.format(int(rgbi[0]), int(rgbi[1]), int(rgbi[2]))
 
-# Convert integer value to rgb value
+# Convert html color string to rgbi
+def str2rgbi(html: str) -> np.ndarray:
+	if len(html) != 7:
+		raise ValueError("Parameter html must be in format #rrggbb")
+	return np.array([int(html[i:i+2], 16) for i in (1, 3, 5)], dtype=np.uint8)
+
+# Convert html color string to rgbi
+def str2rgb(html: str) -> np.ndarray:
+	if len(html) != 7:
+		raise ValueError("Parameter html must be in format #rrggbb")
+	return np.array([int(html[i:i+2], 16) / 255 for i in (1, 3, 5)], dtype=np.float64)
+
+# Convert integer value to rgb
 def int2rgbi(intColor: int) -> np.ndarray:
 	return np.asarray(((intColor >> 16) & 0xFF, (intColor >> 8) & 0xFF, intColor & 0xFF), dtype=np.uint8)
 
@@ -94,15 +114,109 @@ def int2rgbi(intColor: int) -> np.ndarray:
 def rgbi2int(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
 
-def rgb2XYZ(rgb: np.ndarray) -> np.ndarray:
-    arr = np.swapaxes(rgb, 0, 1)
-    arr = np.where(arr > 0.04045, ((arr + 0.055) / 1.055) ** 2.4, arr / 12.92)
-    matrix = np.array([
+###############################################################################
+# Color conversion functions
+#
+# Supported color spaces are rgb, xyz, lab, lch, hsl, hsb
+###############################################################################
+
+# Matrix-Vector multiplication to prevent installation of Scipy
+@nb.njit(cache=False)
+def mulDot(mat: np.ndarray, vec: np.ndarray) -> np.ndarray:
+	r = np.zeros(vec.shape[0])
+	for i in range(mat.shape[0]):
+		for j in range(vec.shape[0]):
+			r[i] = r[i] + mat[i,j] * vec[j]
+	return r
+
+# Convert rgb to xyz
+@nb.njit(cache=False)
+def rgb2xyz(rgb: np.ndarray) -> np.ndarray:
+	a = np.where(rgb > 0.04045, ((rgb + 0.055) / 1.055) ** 2.4, rgb / 12.92)
+	m = np.array([
 		[0.4124, 0.3576, 0.1805],
         [0.2126, 0.7152, 0.0722],
         [0.0193, 0.1192, 0.9505]
 	])
-    return np.swapaxes(np.dot(matrix, arr), 0, 1)
+	# return np.dot(m, a)
+	return mulDot(m, a)
+
+# Convert xyz to rgb
+@nb.njit(cache=False)
+def xyz2rgb(xyz: np.ndarray) -> np.ndarray:	
+	m = np.array([
+		[ 3.24062548, -1.53720797, -0.4986286 ],
+		[-0.96893071,  1.87575606,  0.04151752],
+		[ 0.05571012, -0.20402105,  1.05699594]
+	])
+	# a = np.dot(m, xyz)
+	a = mulDot(m, xyz)
+	a[a < 0.] = 0.
+	a = np.where(a > 0.0031308, 1.055 * np.power(a, 1. / 2.4) - 0.055, a * 12.92)
+	a[a > 1.] = 1.
+	return a
+
+# Convert xyz to CIE lab (D65 white)
+@nb.njit(cache=False)
+def xyz2lab(xyz: np.ndarray) -> np.ndarray:
+	D65_white = np.array([0.95047, 1., 1.08883])
+	# D50_white = np.array([0.964212, 1., .825188])
+	arr = xyz / D65_white
+	arr = np.where(arr > 0.00885645, arr ** (1. / 3.), (7.78703704 * arr) + 16. / 116.)
+	x, y, z = arr
+	return np.array([(116. * y) - 16. , 500.0 * (x - y) , 200.0 * (y - z)], dtype=np.float64)
+
+# Convert lab to xyz
+@nb.njit(cache=False)
+def lab2xyz(lab: np.ndarray):
+	L, a, b = lab
+	D65_white = np.array([0.95047, 1., 1.08883])
+	# D50_white = np.array([0.964212, 1., .825188])
+	y = (L + 16.) / 116.
+	x = (a / 500.) + y
+	z = y - (b / 200.)
+	arr = np.array([x, y, z]) 
+	arr = np.where(arr > 0.2068966, arr ** 3., (arr - 16. / 116.) / 7.78703704)
+	return arr * D65_white
+
+# Convert lab to lch
+@nb.njit(cache=False)
+def lab2lch(lab: np.ndarray) -> np.ndarray:
+	L, a, b = lab
+	h = np.arctan2(b, a)
+	h = np.where(h > 0, h / np.pi * 180., 360. + h / np.pi * 180.)
+	c = np.sqrt(a**2 + b**2)
+	return np.array([L, c, h], dtype=np.float64)
+
+# Convert lch to lab
+@nb.njit(cache=False)
+def lch2lab(lch: np.ndarray) -> np.ndarray:
+	l, c, h = lch
+
+	a = math.cos(h * np.pi / 180.) * c
+	b = math.sin(h * np.pi / 180.) * c
+
+	return np.array([l, a, b ], dtype=np.float64)
+
+# Convert rgb to lab
+@nb.njit(cache=False)
+def rgb2lab(rgb: np.ndarray) -> np.ndarray:
+	return xyz2lab(rgb2xyz(rgb))
+
+# Convert lab to rgb
+@nb.njit(cache=False)
+def lab2rgb(lab: np.ndarray) -> np.ndarray:
+	return xyz2rgb(lab2xyz(lab))
+
+# Convert rgb to lch
+@nb.njit(cache=False)
+def rgb2lch(rgb: np.ndarray) -> np.ndarray:
+	return lab2lch(rgb2lab(rgb))
+
+# Convert lch to rgb
+@nb.njit(cache=False)
+def lch2rgb(lch: np.ndarray) -> np.ndarray:
+	return lab2rgb(lch2lab(lch))
 
 # Convert hsl to rgb
 @nb.njit(cache=False)
@@ -147,42 +261,12 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 	if i == 4: return np.asarray([t, p, v], dtype=np.float64)
 	if i == 5: return np.asarray([v, p, q], dtype=np.float64)
 
-# Convert lch to rgb, luma = [0..1], chroma = [0..1], hue = [0..359]
-# https://gist.github.com/cjgajard/743450e26d81d33ede98ebd291e1970e
-@nb.njit(cache=False)
-def lchToRGB(luma: float, chroma: float, hue: float) -> np.ndarray:
-	hrad = hue * math.pi / 180.0
-	a = math.cos(hrad) * chroma * 100
-	b = math.sin(hrad) * chroma * 100
+###############################################################################
+# Shading functions (brightness calculation)
+###############################################################################
 
-	CRE = 6.0 / 29.0
-
-	y = (luma + 16) / 116.0
-	x = y + a / 500.0
-	z = y - b / 200.0
-
-	x = 96422 * (x ** 3 if x > CRE else (116 * x - 16) / 903.3)
-	y = 1.0 * (y ** 3 if luma > 8 else luma / 903.3)
-	z = 0.82521 * (z ** 3 if z > CRE else (116 * z - 16) / 903.3)
-
-	x =  0.9555766 * x - 0.0230393 * y + 0.0631636 * z
-	y = -0.0282895 * x + 1.0099416 * y + 0.0210077 * z
-	z =  0.0122982 * x - 0.0204830 * y + 1.3299098 * z
-
-	r = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
-	g = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
-	b = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
-
-	r = 12.92 * r if r < 0.0031308 else 1.055 * math.pow(r, 1 / 2.4) - 0.055
-	g = 12.92 * g if g < 0.0031308 else 1.055 * math.pow(g, 1 / 2.4) - 0.055
-	b = 12.92 * b if b < 0.0031308 else 1.055 * math.pow(b, 1 / 2.4) - 0.055
-
-	r = min(max(r, 0), 1)
-	g = min(max(g, 0), 1)
-	b = min(max(b, 0), 1)
-
-	return np.asarray([r, g, b]).astype(np.float64).clip(0, 1)
-
+# Simple shading
+#
 @nb.njit(cache=False)
 def simple3D(normal: complex, angle: float, elevation: float) -> float:
 	h2 = 1 + elevation / 90.0
@@ -251,7 +335,7 @@ def phong3D(normal: complex, light: list[float]) -> float:
 # Create color palettes
 #
 
-def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defColor: tuple = (0., 0., 0.)) -> np.ndarray:
+def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defColor: tuple | None = None) -> np.ndarray:
 	if len(colorPoints) == 0:
 		# Greyscale palette
 		palette = np.linspace((0., 0., 0.), (1., 1., 1.), max(numColors, 2), dtype=np.float64)
@@ -267,12 +351,18 @@ def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defC
 			palette = np.vstack((palette[:-1], np.linspace(colorPoints[i], colorPoints[i+1], secSize, dtype=np.float64)))
 
 	# Append default color and return palette
-	return np.vstack((palette, np.array(defColor, dtype=np.float64)))
-	
-def createRGBPalette(numColors: int, startColor: tuple = (0., 0., 0.), endColor: tuple = (1., 1., 1.), defColor: tuple = (0., 0., 0.)) -> np.ndarray:
-	return np.array([startColor, endColor, defColor], dtype=np.float64)
+	if defColor is None:
+		return palette
+	else:
+		return np.vstack((palette, np.array(defColor, dtype=np.float64)))
 
-def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple = (0., 0., 0.)) -> np.ndarray:
+def createRGBPalette(numColors: int, startColor: tuple = (0., 0., 0.), endColor: tuple = (1., 1., 1.), defColor: tuple | None = None) -> np.ndarray:
+	if defColor is None:
+		return np.array([startColor, endColor], dtype=np.float64)
+	else:
+		return np.array([startColor, endColor, defColor], dtype=np.float64)
+
+def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple | None = None) -> np.ndarray:
 	numColors = max(numColors, 2)
 	ct = np.linspace(0, 1, numColors, dtype=np.float64)
 	colors = np.column_stack((
@@ -280,16 +370,22 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 		(ct + thetas[1]) * 2 * math.pi,
 		(ct + thetas[2]) * 2 * math.pi
 	))
-	return np.vstack(((0.5 + 0.5 * np.sin(colors)), np.array(defColor, dtype=np.float64)))
+	if defColor is None:
+		return 0.5 + 0.5 * np.sin(colors)
+	else:
+		return np.vstack(((0.5 + 0.5 * np.sin(colors)), np.array(defColor, dtype=np.float64)))
 
-def createSinusCosinusPalette(numColors: int, defColor: tuple = (0., 0., 0.)) -> np.ndarray:
+def createSinusCosinusPalette(numColors: int, defColor: tuple | None = None) -> np.ndarray:
 	ct = np.arange(0, numColors, dtype=np.float64)
 	colors = np.column_stack((
 		ct/(numColors-1),
 		(np.cos(ct * 0.1) + 1.0) * 0.5,
 		(np.sin(ct * 0.01) + 1.0) * 0.5)
 	)
-	return np.vstack((colors, np.array(defColor, dtype=np.float64)))
+	if defColor is None:
+		return colors
+	else:
+		return np.vstack((colors, np.array(defColor, dtype=np.float64)))
 
 paletteFunctions = {
 	"Linear": createLinearPalette,
@@ -297,13 +393,13 @@ paletteFunctions = {
 	"SinusCosinus": createSinusCosinusPalette
 }
 
-def createPaletteFromDef(paletteDef: dict, size: int = -1) -> np.ndarray:
+def createPaletteFromDef(paletteDef: dict, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
 	entries = size if size != -1 else paletteDef['size']
 	fnc = paletteFunctions[paletteDef['type']]
-	return fnc(entries, **paletteDef['par'])
+	return fnc(entries, **paletteDef['par'], defColor=defColor)
 
-def createPalette(name: str, size: int = -1) -> np.ndarray:
-	if name not in colorTables:
-		raise ValueError(f"Palette defintion {name} not found")
-	return createPaletteFromDef(colorTables[name])
-
+def createPalette(name: str, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
+	for paletteDef in colorTables:
+		if paletteDef['name'] == name:
+			return createPaletteFromDef(paletteDef, size=size, defColor=defColor)
+	raise ValueError(f"Palette name {name} not found")

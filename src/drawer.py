@@ -25,9 +25,8 @@ class Drawer:
 		self.image    = None
 
 		# Create color table
-		palette = col.colorTables[app.palette]
-		fnc = col.paletteFunctions[palette['type']]
-		self.palette = fnc(palette['size'], **palette['par'])
+		defColor = col.str2rgb(app['defColor'])
+		self.palette = col.createPalette(app.palette, defColor=defColor)
 
 		self.iterFnc = {
 			'Mandelbrot': man.calculateVectorZ2,
@@ -48,10 +47,6 @@ class Drawer:
 
 		# Create graphics environment
 		self.imageMap = np.zeros([height, width, 3], dtype=np.uint8)
-
-	# Set drawing color palette
-	def setPalette(self, palette: np.ndarray):
-		self.palette = palette
 
 	@staticmethod
 	@nb.njit(cache=False)

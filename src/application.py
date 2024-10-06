@@ -17,6 +17,7 @@ import tkconfigure as tkc
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
+		colorTables = [ ct['name'] for ct in col.colorTables ]
 
 		# Settings
 		self.settings = tkc.TKConfigure({
@@ -89,7 +90,7 @@ class Application:
 				},
 				'colorPalette': {
 					'inputtype': 'str',
-					'valrange':  list(col.colorTables.keys()),
+					'valrange':  colorTables,
 					'initvalue': 'Grey',
 					'widget':    'TKCListbox',
 					'label':     'Color palette:',
@@ -103,8 +104,15 @@ class Application:
 					'inputtype': 'list',
 					'initvalue': col.createLinearPalette(300, [(80/255, 80/255, 80/255), (1., 1., 1.)]).tolist(),
 					'widget':    'TKCColortable',
-					'width':     250,
-					'notify':    self.onColortableClicked
+					'width':     250
+				},
+				'defColor': {
+					'inputtype': 'str',
+					'valrange':  ('^#([0-9a-fA-F]{2}){3}$',),
+					'initvalue': '#000000',
+					'label':     'Default color',
+					'widget':    'TKCColor',
+					'width':     80
 				}
 			}
 		})
@@ -299,7 +307,6 @@ class Application:
 
 	# Fractal type changed
 	def onFractalTypeChanged(self, oldValue, newValue):
-		print("On Fractal Type changed")
 		self.fractal.settings.deleteMask()
 		if newValue == 'Mandelbrot':
 			self.fractal = man.Mandelbrot()
@@ -312,9 +319,6 @@ class Application:
 		self.palette = newValue
 		colorTable = col.createPalette(newValue, size=300).tolist()
 		self.settings.set('colorTable', colorTable, sync=True)
-
-	def onColortableClicked(self, oldValue, newValue):
-		self.gui.colorEditor.show(self.palette)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):
