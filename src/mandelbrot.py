@@ -17,6 +17,8 @@ import fractal as frc
 import colors as col
 import tkconfigure as tkc
 
+from constants import *
+
 
 class Mandelbrot(frc.Fractal):
 
@@ -44,8 +46,8 @@ class Mandelbrot(frc.Fractal):
 	def getMaxValue(self):
 		maxIter, colorOptions, colorize = self.settings.getValues(['maxIter', 'colorOptions', 'colorize'])
 
-		if colorOptions & frc._O_ORBITS: maxIter = max(maxIter, 1000)
-		if colorize == frc._C_DISTANCE or colorize == frc._C_POTENTIAL: maxIter = max(maxIter, 4096)
+		if colorOptions & FO_ORBITS: maxIter = max(maxIter, 1000)
+		if colorize == FC_DISTANCE or colorize == FC_POTENTIAL: maxIter = max(maxIter, 4096)
 
 		return maxIter
 
@@ -64,16 +66,16 @@ class Mandelbrot(frc.Fractal):
 #   P - Color palette np.array((n, 3), dtype=float64), rgb range = 0-1
 #
 #   colorize - Value to be used for color calculation:
-#      _C_ITERATIONS - Number of iterations
-#      _C_DISTANCE   - Distance to mandelbrot set
-#      _C_POTENTIAL  - Potential
+#      FC_ITERATIONS - Number of iterations
+#      FC_DISTANCE   - Distance to mandelbrot set
+#      FC_POTENTIAL  - Potential
 #
 #   paletteMode - How to map calculation result to color palette:
-#      _P_LINEAR - Linear mapping
-#      _P_MODULO - Mapping by modulo division
-#      _P_HUE - Mapping to HSB colorspace with hue = P[0,0], saturation P[0,1]
-#      _P_HUEDYN - Mapping to HSB colorspace with calculated hue value
-#      _P_LCHDYN - Mapping to LCH colorspace with calculated values
+#      FP_LINEAR - Linear mapping
+#      FP_MODULO - Mapping by modulo division
+#      FP_HUE - Mapping to HSB colorspace with hue = P[0,0], saturation P[0,1]
+#      FP_HUEDYN - Mapping to HSB colorspace with calculated hue value
+#      FP_LCHDYN - Mapping to LCH colorspace with calculated values
 #
 #   colorOptions - Combination of flags for modifying color calculation:
 #      _F_ORBITS - Colorize orbits inside mandelbrot set
@@ -115,8 +117,8 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 	bStripe = stripe_s > 0
 	bStep   = step_s > 0
-	bOrbits = colorOptions & frc._O_ORBITS
-	bDist   = colorize == frc._C_DISTANCE or bStripe or bStep
+	bOrbits = colorOptions & FO_ORBITS
+	bDist   = colorize == FC_DISTANCE or bStripe or bStep
 
 	Z = 0
 	nZ1 = 0.0               # Old value of abs(Z)^2
@@ -128,7 +130,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
-		if bDist or colorOptions & frc._O_SHADING:
+		if bDist or colorOptions & FO_SHADING:
 			D = D * 2 * Z + 1
 
 		Z = Z * Z + C
@@ -147,7 +149,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 			if bStripe:
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
-			if colorize == frc._C_POTENTIAL:
+			if colorize == FC_POTENTIAL:
 				logZn = math.log(nZ)/2.0
 				pot = math.log(logZn / math.log(2)) / math.log(2)	
 
@@ -180,7 +182,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 @nb.guvectorize([(nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(k),(l),() -> (n,j)', nopython=True, cache=False, target='parallel')
 def calculateVectorZ2(C, P, colorize, paletteMode, colorOptions, colorPar, light, maxIter, R):
-	bailout = 4.0 if colorize == frc._C_ITERATIONS and paletteMode != frc._P_HUE and colorOptions == 0 else 10**10
+	bailout = 4.0 if colorize == FC_ITERATIONS and paletteMode != FP_HUE and colorOptions == 0 else 10**10
 
 	for p in range(C.shape[0]):
 		R[p,:] = calculatePointZ2(C[p], P, colorize, paletteMode, colorOptions, maxIter, bailout, colorPar, light)

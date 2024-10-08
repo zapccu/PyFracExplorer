@@ -7,31 +7,7 @@ import numba as nb
 import tkconfigure as tkc
 import colors as col
 
-
-#####################################################################
-# Calculation and color mapping constants
-#####################################################################
-
-# Colorization modes
-_C_ITERATIONS = 0         # Colorize by iterations
-_C_DISTANCE   = 1         # Colorize by distance to mandelbrot set
-_C_POTENTIAL  = 2         # Colorize by potential
-
-# Color palette modes
-_P_LINEAR = 0             # Linear color mapping to selected rgb palette
-_P_MODULO = 1             # Color mapping by modulo division to selected rgb palette
-_P_HUE    = 2             # Color mapping to hsv/hsl color space based on 1st palette entry
-_P_HUEDYN = 3             # Color mapping to hsv/hsl color space, hue based on iterations
-_P_LCHDYN = 4
-
-# Colorization options
-_O_ORBITS        = 1      # Draw orbits
-_O_INSIDE_DIST   = 2      # Distance inside set
-_O_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
-_O_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
-
-_O_SHADING       = 12     # Combination of _O_BLINNPHONG_3D, _O_SIMPLE_3D
-
+from constants import *
 
 #####################################################################
 # Base class for all kind of Mandelbrot and Julia sets
@@ -308,36 +284,35 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 	pLen = len(palette)-1
 	stripe_a, step_s, ncycle, maxIter = colorPar
 
-	if colorOptions & _O_SIMPLE_3D:
-		bright = col.simple3D(normal, light[0], light[1])
-	elif colorOptions & _O_BLINNPHONG_3D:
+	if colorOptions & FO_SIMPLE_3D:
+		bright = col.simple3D(normal, light)
+	elif colorOptions & FO_BLINNPHONG_3D:
 		bright = col.phong3D(normal, light)
 	else:
 		bright = 1.0
-	bright = min(1.0, bright + light[7])
 
 	if stripe_a > 0 or step_s > 0:
 		color = shading(palette, iter, dist, normal, colorPar, bright)
-	elif colorize == _C_ITERATIONS:
-		if palettemode == _P_LINEAR:
+	elif colorize == FC_ITERATIONS:
+		if palettemode == FP_LINEAR:
 			color = palette[int(iter/maxIter * pLen)] * bright
-		elif palettemode == _P_MODULO:
+		elif palettemode == FP_MODULO:
 			color = palette[int(pLen * iter/maxIter) % int(ncycle)] * bright
-		elif palettemode == _P_HUE:
+		elif palettemode == FP_HUE:
 			color = col.hsb2rgb(palette[0,0], palette[0,1], bright)
-		elif palettemode == _P_HUEDYN:
+		elif palettemode == FP_HUEDYN:
 			h = math.pow((iter) * 360, 1.5) % 360
 			# For hsl model saturation must be set to 0.5
 			color = col.hsb2rgb(h/360, 1.0, bright)
-		elif palettemode == _P_LCHDYN:
+		elif palettemode == FP_LCHDYN:
 			v = 1.0 - math.pow(math.cos(math.pi * iter), 2.0)
 			# /100, /130
 			color = col.lch2rgb(np.array([(75 - (75 * v)), (28 + (75 - (75 * v))), math.pow(360 * iter, 1.5) % 360])) * bright
 
-	elif colorize == _C_DISTANCE:
+	elif colorize == FC_DISTANCE:
 		color = palette[int(math.tanh(dist) * pLen)] * bright
 
-	elif colorize == _C_POTENTIAL:
+	elif colorize == FC_POTENTIAL:
 		color = palette[int(pLen * iter/colorPar[3])] * bright
 
 	return (color * 255).astype(np.uint8)

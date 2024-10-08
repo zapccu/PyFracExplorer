@@ -9,46 +9,41 @@ import numba as nb
 # Predefined color tables
 #
 
-colorTables = [
-	{
-		"name": "Monochrome",
+colorTables = {
+	"Monochrome": {
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(1., 1., 1.)]
 		}
 	},
-	{
-		"name": "Grey",
+	"Grey": {
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(80/255, 80/255, 80/255), (1., 1., 1.)]
 		}
 	},
-	{
-		"name": "Blue - Grey - Blue",
+	"Blue - Grey - Blue": {
 		"type": "Linear",
 		"size": 4096,
 		"par": {
 			"colorPoints": [(.4, .4, .5), (.0, .0, 1.), (.4, .4, 128/255)]
 		}
 	},
-	{
-		"name": "Sinus - [.85, .0, .15]",
+	"Sinus - [.85, .0, .15]": {
 		"type": "Sinus",
 		"size": 4096,
 		"par": {
 			"thetas": [.85, .0, .15]
 		}
 	},
-	{
-		"name": "Sinus Cosinus",
+	"Sinus Cosinus": {
 		"type": "SinusCosinus",
 		"size": 4096,
 		"par": {}
 	},
-	{
+	"Preset": {
 		"name": "Preset",
 		"type": "Sinus",
 		"size": 4096,
@@ -56,7 +51,7 @@ colorTables = [
 			"thetas": [.85, .0, .15]
 		}
 	}
-]
+}
 
 ###############################################################################
 # Construct colors
@@ -265,76 +260,98 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 # Shading functions (brightness calculation)
 ###############################################################################
 
+#
 # Simple shading
 #
+# light: Light source for shading
+#  0 = Angle 0-360 degree
+#  1 = Angle elevation 0-90
+#  7 = brightness offset 0-0.5
+#
 @nb.njit(cache=False)
-def simple3D(normal: complex, angle: float, elevation: float) -> float:
-	h2 = 1 + elevation / 90.0
-	#h2 = 1.5    # height factor of the incoming light
-	v = cmath.exp(complex(0,1) * angle * 2 * math.pi / 360)  # unit 2D vector in this direction
-	normal /= abs(normal)  # normal vector: (u.re,u.im,1) 
-	t = normal.real * v.real + normal.imag * v.imag + h2  # dot product with the incoming light
+def simple3D(normal: complex, light: list[float]) -> float:
+	# height factor of the incoming light (1.5 = 45 deg)
+	h2 = 1 + light[1] / 90.0
 
-	return t / (1 + h2)   # rescale so that t does not get bigger than 1
+	# unit 2D vector in this direction
+	v = cmath.exp(complex(0,1) * light[0] * 2 * math.pi / 360)
 
+	# normal vector: (u.re,u.im,1) 
+	normal /= abs(normal)
+
+	# dot product with the incoming light
+	t = normal.real * v.real + normal.imag * v.imag + h2
+
+	# rescale so that t does not get bigger than 1
+	bright = t / (1 + h2)
+
+	# Return brightness with optional offset
+	return min(1.0, bright + light[7])
+
+#
 # Blinn Phong shading
-#  light:
-#    0 =
-#    1 =
-#    2 =
-#    3 = ambiant
-#    4 = diffuse
-#    5 = specular
-#    6 = shininess
+#
+# light: Light source for shading
+#  0 = Angle 0-360 degree
+#  1 = Angle elevation 0-90
+#  2 = opacity 0-1
+#  3 = ambiant 0-1
+#  4 = diffuse 0-1
+#  5 = spectral 0-1
+#  6 = shininess 0-?
+#  7 = brightness offset 0-0.5
 #
 @nb.njit(cache=False)
 def phong3D(normal: complex, light: list[float]) -> float:
-	## Lambert normal shading (diffuse light)
+	# Lambert normal shading (diffuse light)
 	normal /= abs(normal)    
 
 	# theta: light angle; phi: light azimuth
 	# light vector: [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
 	# normal vector: [normal.real, normal.imag, 1]
-	# Diffuse light = dot product(light, normal)
+	# ldiff: diffuse light = dot product(light, normal)
 	ldiff = (normal.real * math.cos(light[0]) * math.cos(light[1]) +
 		normal.imag * math.sin(light[0]) * math.cos(light[1]) + 
 		1 * math.sin(light[1]))
 	# Normalization
 	ldiff = ldiff / (1 + 1 * math.sin(light[1]))
 
-	## Specular light: Blinn Phong shading
-	# Phi half: average between phi and pi/2 (viewer azimuth)
-	# Specular light = dot product(phi_half, normal)
-	phi_half = (math.pi / 2 + light[1]) / 2
-	lspec = (normal.real * math.cos(light[0]) * math.sin(phi_half) +
-		normal.imag * math.sin(light[0]) * math.sin(phi_half) +
-		1 * math.cos(phi_half))
+	# phi2: average between phi and pi/2 (viewer azimuth)
+	# lspec: specular light = dot product(phi2, normal)
+	phi2 = (math.pi / 2 + light[1]) / 2
+	lspec = (normal.real * math.cos(light[0]) * math.sin(phi2) +
+		normal.imag * math.sin(light[0]) * math.sin(phi2) +
+		1 * math.cos(phi2))
 	# Normalization
-	lspec = lspec / (1 + 1 * math.cos(phi_half))
-	#spec_angle = max(0, spec_angle)
-	lspec = lspec ** light[6] # shininess
+	lspec /= (1 + 1 * math.cos(phi2))
+	# Shininess
+	lspec = lspec ** light[6]
 
-	## Brightness = ambiant + diffuse + specular
-	bright = light[3] + light[4]*ldiff + light[5]*lspec
-	## Add intensity
-	bright = bright * light[2] + (1-light[2])/2
+	# bright: Brightness = ambiant + diffuse + specular
+	bright = light[3] + light[4]*ldiff + light[5] * lspec
+	# Add intensity
+	bright = bright * light[2] + (1-light[2]) / 2
 
-	return bright
+	# Return brightness with optional offset
+	return min(1.0, bright + light[7])
+
 
 
 """
 	Color palettes
 
 	Color palettes are numpy arrays of type flooat64 with shape (n,3).
-	They contain at least 3 elements: first, last and default color.
-	The default color is stored at the end of the array in element n-1.
+	They contain at least 2 elements: first and last color.
+	If a default color is specified it is stored at the end of the array.
 	An array row contains the red, green and blue part of a color in range [0..1].
+
 """
 
 #
 # Create color palettes
 #
 
+# Create a palette based on colorpoints with smooth transitions between colorpoints 
 def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defColor: tuple | None = None) -> np.ndarray:
 	if len(colorPoints) == 0:
 		# Greyscale palette
@@ -362,6 +379,7 @@ def createRGBPalette(numColors: int, startColor: tuple = (0., 0., 0.), endColor:
 	else:
 		return np.array([startColor, endColor, defColor], dtype=np.float64)
 
+# Create Sinus palette, depends on thetas
 def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: tuple | None = None) -> np.ndarray:
 	numColors = max(numColors, 2)
 	ct = np.linspace(0, 1, numColors, dtype=np.float64)
@@ -375,6 +393,7 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 	else:
 		return np.vstack(((0.5 + 0.5 * np.sin(colors)), np.array(defColor, dtype=np.float64)))
 
+# Create Sinus/Cosinus palette
 def createSinusCosinusPalette(numColors: int, defColor: tuple | None = None) -> np.ndarray:
 	ct = np.arange(0, numColors, dtype=np.float64)
 	colors = np.column_stack((
@@ -387,19 +406,26 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple | None = None) -> 
 	else:
 		return np.vstack((colors, np.array(defColor, dtype=np.float64)))
 
+# Palette creation functions
 paletteFunctions = {
 	"Linear": createLinearPalette,
 	"Sinus": createSinusPalette,
 	"SinusCosinus": createSinusCosinusPalette
 }
 
+# Create palette from dict
 def createPaletteFromDef(paletteDef: dict, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
 	entries = size if size != -1 else paletteDef['size']
 	fnc = paletteFunctions[paletteDef['type']]
 	return fnc(entries, **paletteDef['par'], defColor=defColor)
 
+# Create palette from colortable (list of rgb values)
+def createPaletteFromList(colorTable: list, defColor: tuple | None = None) -> np.ndarray:
+	if defColor is None:
+		return np.array(colorTable, dtype=np.float64)
+	else:
+		return np.vstack((np.array(colorTable, dtype=np.float64), np.array(defColor, dtype=np.float64)))
+
+# Create palette by name
 def createPalette(name: str, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
-	for paletteDef in colorTables:
-		if paletteDef['name'] == name:
-			return createPaletteFromDef(paletteDef, size=size, defColor=defColor)
-	raise ValueError(f"Palette name {name} not found")
+	return createPaletteFromDef(colorTables[name], size=size, defColor=defColor)

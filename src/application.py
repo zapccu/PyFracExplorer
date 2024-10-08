@@ -17,8 +17,6 @@ import tkconfigure as tkc
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
-		colorTables = [ ct['name'] for ct in col.colorTables ]
-
 		# Settings
 		self.settings = tkc.TKConfigure({
 			"Image parameters": {
@@ -90,7 +88,7 @@ class Application:
 				},
 				'colorPalette': {
 					'inputtype': 'str',
-					'valrange':  colorTables,
+					'valrange':  list(col.colorTables.keys()),
 					'initvalue': 'Grey',
 					'widget':    'TKCListbox',
 					'label':     'Color palette:',
@@ -102,9 +100,10 @@ class Application:
 				},
 				'colorTable': {
 					'inputtype': 'list',
-					'initvalue': col.createLinearPalette(300, [(80/255, 80/255, 80/255), (1., 1., 1.)]).tolist(),
+					'initvalue': [ col.colorTables['Grey'], col.createPalette('Grey'), 'Grey' ],
 					'widget':    'TKCColortable',
-					'width':     250
+					'width':     250,
+					'notify':    self.onColorTableChanged
 				},
 				'defColor': {
 					'inputtype': 'str',
@@ -187,7 +186,7 @@ class Application:
 		self.palette = 'Preset'
 		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
 
-		colorTable = col.createPalette('Preset', size=300).tolist()
+		colorTable = col.createPalette('Preset').tolist()
 		self.settings.set('colorTable', colorTable, sync=True)
 
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
@@ -314,11 +313,18 @@ class Application:
 			self.fractal = jul.Julia()
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
-	# Color palette changed
+	# Color palette selected
 	def onPaletteChanged(self, oldValue, newValue):
 		self.palette = newValue
-		colorTable = col.createPalette(newValue, size=300).tolist()
-		self.settings.set('colorTable', colorTable, sync=True)
+		colorTable = col.createPalette(newValue).tolist()
+		self.settings.set('colorTable', [col.colorTables[newValue], colorTable, newValue], sync=True)
+
+	# Color palette modified with color editor
+	def onColorTableChanged(self, oldValue, newValue):
+		paletteDef, colorTable, paletteName = newValue
+		col.colorTables[paletteName] = paletteDef
+		self.settings.setPar('Fractal selection', 'colorPalette', 'valrange', list(col.colorTables.keys()))
+		self.settings.set('colorPalette', paletteName, sync=True)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):

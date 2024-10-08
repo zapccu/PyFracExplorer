@@ -3,7 +3,6 @@ from tkinter import *
 from tkinter.ttk import Combobox, Style, Progressbar, Separator
 from tkinter.scrolledtext import ScrolledText
 
-import coloreditor as ce
 
 """
 GUI
@@ -370,9 +369,6 @@ class GUI:
 		self.statusFrame  = StatusFrame(self, self.app, width, statusHeight)
 		self.drawFrame    = DrawFrame(self, self.app, width-controlWidth, height-statusHeight, bg='white')
 		self.controlFrame = ControlFrame(self, self.app, controlWidth, height-statusHeight)
-
-		# Color editor
-		self.colorEditor = ce.ColorEditor(self.mainWindow, 400, 450)
 
 		# Add fields to statusframe
 		self.statusFrame.addLabel('screenCoord', 25, value="0,0")

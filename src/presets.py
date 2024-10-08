@@ -1,5 +1,6 @@
 
-from fractal import _C_ITERATIONS, _C_DISTANCE, _C_POTENTIAL, _O_ORBITS, _O_SIMPLE_3D, _O_BLINNPHONG_3D
+from constants import *
+
 
 ###############################################################################
 # Fractal presets
@@ -15,8 +16,8 @@ presets = {
 		'stripes':    2,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -32,8 +33,8 @@ presets = {
 		'stripes':    0,
 		'steps':      10,
 		'ncycle':     8,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -49,8 +50,8 @@ presets = {
 		'stripes':    5,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -66,8 +67,8 @@ presets = {
 		'stripes':    0,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -83,8 +84,8 @@ presets = {
 		'stripes':    8,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -100,8 +101,8 @@ presets = {
 		'stripes':    0,
 		'steps':      20,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -117,8 +118,8 @@ presets = {
 		'stripes':    12,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -134,8 +135,8 @@ presets = {
 		'stripes':    2,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -151,8 +152,8 @@ presets = {
 		'stripes':    5,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -169,8 +170,8 @@ presets = {
 		'stripes':    4,
 		'steps':      0,
 		'ncycle':     19,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -187,8 +188,8 @@ presets = {
 		'stripes':    2,
 		'steps':      0,
 		'ncycle':     32,
-		'colorize':   _C_DISTANCE,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_DISTANCE,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
@@ -206,8 +207,8 @@ presets = {
 		'stripes':    0,
 		'steps':      0,
 		'ncycle':     1,
-		'colorize':   _C_ITERATIONS,
-		'colorOptions': _O_BLINNPHONG_3D,
+		'colorize':   FC_ITERATIONS,
+		'colorOptions': FO_BLINNPHONG_3D,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
