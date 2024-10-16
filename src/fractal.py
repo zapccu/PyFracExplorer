@@ -17,8 +17,94 @@ class Fractal:
 
 	def __init__(self, corner: complex, size: complex, stripes: int = 0, steps: int = 0, ncycle: int = 1):
 
-		colorOptions = 0
+		# Fractal light settings for shading, accesible by separate dialog window
+		#  0 = Angle 0-360 degree
+		#  1 = Angle elevation 0-90
+		#  2 = opacity 0-1, def=0.75
+		#      Reduce the brightness, 0=dark
+		#  3 = ambient light 0-1, def=0.2
+		#      Even when it is dark there is usually still some light somewhere in the world (the moon, a distant light)
+		#      so objects are almost never completely dark. The ambient lighting constant simulates this and always
+		#      gives the object some color.
+		#  4 = diffuse light 0-1, def=0.5
+		#      Simulates the directional impact a light object has on an object. This is the most visually significant
+		#      component of the lighting model. The more a part of an object faces the light source, the brighter it becomes.
+		#  5 = specular light 0-1, def=0.5
+		#      Simulates the bright spot of a light that appears on shiny objects. Specular highlights are more inclined to
+		#      the color of the light than the color of the object.
+		#  6 = shininess 1-30, def=20.0
+		#  7 = brightness offset 0-0.5, def=0.0
+		#
+		self.lightSettings = tkc.TKConfigure({
+			"Light": {
+				"angle": {
+					"inputtype": "float",
+					"valrange":  (0, 360, 1),
+					"initvalue": 45.0,
+					"widget":    "TKCSlider",
+					"label":     "Angle",
+					"width":     120
+				},
+				"elevation": {
+					"inputtype": "float",
+					"valrange":  (0, 90),
+					"initvalue": 45.0,
+					"widget":    "TKCSlider",
+					"label":     "Elevation",
+					"width":     120
+				},
+				"opacity": {
+					"inputtype": "float",
+					"valrange":  (0.0, 1.0, 0.05),
+					"initvalue": 0.75,
+					"widget":    "TKCSlider",
+					"label":     "Opacity",
+					"width":     120
+				},
+				"ambient": {
+					"inputtype": "float",
+					"valrange":  (0.0, 1.0, 0.1),
+					"initvalue": 0.2,
+					"widget":    "TKCSlider",
+					"label":     "Ambient light",
+					"width":     120
+				},
+				"diffuse": {
+					"inputtype": "float",
+					"valrange":  (0.0, 1.0, 0.1),
+					"initvalue": 0.5,
+					"widget":    "TKCSlider",
+					"label":     "Diffuse light",
+					"width":     120
+				},
+				"specular": {
+					"inputtype": "float",
+					"valrange":  (0.0, 1.0, 0.1),
+					"initvalue": 0.5,
+					"widget":    "TKCSlider",
+					"label":     "Specular light",
+					"width":     120
+				},
+				"shininess": {
+					"inputtype": "float",
+					"valrange":  (1.0, 30.0, 1.0),
+					"initvalue": 20.0,
+					"widget":    "TKCSlider",
+					"label":     "Shininess",
+					"width":     120
+				},
+				"brightOffset": {
+					"inputtype": "float",
+					"valrange":  (0.0, 0.7, 0.1),
+					"initvalue": 0.0,
+					"widget":    "TKCSlider",
+					"label":     "Brightness offset",
+					"width":     120
+				}
+			}
+		})
 
+		# Fractal settings accessible in main window
 		self.settings = tkc.TKConfigure({
 			"Fractal": {
 				"corner": {
@@ -58,7 +144,7 @@ class Fractal:
 				"colorOptions": {
 					"inputtype": "bits",
 					"valrange":  ["Orbits", "Inside distance", "Simple 3D", "Blinn/Phong 3D" ],
-					"initvalue": colorOptions,
+					"initvalue": 0,
 					"widget":     "TKCFlags",
 					"widgetattr": {
 						"text": "Colorization options"
@@ -100,29 +186,19 @@ class Fractal:
 				}
 			},
 			"Light": {
-				"angle": {
-					"inputtype": "float",
-					"valrange":  (0, 360),
-					"initvalue": 45.0,
-					"widget":    "TKCSlider",
-					"label":     "Angle",
-					"width":     120
-				},
-				"elevation": {
-					"inputtype": "float",
-					"valrange":  (0, 90),
-					"initvalue": 45.0,
-					"widget":    "TKCSlider",
-					"label":     "Elevation",
-					"width":     120
-				},
-				"brightOffset": {
-					"inputtype": "float",
-					"valrange":  (0.0, 0.7, 0.1),
-					"initvalue": 0.0,
-					"widget":    "TKCSlider",
-					"label":     "Offset",
-					"width":     120
+				"light": {
+					"inputtype": "tkc",
+					"initvalue": self.lightSettings,
+					"widget":    "TKCDialog",
+					"label":     "Light",
+					"width":     30,
+					"readonly":  True,
+					"widgetattr": {
+						"width": 400,
+						"height": 480,
+						"padx":   10,
+						"pady":   5
+					}
 				}
 			}
 		})
@@ -140,6 +216,10 @@ class Fractal:
 		#  4 = diag
 		diag = abs(self.settings['size'])
 		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), math.sqrt(self.settings['ncycle']), diag]
+		colorOptions = self.settings['colorOptions']
+		if self.settings['stripes'] > 0 or self.settings['steps'] > 0:
+			colorOptions = (colorOptions & FO_NOSHADING) | FO_BLINNPHONG_3D
+			print("Added FO_BLINPHONG_3D to color options for stripes/steps support")
 
 		# Light source for shading
 		#  0 = Angle 0-360 degree
@@ -147,14 +227,14 @@ class Fractal:
 		#  2 = opacity 0-1
 		#  3 = ambiant 0-1
 		#  4 = diffuse 0-1
-		#  5 = spectral 0-1
-		#  6 = shininess 0-?
+		#  5 = specular 0-1
+		#  6 = shininess 1-30
 		#  7 = brightness offset 0-0.5
-		light = [self.settings['angle'], self.settings['elevation'], .75, .2, .5, .5, 20., self.settings['brightOffset']]
+		light = self.settings['light'].getValues()
 		light[0] = 2 * math.pi * light[0] / 360
 		light[1] = math.pi / 2 * light[1] / 90
 
-		return (self.settings['colorize'], self.settings['paletteMode'], self.settings['colorOptions'], colorPar, light)
+		return (self.settings['colorize'], self.settings['paletteMode'], colorOptions, colorPar, light)
 
 	# Change fractal dimensions
 	def setDimensions(self, corner: complex, size: complex, sync: bool = True):
@@ -330,24 +410,24 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 	stripe_a, step_s, ncycle, maxIter = colorPar
 	pLen = len(palette)-2
 
-    # Cycle through palette
+	# Cycle through palette
 	niter = math.sqrt(niter) % ncycle / ncycle
 	palIdx = round(niter * pLen)
 
-    # distance estimation: log transform and sigmoid on [0,1] => [0,1]
+	# distance estimation: log transform and sigmoid on [0,1] => [0,1]
 	dist = -math.log(dist) / 12
 	dist = 1 / (1 + math.exp(-10 * ((2 * dist - 1)/2)))
 
-    # Shaders: steps and/or stripes
+	# Shaders: steps and/or stripes
 	nshader = 0
 	shader = 0
 
-    # Stripe shading
+	# Stripe shading
 	if stripe_a > 0:
 		nshader += 1
 		shader += stripe_a
 
-    # Step shading
+	# Step shading
 	if step_s > 0:
 		# Color update: constant color on each major step
 		step_s = 1/step_s                                 
@@ -367,7 +447,7 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 		nshader += 1
 		shader += light_step
 
-    # Applying shaders to brightness
+	# Applying shaders to brightness
 	if nshader > 0:
 		bright = overlay(bright, shader/nshader, 1) * (1-dist) + dist * bright
 

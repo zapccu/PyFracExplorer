@@ -123,7 +123,7 @@ class Drawer:
 		calcParameters = self.fractal.getCalcParameters()
 
 		self.fractal.settings.dumpConfig()
-		print("Calc parameters=", calcParameters)
+		print("Calc parameters =", calcParameters)
 
 		# Prepare image map for oversampling
 		if oversampling > 1:

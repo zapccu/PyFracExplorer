@@ -100,9 +100,10 @@ class Application:
 				},
 				'colorTable': {
 					'inputtype': 'list',
-					'initvalue': [ col.colorTables['Grey'], col.createPalette('Grey'), 'Grey' ],
+					'initvalue': [ col.colorTables['Grey'], col.createPalette('Grey').tolist(), 'Grey' ],
 					'widget':    'TKCColortable',
-					'width':     250,
+					'label':     'Color table',
+					'width':     200,
 					'notify':    self.onColorTableChanged
 				},
 				'defColor': {

@@ -115,16 +115,16 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	stripe_a = 0.0
 	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
 
-	bStripe = stripe_s > 0
-	bStep   = step_s > 0
+	bStripe = stripe_s > 0 and colorOptions & FO_SHADING
+	bStep   = step_s > 0 and colorOptions & FO_SHADING
 	bOrbits = colorOptions & FO_ORBITS
 	bDist   = colorize == FC_DISTANCE or bStripe or bStep
 
 	Z = 0
-	nZ1 = 0.0               # Old value of abs(Z)^2
-	D = complex(1.0, 0.0)   # 1st derivation
-	period = 0              # Period counter for simplified orbit detection
-	smooth_i = 0
+	nZ1 = 0.0               # Old value of abs(Z) ** 2 for fast orbit detection
+	period = 0              # Period counter for fast orbit detection
+	D = complex(1.0, 0.0)   # 1st derivation of Z
+	smooth_i = 0			# Smooth iteration counter
 
 	if bOrbits:
 		orbits = np.zeros(maxIter, dtype=np.complex128)
@@ -142,13 +142,14 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 		if nZ > bailout:
 			if bDist:
 				aZ = math.sqrt(nZ)
-				log_ratio = 2*math.log(aZ) / math.log(bailout)
+				log_ratio = 2 * math.log(aZ) / math.log(bailout)
 				smooth_i = 1 - math.log(log_ratio) / math.log(2)
 				dist = aZ * math.log(aZ) / abs(D) / 2
 
 			if bStripe:
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
+
 			if colorize == FC_POTENTIAL:
 				logZn = math.log(nZ)/2.0
 				pot = math.log(logZn / math.log(2)) / math.log(2)	

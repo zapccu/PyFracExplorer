@@ -22,3 +22,4 @@ FO_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 FO_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 
 FO_SHADING       = 12     # Combination of FO_BLINNPHONG_3D, FO_SIMPLE_3D
+FO_NOSHADING     = 3
