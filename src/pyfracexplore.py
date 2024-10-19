@@ -1,5 +1,15 @@
 
-# PyFracExplore main
+###############################################################################
+#
+#  PyFracExplore
+#
+#  Mandelbrot and Julia set demo program
+#
+#  Written 2024 by Dirk Braner
+#
+#  Github: https://github.com/zapccu/PyFracExplorer
+#
+###############################################################################
 
 import sys
 

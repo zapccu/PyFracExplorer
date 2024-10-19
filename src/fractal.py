@@ -17,27 +17,31 @@ class Fractal:
 
 	def __init__(self, corner: complex, size: complex, stripes: int = 0, steps: int = 0, ncycle: int = 1):
 
-		# Fractal light settings for shading, accesible by separate dialog window
-		#  0 = Angle 0-360 degree
-		#  1 = Angle elevation 0-90
-		#  2 = opacity 0-1, def=0.75
-		#      Reduce the brightness, 0=dark
-		#  3 = ambient light 0-1, def=0.2
-		#      Even when it is dark there is usually still some light somewhere in the world (the moon, a distant light)
-		#      so objects are almost never completely dark. The ambient lighting constant simulates this and always
-		#      gives the object some color.
-		#  4 = diffuse light 0-1, def=0.5
-		#      Simulates the directional impact a light object has on an object. This is the most visually significant
-		#      component of the lighting model. The more a part of an object faces the light source, the brighter it becomes.
-		#  5 = specular light 0-1, def=0.5
-		#      Simulates the bright spot of a light that appears on shiny objects. Specular highlights are more inclined to
-		#      the color of the light than the color of the object.
-		#  6 = shininess 1-30, def=20.0
-		#  7 = brightness offset 0-0.5, def=0.0
-		#
+		"""
+		Fractal light settings for shading, can be modified in separate dialog window
+		
+		Internally used as list with 8 elements:		
+			0 = Angle 0-360 degree
+			1 = Angle elevation 0-90
+			2 = opacity 0-1, def=0.75
+				Reduce the brightness, 0=dark
+			3 = ambient light 0-1, def=0.2
+				Even when it is dark there is usually still some light somewhere in the world (the moon, a distant light)
+				so objects are almost never completely dark. The ambient lighting constant simulates this and always
+				gives the object some color.
+			4 = diffuse light 0-1, def=0.5
+				Simulates the directional impact a light object has on an object. This is the most visually significant
+				component of the lighting model. The more a part of an object faces the light source, the brighter it becomes.
+			5 = specular light 0-1, def=0.5
+				Simulates the bright spot of a light that appears on shiny objects. Specular highlights are more inclined to
+				the color of the light than the color of the object.
+			6 = shininess 1-30, def=20.0
+			7 = gamma correction 0.1-10.0, def=1.0 (no correction)
+		"""
 		self.lightSettings = tkc.TKConfigure({
 			"Light": {
 				"angle": {
+					"tooltip":   "Angle of light source",
 					"inputtype": "float",
 					"valrange":  (0, 360, 1),
 					"initvalue": 45.0,
@@ -46,6 +50,7 @@ class Fractal:
 					"width":     120
 				},
 				"elevation": {
+					"tooltip":   "Elevation angle",
 					"inputtype": "float",
 					"valrange":  (0, 90),
 					"initvalue": 45.0,
@@ -54,6 +59,7 @@ class Fractal:
 					"width":     120
 				},
 				"opacity": {
+					"tooltip":   "Reduce the brightness, 0=dark",
 					"inputtype": "float",
 					"valrange":  (0.0, 1.0, 0.05),
 					"initvalue": 0.75,
@@ -62,6 +68,10 @@ class Fractal:
 					"width":     120
 				},
 				"ambient": {
+					"tooltip":   """
+Even when it is dark there is usually still some light somewhere in the world (the moon, a distant light)
+so objects are almost never completely dark. The ambient lighting constant simulates this and always
+gives the object some color""",
 					"inputtype": "float",
 					"valrange":  (0.0, 1.0, 0.1),
 					"initvalue": 0.2,
@@ -93,12 +103,13 @@ class Fractal:
 					"label":     "Shininess",
 					"width":     120
 				},
-				"brightOffset": {
+				"gamma": {
+					"tooltip":   "Gamma value for gamma correction. >1: lighten colors, <1: darken colors. Dark colors are more affected by this correction",
 					"inputtype": "float",
-					"valrange":  (0.0, 0.7, 0.1),
-					"initvalue": 0.0,
+					"valrange":  (0.1, 10.0, 0.1),
+					"initvalue": 1.0,
 					"widget":    "TKCSlider",
-					"label":     "Brightness offset",
+					"label":     "Gamma correction",
 					"width":     120
 				}
 			}
@@ -108,6 +119,7 @@ class Fractal:
 		self.settings = tkc.TKConfigure({
 			"Fractal": {
 				"corner": {
+					"tooltip":   "Complex corner of fractal",
 					"inputtype": "complex",
 					"initvalue": corner,
 					"widget":    "TKCEntry",
@@ -115,6 +127,7 @@ class Fractal:
 					"width":     25
 				},
 				"size": {
+					"tooltip":   "Complex size of fractal",
 					"inputtype": "complex",
 					"initvalue": size,
 					"widget":    "TKCEntry",
@@ -203,34 +216,46 @@ class Fractal:
 			}
 		})
 
+		# Calculation time measurement
 		self.startTime = 0
 		self.calcTime  = 0
 
-	# Return list of calculation parameters depending on fractal type
+	# Return tuple of calculation parameters depending on fractal type
 	def getCalcParameters(self) -> tuple:
-		# Color related parameters
-		#  0 = stripes
-		#  1 = stripe_sig (0.9)
-		#  2 = steps
-		#  3 = sqrt(ncycle)
-		#  4 = diag
+
+		"""
+		colorPar: list with color related parameters:	
+			0 = stripes
+			1 = stripe_sig (0.9)
+			2 = steps
+			3 = sqrt(ncycle)
+			4 = diag
+		"""
 		diag = abs(self.settings['size'])
 		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), math.sqrt(self.settings['ncycle']), diag]
+
+		"""		
+		colorOptions: Flags for color mapping
+		"""
 		colorOptions = self.settings['colorOptions']
 		if self.settings['stripes'] > 0 or self.settings['steps'] > 0:
+			# Stripes and steps require 3D shading
 			colorOptions = (colorOptions & FO_NOSHADING) | FO_BLINNPHONG_3D
 			print("Added FO_BLINPHONG_3D to color options for stripes/steps support")
 
-		# Light source for shading
-		#  0 = Angle 0-360 degree
-		#  1 = Angle elevation 0-90
-		#  2 = opacity 0-1
-		#  3 = ambiant 0-1
-		#  4 = diffuse 0-1
-		#  5 = specular 0-1
-		#  6 = shininess 1-30
-		#  7 = brightness offset 0-0.5
+		"""
+		light: Light source for shading		
+			0 = Angle 0-360 degree
+			1 = Angle elevation 0-90
+			2 = opacity 0-1
+			3 = ambiant 0-1
+			4 = diffuse 0-1
+			5 = specular 0-1
+			6 = shininess 1-30
+			7 = gamma correction 0.1-10.0
+		"""
 		light = self.settings['light'].getValues()
+		print("Light = ", light)
 		light[0] = 2 * math.pi * light[0] / 360
 		light[1] = math.pi / 2 * light[1] / 90
 
@@ -395,7 +420,11 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 	elif colorize == FC_POTENTIAL:
 		color = palette[int(pLen * iter/colorPar[3])] * bright
 
-	return (color * 255).astype(np.uint8)
+	# Gamma correction
+	if light[7] != 1.0:
+		return (np.pow(color, 1.0/light[7]) * 255).astype(np.uint8)
+	else:
+		return (color * 255).astype(np.uint8)
 
 @nb.njit
 def overlay(x, y, gamma):

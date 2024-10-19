@@ -266,7 +266,7 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 # light: Light source for shading
 #  0 = Angle 0-360 degree
 #  1 = Angle elevation 0-90
-#  7 = brightness offset 0-0.5
+#  7 = gamma correction 0.1-10.0
 #
 @nb.njit(cache=False)
 def simple3D(normal: complex, light: list[float]) -> float:
@@ -286,37 +286,37 @@ def simple3D(normal: complex, light: list[float]) -> float:
 	bright = t / (1 + h2)
 
 	# Return brightness with optional offset
-	return min(1.0, bright + light[7])
+	return bright
 
-#
+###############################################################################
 # Blinn Phong shading
 #
 # light: Light source for shading
-#  0 = Angle 0-360 degree
-#  1 = Angle elevation 0-90
+#  0 = angle 0-360
+#  1 = elevation 0-90
 #  2 = opacity 0-1
 #  3 = ambiant 0-1
 #  4 = diffuse 0-1
 #  5 = spectral 0-1
 #  6 = shininess 0-?
-#  7 = brightness offset 0-0.5
-#
+#  7 = gamma 0.1-10.0 (not used for shading)
+###############################################################################
 @nb.njit(cache=False)
 def phong3D(normal: complex, light: list[float]) -> float:
 	# Lambert normal shading (diffuse light)
 	normal /= abs(normal)    
 
-	# theta: light angle; phi: light azimuth
-	# light vector: [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
+	# theta:         light angle; phi: light azimuth
+	# light vector:  [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
 	# normal vector: [normal.real, normal.imag, 1]
-	# ldiff: diffuse light = dot product(light, normal)
+	# ldiff:         diffuse light = dot product(light, normal)
 	ldiff = (normal.real * math.cos(light[0]) * math.cos(light[1]) +
 		normal.imag * math.sin(light[0]) * math.cos(light[1]) + 
 		1 * math.sin(light[1]))
 	# Normalization
 	ldiff = ldiff / (1 + 1 * math.sin(light[1]))
 
-	# phi2: average between phi and pi/2 (viewer azimuth)
+	# phi2:  average between phi and pi/2 (viewer azimuth)
 	# lspec: specular light = dot product(phi2, normal)
 	phi2 = (math.pi / 2 + light[1]) / 2
 	lspec = (normal.real * math.cos(light[0]) * math.sin(phi2) +
@@ -327,29 +327,26 @@ def phong3D(normal: complex, light: list[float]) -> float:
 	# Shininess
 	lspec = lspec ** light[6]
 
-	# bright: Brightness = ambiant + diffuse + specular
+	# Brightness = ambiant + diffuse + specular
 	bright = light[3] + light[4]*ldiff + light[5] * lspec
+
 	# Add intensity
 	bright = bright * light[2] + (1-light[2]) / 2
 
 	# Return brightness with optional offset
-	return min(1.0, bright + light[7])
+	return bright
 
 
 
 """
 	Color palettes
 
-	Color palettes are numpy arrays of type flooat64 with shape (n,3).
+	Color palettes are numpy arrays of type float64 with shape (n,3).
 	They contain at least 2 elements: first and last color.
 	If a default color is specified it is stored at the end of the array.
 	An array row contains the red, green and blue part of a color in range [0..1].
 
 """
-
-#
-# Create color palettes
-#
 
 # Create a palette based on colorpoints with smooth transitions between colorpoints 
 def createLinearPalette(numColors: int, colorPoints: list = [(1., 1., 1.)], defColor: tuple | None = None) -> np.ndarray:
