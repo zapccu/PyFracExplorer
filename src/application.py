@@ -1,7 +1,9 @@
 
 from tkinter import *
-from tkinter import filedialog as fd
+from tkinter import filedialog as fd, messagebox
 from gui import *
+
+import json
 
 import colors as col
 import presets as ps
@@ -17,6 +19,10 @@ import tkconfigure as tkc
 class Application:
 
 	def __init__(self, width: int, height: int, title: str):
+
+		# Default fractal
+		self.fractal = man.Mandelbrot()
+
 		# Settings
 		self.settings = tkc.TKConfigure({
 			"Image parameters": {
@@ -114,11 +120,19 @@ class Application:
 					'widget':    'TKCColor',
 					'width':     80
 				}
+			},
+			"#FractalSettings": {
+				'fractal': {
+					'inputtype': 'tkc',
+					'initvalue': self.fractal.settings,
+					'widget':    'TKCMask',
+					'widgetattr': {
+						'padx': 2,
+						'pady': 3
+					}
+				}
 			}
 		})
-
-		# Default fractal
-		self.fractal = man.Mandelbrot()
 
 		# Default color palette
 		self.palette = 'Grey'
@@ -126,27 +140,33 @@ class Application:
 		# Image drawer
 		self.draw = None
 
+		# Fractal definition file
+		self.filename = None
+
 		# Create GUI
 		self.gui = GUI(self, title, width, height, statusHeight=50, controlWidth=400)
 
 		# Create menu
 		self.menubar = Menu(self.gui.mainWindow)
 
+		# File menu
 		self.fileMenu = Menu(self.menubar, tearoff=0)
-		self.fileMenu.add_command(label="Open", command=self.onFileOpen)
-		self.fileMenu.add_command(label="Save as", command=self.onFileSaveAs)
+		self.fileMenu.add_command(label="Open ...", command=self.onFileOpen)
+		self.fileMenu.add_command(label="Save", command=self.onFileSave)
+		self.fileMenu.add_command(label="Save as ...", command=self.onFileSaveAs)
 		self.fileMenu.add_separator()
 		self.fileMenu.add_command(label="Exit", command=self.gui.mainWindow.quit)
 		self.menubar.add_cascade(label="File", menu=self.fileMenu)
 
+		# Image menu
 		self.imageMenu = Menu(self.menubar, tearoff=0)
-		self.imageMenu.add_command(label="Save as", state="disabled", command=self.onImageSaveAs)
+		self.imageMenu.add_command(label="Save as ...", state="disabled", command=self.onImageSaveAs)
 		self.menubar.add_cascade(label="Image", menu=self.imageMenu)
 
 		self.gui.mainWindow.config(menu=self.menubar)
 
 		# Create settings widgets
-		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=3)
+		self.fractalRow = self.settings.createMask(self.gui.controlFrame, startrow=self.gui.controlFrame.nextRow(), padx=2, pady=3, submasks=False)
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 		# Define selection handler
@@ -193,7 +213,23 @@ class Application:
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 		return True
+	
+	def saveSettingsToFile(self, filename: str) -> bool:
+		try:
+			js = {
+				'application': self.settings.getConfig(simple=True),
+				'fractal':     self.fractal.settings.getConfig(simple=True)
+			}
 
+			with open(filename, "w") as outputFile:
+				outputFile.write(tkc.TKConfigure.toJSON(js))
+				return True
+			
+		except Exception as e:
+			print(e)
+			messagebox.showerror("Error", "Cannot save file")
+			return False
+	
 	#
 	# Menu command handling
 	#
@@ -206,12 +242,20 @@ class Application:
 		]
 		fileName = fd.askopenfilename(filetypes=fileTypes)
 
+	def onFileSave(self):
+		if self.filename is None:
+			self.onFileSaveAs()
+		else:
+			self.saveSettingsToFile(self.filename)
+
 	# Save fractal definition
 	def onFileSaveAs(self):
 		fileTypes = [
 			('Fractal definition', '*.frc')
 		]
 		fileName = fd.asksaveasfilename(filetypes=fileTypes)
+		if self.saveSettingsToFile(fileName):
+			self.filename = fileName
 
 	# Save image
 	def onImageSaveAs(self):
