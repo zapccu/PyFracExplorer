@@ -13,7 +13,7 @@ import julia as jul
 
 from drawer import *
 
-import tkconfigure as tkc
+import tkconfigure.src.tkconfigure as tkc
 
 
 class Application:
@@ -120,17 +120,6 @@ class Application:
 					'widget':    'TKCColor',
 					'width':     80
 				}
-			},
-			"#FractalSettings": {
-				'fractal': {
-					'inputtype': 'tkc',
-					'initvalue': self.fractal.settings,
-					'widget':    'TKCMask',
-					'widgetattr': {
-						'padx': 2,
-						'pady': 3
-					}
-				}
 			}
 		})
 
@@ -227,12 +216,46 @@ class Application:
 			
 		except Exception as e:
 			print(e)
-			messagebox.showerror("Error", "Cannot save file")
+			messagebox.showerror("Error", "Cannot save fractal settings to file")
+			return False
+		
+	def loadSettingsFromFile(self, filename: str) -> bool:
+		try:
+			with open(filename, "r") as inputFile:
+				js = json.load(inputFile, object_hook=tkc.TKConfigure._decodeJSON)
+
+				for section in ('application', 'fractal'):
+					if section not in js:
+						raise KeyError(f"Missing section {section} in JSON")
+
+				print("set config application")
+				self.settings.setConfig(js['application'], simple=True, checkmissing=True)
+
+				if self.settings['fractalType'] not in ('Mandelbrot', 'Julia'):
+					raise KeyError(f"Unknow fractal type {self.settings['fractalType']}")
+				
+				self.fractal.settings.deleteMask()
+
+				if self.settings['fractalType'] == 'Mandelbrot':
+					self.fractal = man.Mandelbrot()
+				else:
+					self.fractal = jul.Julia()
+
+				print("set config fractal")
+				self.fractal.settings.setConfig(js['fractal'], simple=True, checkmissing=True)
+				self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
+
+				return True
+
+		except Exception as e:
+			print("ERROR", e)
+			messagebox.showerror("Error", "Cannot read fractal settings from file")
 			return False
 	
-	#
+
+	###########################################################################
 	# Menu command handling
-	#
+	###########################################################################
 
 	# Open fractal definition
 	def onFileOpen(self):
@@ -241,7 +264,10 @@ class Application:
 			('All files', '*')
 		]
 		fileName = fd.askopenfilename(filetypes=fileTypes)
+		if fileName is not None:
+			self.loadSettingsFromFile(fileName)
 
+	# Save fractal defintion using current filename
 	def onFileSave(self):
 		if self.filename is None:
 			self.onFileSaveAs()
@@ -264,9 +290,10 @@ class Application:
 		if fileName is not None and self.draw is not None and self.draw.image is not None:
 			self.draw.image.save(fileName, "png")
 
-	#
+
+	###########################################################################
 	# Screen selection handling
-	#
+	###########################################################################
 
 	def onPointSelected(self, x, y):
 		self.gui.controlFrame.btnApply.config(state=NORMAL)
@@ -280,9 +307,9 @@ class Application:
 		self.gui.controlFrame.btnApply.config(state=DISABLED)
 
 
-	#
+	###########################################################################
 	# Command handling
-	#
+	###########################################################################
 	
 	# Apply button pressed
 	def onApply(self):
@@ -320,16 +347,17 @@ class Application:
 		self.draw.drawFractal(self.fractal, 0, 0, w, h, onStatus=self.onStatusUpdate)
 		self.onStatusUpdate({'drawing': "{:.2f} s".format(self.draw.calcTime)})
 		
-		self.imageMenu.entryconfig('Save as', state="normal")
+		self.imageMenu.entryconfig('Save as ...', state="normal")
 		self.gui.selection.enable(scalefactor=self.draw.scaleFactor)
 
 	# Cancel button pressed
 	def onCancel(self):
 		self.draw.cancel = True
 
-	#
+
+	###########################################################################
 	# Widget event handling
-	#
+	###########################################################################
 
 	# Autoscale enabled/disabled
 	def onAutoscale(self, oldValue, newValue):

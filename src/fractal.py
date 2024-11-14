@@ -4,10 +4,11 @@ import math
 
 import numpy as np
 import numba as nb
-import tkconfigure as tkc
+import tkconfigure.src.tkconfigure as tkc
 import colors as col
 
 from constants import *
+
 
 #####################################################################
 # Base class for all kind of Mandelbrot and Julia sets
@@ -18,25 +19,24 @@ class Fractal:
 	def __init__(self, corner: complex, size: complex, stripes: int = 0, steps: int = 0, ncycle: int = 1):
 
 		"""
-		Fractal light settings for shading, can be modified in separate dialog window
-		
-		Internally used as list with 8 elements:		
-			0 = Angle 0-360 degree
-			1 = Angle elevation 0-90
-			2 = opacity 0-1, def=0.75
-				Reduce the brightness, 0=dark
-			3 = ambient light 0-1, def=0.2
-				Even when it is dark there is usually still some light somewhere in the world (the moon, a distant light)
-				so objects are almost never completely dark. The ambient lighting constant simulates this and always
-				gives the object some color.
-			4 = diffuse light 0-1, def=0.5
+		Fractal light settings for shading, can be modified in separate dialog window.
+		Internally stored as list with 8 elements:	
+
+			0 = light angle 0-360 degree
+			1 = elevation angle 0-90 degree
+			2 = opacity 0-1, default=0.75, 0=dark
+				Reduces the brightness
+			3 = ambient light 0-1, default=0.2
+				distant or indirect light. Objects are almost never completely dark. The ambient lighting constant simulates
+				this and always gives the object some color
+			4 = diffuse light 0-1, default=0.5
 				Simulates the directional impact a light object has on an object. This is the most visually significant
 				component of the lighting model. The more a part of an object faces the light source, the brighter it becomes.
-			5 = specular light 0-1, def=0.5
+			5 = specular light 0-1, default=0.5
 				Simulates the bright spot of a light that appears on shiny objects. Specular highlights are more inclined to
 				the color of the light than the color of the object.
-			6 = shininess 1-30, def=20.0
-			7 = gamma correction 0.1-10.0, def=1.0 (no correction)
+			6 = shininess 1-30, default=20.0
+			7 = gamma correction 0.1-10.0, default=1.0 (no correction)
 		"""
 		self.lightSettings = tkc.TKConfigure({
 			"Light": {
@@ -225,6 +225,7 @@ gives the object some color""",
 
 		"""
 		colorPar: list with color related parameters:	
+
 			0 = stripes
 			1 = stripe_sig (0.9)
 			2 = steps
@@ -245,6 +246,7 @@ gives the object some color""",
 
 		"""
 		light: Light source for shading		
+		
 			0 = Angle 0-360 degree
 			1 = Angle elevation 0-90
 			2 = opacity 0-1
@@ -377,7 +379,7 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 
 # Map iteration result to color depending on mapping method
 #
-#   colorPar
+#   colorPar:
 #     0 = stripe_a
 #     1 = step_s
 #     2 = ncycle

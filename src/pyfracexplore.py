@@ -14,7 +14,7 @@
 import sys
 
 # Add path of submodule tkconfigure
-sys.path.insert(0, "./src/tkconfigure/src") 
+# sys.path.insert(0, "./src/tkconfigure/src") 
 
 from application import *
 
