@@ -243,6 +243,7 @@ gives the object some color""",
 			# Stripes and steps require 3D shading
 			colorOptions = (colorOptions & FO_NOSHADING) | FO_BLINNPHONG_3D
 			print("Added FO_BLINPHONG_3D to color options for stripes/steps support")
+		print(f"Color options = {colorOptions}")
 
 		"""
 		light: Light source for shading		
@@ -258,8 +259,12 @@ gives the object some color""",
 		"""
 		light = self.settings['light'].getValues()
 		print("Light = ", light)
-		light[0] = 2 * math.pi * light[0] / 360
-		light[1] = math.pi / 2 * light[1] / 90
+		if colorOptions & FO_SIMPLE_3D:
+			light[0] = light[0] * 2 * math.pi / 360
+			light[1] = light[1] / 90
+		else:
+			light[0] = 2 * math.pi * light[0] / 360
+			light[1] = math.pi / 2 * light[1] / 90
 
 		return (self.settings['colorize'], self.settings['paletteMode'], colorOptions, colorPar, light)
 
@@ -399,7 +404,7 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		bright = 1.0
 
 	if stripe_a > 0 or step_s > 0:
-		color = shading(palette, iter, dist, normal, colorPar, bright)
+		color = shading(palette, iter, dist, colorPar, bright)
 	elif colorize == FC_ITERATIONS:
 		if palettemode == FP_LINEAR:
 			color = palette[int(iter/maxIter * pLen)] * bright
@@ -428,8 +433,13 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 	else:
 		return (color * 255).astype(np.uint8)
 
+#
+# Blending of 2 values (layers)
+# Called by shading()
+#
 @nb.njit
-def overlay(x, y, gamma):
+def overlay(x: float, y: float, gamma: float):
+	# https://en.wikipedia.org/wiki/Blend_modes#Overlay
 	if (2*y) < 1:
 		out = 2*x*y
 	else:
@@ -437,7 +447,14 @@ def overlay(x, y, gamma):
 	return out * gamma + x * (1-gamma)
 
 @nb.njit
-def shading(palette, niter, dist, normal, colorPar, bright):
+def hardLight(x: float, y: float):
+	return 2 * x * y if y < 0.5 else 1 - 2 * (1 - x) * (1 - y)
+
+#
+# Shading. Called for steps and stripes
+#
+@nb.njit
+def shading(palette, niter, dist, colorPar, bright):
 	stripe_a, step_s, ncycle, maxIter = colorPar
 	pLen = len(palette)-2
 
@@ -474,17 +491,17 @@ def shading(palette, niter, dist, normal, colorPar, bright):
 		light_step2 = 6 * (1 - x**5 - (1 - x)**30) / 10
 
 		# Overlay merge between major and minor steps
-		light_step = overlay(light_step2, light_step, 1)
+		light_step = hardLight(light_step2, light_step)
 		nshader += 1
 		shader += light_step
 
 	# Applying shaders to brightness
 	if nshader > 0:
-		bright = overlay(bright, shader/nshader, 1) * (1-dist) + dist * bright
+		bright = hardLight(bright, shader/nshader) * (1-dist) + dist * bright
 
 	color = np.copy(palette[palIdx])
 	for i in range(3):
-		color[i] = overlay(color[i], bright, 1)
+		color[i] = hardLight(color[i], bright)
 	return color.clip(0, 1)
 	
 # Iterate a line from (x, y) to xy (horizontal or vertical, depending on 'orientation')

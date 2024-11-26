@@ -268,13 +268,16 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 #  1 = Angle elevation 0-90
 #  7 = gamma correction 0.1-10.0
 #
+# BUG: hier wird mit den korrigierten light Werten gerechnet
+#
 @nb.njit(cache=False)
 def simple3D(normal: complex, light: list[float]) -> float:
 	# height factor of the incoming light (1.5 = 45 deg)
-	h2 = 1 + light[1] / 90.0
+	h2 = 1 + light[1]
 
 	# unit 2D vector in this direction
-	v = cmath.exp(complex(0,1) * light[0] * 2 * math.pi / 360)
+	# r1 = exp(r)*cos(i), i1 = exp(r)*sin(i)
+	v = cmath.exp(complex(0,1) * light[0])
 
 	# normal vector: (u.re,u.im,1) 
 	normal /= abs(normal)
