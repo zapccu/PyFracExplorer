@@ -124,7 +124,7 @@ gives the object some color""",
 					"initvalue": corner,
 					"widget":    "TKCEntry",
 					"label":     "Corner",
-					"width":     25
+					"width":     30
 				},
 				"size": {
 					"tooltip":   "Complex size of fractal",
@@ -132,7 +132,7 @@ gives the object some color""",
 					"initvalue": size,
 					"widget":    "TKCEntry",
 					"label":     "Size",
-					"width":     25
+					"width":     30
 				}
 			},
 			"Colorization": {

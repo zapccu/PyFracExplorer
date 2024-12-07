@@ -46,9 +46,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.11, .02, .92]
-			}
+			'par':  [.11, .02, .92]
 		}
 	},
 	'pow': {
@@ -63,9 +61,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.29, .02, 0.9]
-			}
+			'par':  [.29, .02, 0.9]
 		}
 	},
 	'octogone': {
@@ -80,9 +76,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.83, .01, .99]
-			}
+			'par':  [.83, .01, .99]
 		}
 	},
 	'julia': {
@@ -97,9 +91,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.87, .83, .77]
-			}
+			'par':  [.87, .83, .77]
 		}
 	},
 	'lightning': {
@@ -114,9 +106,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.54, .38, .35]
-			}
+			'par':  [.54, .38, .35]
 		}
 	},
 	'web': {
@@ -131,9 +121,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.47, .51, .63]
-			}
+			'par':  [.47, .51, .63]
 		}
 	},
 	'wave': {
@@ -148,9 +136,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.6, .57, .45]
-			}
+			'par':  [.6, .57, .45]
 		}
 	},
 	'tiles': {
@@ -165,9 +151,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.63, .83, .98]
-			}
+			'par':  [.63, .83, .98]
 		}
 	},
 	'velvet': {
@@ -182,9 +166,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.29, .52, .59]
-			}
+			'par':  [.29, .52, .59]
 		}
 	},
 	"color-vortex": {
@@ -200,9 +182,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.85, .0, .15]
-			}
+			'par':  [.85, .0, .15]
 		}
 	},
 	"double-swirl": {
@@ -218,9 +198,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.85, .0, .15]
-			}
+			'par':  [.85, .0, .15]
 		}
 	},
 	"blue-julia": {
@@ -237,9 +215,7 @@ presets = {
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
-			'par': {
-				'thetas': [.85, .0, .15]
-			}
+			'par':  [.85, .0, .15]
 		}
 	}
 }

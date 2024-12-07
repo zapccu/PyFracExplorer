@@ -109,6 +109,7 @@ class Drawer:
 		y2 = y + oHeight -1
 
 		if self.bDrawing == False:
+			# Prepare fractal parameters for drawing
 			if self.fractal.beginCalc(oWidth, oHeight) == False: return False
 			self.cancel = False
 			self.bDrawing = True
@@ -120,6 +121,7 @@ class Drawer:
 		self.statSplit = 0
 		self.statOrbits = 0
 
+		# Prepare calculation parameters
 		calcParameters = self.fractal.getCalcParameters()
 
 		self.fractal.settings.dumpConfig()
@@ -128,7 +130,8 @@ class Drawer:
 		# Prepare image map for oversampling
 		if oversampling > 1:
 			self.imageMap = np.resize(self.imageMap, (oHeight, oWidth, 3))
-			
+		
+		# Draw fractal
 		drawFnc(x, y, x2, y2, iterFnc, calcParameters)
 
 		# Reduce image map to original size

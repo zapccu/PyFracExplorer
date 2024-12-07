@@ -5,53 +5,46 @@ import cmath
 import numpy as np
 import numba as nb
 
-#
-# Predefined color tables
-#
+"""
+    ***************************************************************************
+	 Predefined color tables
+    ***************************************************************************
+"""
+
 
 colorTables = {
 	"Monochrome": {
 		"type": "Linear",
 		"size": 4096,
-		"par": {
-			"colorPoints": [(1., 1., 1.)]
-		}
+		"par": [(1., 1., 1.)]
 	},
 	"Grey": {
 		"type": "Linear",
 		"size": 4096,
-		"par": {
-			"colorPoints": [(80/255, 80/255, 80/255), (1., 1., 1.)]
-		}
+		"par": [(80/255, 80/255, 80/255), (1., 1., 1.)]
 	},
 	"Blue - Grey - Blue": {
 		"type": "Linear",
 		"size": 4096,
-		"par": {
-			"colorPoints": [(.4, .4, .5), (.0, .0, 1.), (.4, .4, 128/255)]
-		}
+		"par": [(.4, .4, .5), (.0, .0, 1.), (.4, .4, 128/255)]
 	},
-	"Sinus - [.85, .0, .15]": {
+	"Sinus [.85, .0, .15]": {
 		"type": "Sinus",
 		"size": 4096,
-		"par": {
-			"thetas": [.85, .0, .15]
-		}
+		"par": [.85, .0, .15]
 	},
 	"Sinus Cosinus": {
 		"type": "SinusCosinus",
 		"size": 4096,
-		"par": {}
+		"par": []
 	},
 	"Preset": {
-		"name": "Preset",
 		"type": "Sinus",
 		"size": 4096,
-		"par": {
-			"thetas": [.85, .0, .15]
-		}
+		"par": [.85, .0, .15]
 	}
 }
+
 
 ###############################################################################
 # Construct colors
@@ -67,6 +60,7 @@ def rgb(red: float, green: float, blue: float) -> np.ndarray:
 # Construct a rgbi array. red, green, blue are in range 0..255
 def rgbi(red: int, green: int, blue: int) -> np.ndarray:
 	return np.asarray([red, green, blue], dtype=np.uint8)
+
 
 ###############################################################################
 # RGB functions
@@ -108,6 +102,7 @@ def int2rgbi(intColor: int) -> np.ndarray:
 # Convert rgb value to integer value: 0xrrggbb
 def rgbi2int(rgb: np.ndarray) -> int:
 	return (int(rgb[2]) & 0xFF) | ((int(rgb[1]) & 0xFF) << 8) | ((int(rgb[0]) & 0xFF) << 16)
+
 
 ###############################################################################
 # Color conversion functions
@@ -256,11 +251,12 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 	if i == 4: return np.asarray([t, p, v], dtype=np.float64)
 	if i == 5: return np.asarray([v, p, q], dtype=np.float64)
 
+
 ###############################################################################
 # Shading functions (brightness calculation)
 ###############################################################################
 
-#
+###############################################################################
 # Simple shading
 #
 # light: Light source for shading
@@ -269,7 +265,7 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 #  7 = gamma correction 0.1-10.0
 #
 # BUG: hier wird mit den korrigierten light Werten gerechnet
-#
+###############################################################################
 @nb.njit(cache=False)
 def simple3D(normal: complex, light: list[float]) -> float:
 	# height factor of the incoming light (1.5 = 45 deg)
@@ -342,12 +338,14 @@ def phong3D(normal: complex, light: list[float]) -> float:
 
 
 """
+    ***************************************************************************
 	Color palettes
 
 	Color palettes are numpy arrays of type float64 with shape (n,3).
 	They contain at least 2 elements: first and last color.
 	If a default color is specified it is stored at the end of the array.
-	An array row contains the red, green and blue part of a color in range [0..1].
+	An array row contains red, green and blue parts of a color in range [0..1].
+	***************************************************************************
 
 """
 
@@ -417,7 +415,7 @@ paletteFunctions = {
 def createPaletteFromDef(paletteDef: dict, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
 	entries = size if size != -1 else paletteDef['size']
 	fnc = paletteFunctions[paletteDef['type']]
-	return fnc(entries, **paletteDef['par'], defColor=defColor)
+	return fnc(entries, paletteDef['par'], defColor=defColor)
 
 # Create palette from colortable (list of rgb values)
 def createPaletteFromList(colorTable: list, defColor: tuple | None = None) -> np.ndarray:

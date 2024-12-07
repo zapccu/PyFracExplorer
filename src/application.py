@@ -23,6 +23,41 @@ class Application:
 		# Default fractal
 		self.fractal = man.Mandelbrot()
 
+		self.colorSettings = tkc.TKConfigure({
+			"Color parameters": {
+				"type": {
+					'inputtype': 'str',
+					'valrange':  ['Linear', 'Sinus', 'SinusCosinus'],
+					'initvalue': 'Linear',
+					'widget':    'TKCListbox',
+					'label':     'Type',
+					'width':     15
+				},
+				"name": {
+					'inputtype': 'str',
+					'initvalue': 'Grey',
+					'widget':    'TKCEntry',
+					'label':     'Name',
+					'width':     20
+				},
+				"size": {
+					'inputtype': 'int',
+					'valrange':  (2, 4096, 50),
+					'initvalue': 4096,
+					'widget':    'TKCSpinbox',
+					'label':     'Size',
+					'width':     8
+				},
+				"par": {
+					'inputtype': 'list',
+					'initvalue': [(0.4, 0.4, 0.4), (1.0, 1.0, 1.0)],
+					'widget':    'TKCList',
+					'label':     'Parameters',
+					'width':     20
+				}
+			}
+		})
+
 		# Settings
 		self.settings = tkc.TKConfigure({
 			"Image parameters": {
@@ -105,8 +140,8 @@ class Application:
 					'notify': self.onPaletteChanged
 				},
 				'colorTable': {
-					'inputtype': 'list',
-					'initvalue': [ col.colorTables['Grey'], col.createPalette('Grey').tolist(), 'Grey' ],
+					'inputtype': 'tkc',
+					'initvalue': self.colorSettings,
 					'widget':    'TKCColortable',
 					'label':     'Color table',
 					'width':     200,
@@ -196,8 +231,8 @@ class Application:
 		self.palette = 'Preset'
 		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
 
-		colorTable = col.createPalette('Preset').tolist()
-		self.settings.set('colorTable', [preset['palette'], colorTable, 'Preset'], sync=True)
+		# colorTable = col.createPalette('Preset').tolist()
+		self.settings.set('colorTable', [preset['palette'], 'Preset'], sync=True)
 
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
@@ -389,15 +424,16 @@ class Application:
 	# Color palette selected
 	def onPaletteChanged(self, oldValue, newValue):
 		self.palette = newValue
-		colorTable = col.createPalette(newValue).tolist()
-		self.settings.set('colorTable', [col.colorTables[newValue], colorTable, newValue], sync=True)
+		self.colorSettings.setConfig(col.colorTables[newValue], simple=True)
 
 	# Color palette modified with color editor
 	def onColorTableChanged(self, oldValue, newValue):
-		paletteDef, colorTable, paletteName = newValue
-		col.colorTables[paletteName] = paletteDef
+		paletteName = newValue['name']
+		col.colorTables[paletteName] = newValue.getConfig(simple=True)
+		# Update dropdown list of color table names
 		self.settings.setPar('Fractal selection', 'colorPalette', 'valrange', list(col.colorTables.keys()))
 		self.settings.set('colorPalette', paletteName, sync=True)
+		self.settings.set('colorTable', newValue, sync=True)
 
 	# Status updates
 	def onStatusUpdate(self, statusInfo: dict):
