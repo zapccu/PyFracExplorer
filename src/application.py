@@ -263,7 +263,7 @@ class Application:
 					if section not in js:
 						raise KeyError(f"Missing section {section} in JSON")
 
-				print("set config application")
+				print("Set application parameters")
 				self.settings.setConfig(js['application'], simple=True, checkmissing=True)
 
 				if self.settings['fractalType'] not in ('Mandelbrot', 'Julia'):
@@ -276,7 +276,6 @@ class Application:
 				else:
 					self.fractal = jul.Julia()
 
-				print("set config fractal")
 				self.fractal.settings.setConfig(js['fractal'], simple=True, checkmissing=True)
 				self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 

@@ -259,12 +259,10 @@ gives the object some color""",
 		"""
 		light = self.settings['light'].getValues()
 		print("Light = ", light)
-		if colorOptions & FO_SIMPLE_3D:
-			light[0] = light[0] * 2 * math.pi / 360
-			light[1] = light[1] / 90
-		else:
-			light[0] = 2 * math.pi * light[0] / 360
-			light[1] = math.pi / 2 * light[1] / 90
+		light[0] = deg2rad(light[0])
+		light[1] = deg2rad(light[1])
+		#if colorOptions & FO_SIMPLE_3D:
+			#light[1] = light[1] / 90
 
 		return (self.settings['colorize'], self.settings['paletteMode'], colorOptions, colorPar, light)
 
@@ -515,3 +513,6 @@ def getUniqueColor(L: np.ndarray) -> np.ndarray:
 	bUnique = 1 if np.all(L == L[0,:]) else 0
 	return np.append(L[0], bUnique)
 
+# Convert degree to radian
+def deg2rad(deg: float) -> float:
+	return math.pi * deg / 180.0
