@@ -159,7 +159,7 @@ class Application:
 		})
 
 		# Default color palette
-		self.palette = 'Grey'
+		# self.palette = 'Grey'
 
 		# Image drawer
 		self.draw = None
@@ -228,7 +228,8 @@ class Application:
 		self.fractal.settings.setValues(colorize=preset['colorize'], colorOptions=preset['colorOptions'])
 
 		col.colorTables['Preset'] = preset['palette']
-		self.palette = 'Preset'
+		self.settings['colorPalette'] = 'Preset'
+		# self.palette = 'Preset'
 		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
 
 		# colorTable = col.createPalette('Preset').tolist()
@@ -408,7 +409,7 @@ class Application:
 			self.fractal.settings.deleteMask()
 			self.fractal = man.Mandelbrot()
 			self.settings.set('colorPalette', 'Grey', sync=True)
-			self.palette = 'Grey'
+			# self.palette = 'Grey'
 			self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 
 	# Fractal type changed
@@ -422,8 +423,8 @@ class Application:
 
 	# Color palette selected
 	def onPaletteChanged(self, oldValue, newValue):
-		self.palette = newValue
 		self.colorSettings.setConfig(col.colorTables[newValue], simple=True)
+		self.settings.syncWidget('colorTable')
 
 	# Color palette modified with color editor
 	def onColorTableChanged(self, oldValue, newValue):

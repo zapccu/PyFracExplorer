@@ -26,7 +26,7 @@ class Drawer:
 
 		# Create color table
 		defColor = col.str2rgb(app['defColor'])
-		self.palette = col.createPalette(app.palette, defColor=defColor)
+		self.palette = col.createPalette(app['colorPalette'], defColor=defColor)
 
 		self.iterFnc = {
 			'Mandelbrot': man.calculateVectorZ2,

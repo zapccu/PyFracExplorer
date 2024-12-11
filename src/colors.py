@@ -260,11 +260,9 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 # Simple shading
 #
 # light: Light source for shading
-#  0 = Angle 0-360 degree
+#  0 = Angle in radians
 #  1 = Angle elevation 0-90
 #  7 = gamma correction 0.1-10.0
-#
-# BUG: hier wird mit den korrigierten light Werten gerechnet
 ###############################################################################
 @nb.njit(cache=False)
 def simple3D(normal: complex, light: list[float]) -> float:
@@ -291,7 +289,7 @@ def simple3D(normal: complex, light: list[float]) -> float:
 # Blinn Phong shading
 #
 # light: Light source for shading
-#  0 = angle 0-360
+#  0 = angle in radians
 #  1 = elevation 0-90
 #  2 = opacity 0-1
 #  3 = ambiant 0-1
