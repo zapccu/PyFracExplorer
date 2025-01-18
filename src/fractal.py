@@ -211,7 +211,8 @@ gives the object some color""",
 						"height": 480,
 						"padx":   10,
 						"pady":   5
-					}
+					},
+					"pardef": 	self.lightSettings.parDef
 				}
 			}
 		})
@@ -278,7 +279,7 @@ gives the object some color""",
 	def zoomArea(self, imageWidth: int, imageHeight: int, x1: int, y1: int, x2: int, y2: int):
 		size = self.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
 		corner = self.mapXY(x1, y1, imageWidth, imageHeight)
-		self.setDimensions(size.real, size.imag, corner.real, corner.imag)
+		self.setDimensions(corner, size)
 
 	# Zoom in or out by specified percentage value
 	def zoom(self, percent: float, imageWidth: int, imageHeight: int, x: int = 0, y: int = 0):
@@ -380,6 +381,7 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 		
 	return -1
 
+###############################################################################
 # Map iteration result to color depending on mapping method
 #
 #   colorPar:
@@ -403,6 +405,8 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 
 	if stripe_a > 0 or step_s > 0:
 		color = shading(palette, iter, dist, colorPar, bright)
+
+	# Color based on iterations
 	elif colorize == FC_ITERATIONS:
 		if palettemode == FP_LINEAR:
 			color = palette[int(iter/maxIter * pLen)] * bright
@@ -419,9 +423,11 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 			# /100, /130
 			color = col.lch2rgb(np.array([(75 - (75 * v)), (28 + (75 - (75 * v))), math.pow(360 * iter, 1.5) % 360])) * bright
 
+	# Color based on distance
 	elif colorize == FC_DISTANCE:
 		color = palette[int(math.tanh(dist) * pLen)] * bright
 
+	# Color based on potential
 	elif colorize == FC_POTENTIAL:
 		color = palette[int(pLen * iter/colorPar[3])] * bright
 

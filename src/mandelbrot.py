@@ -140,7 +140,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout:
-			if bDist:
+			if bDist or bStripe:
 				aZ = math.sqrt(nZ)
 				log_ratio = 2 * math.log(aZ) / math.log(bailout)
 				smooth_i = 1 - math.log(log_ratio) / math.log(2)

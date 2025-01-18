@@ -1,4 +1,6 @@
 
+import math
+
 #####################################################################
 # Calculation and color mapping constants
 #####################################################################
@@ -23,3 +25,12 @@ FO_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 
 FO_SHADING       = 12     # Combination of FO_BLINNPHONG_3D, FO_SIMPLE_3D
 FO_NOSHADING     = 3
+
+
+#####################################################################
+# Numeric constants
+#####################################################################
+
+NC_PI12 = math.pi / 2.0
+NC_PI2  = math.pi * 2.0
+NC_LOG2 = math.log(2.0)

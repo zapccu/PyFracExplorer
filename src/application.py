@@ -145,7 +145,8 @@ class Application:
 					'widget':    'TKCColortable',
 					'label':     'Color table',
 					'width':     200,
-					'notify':    self.onColorTableChanged
+					'notify':    self.onColorTableChanged,
+					'pardef':    self.colorSettings.parDef
 				},
 				'defColor': {
 					'inputtype': 'str',
@@ -353,8 +354,10 @@ class Application:
 		if self.gui.selection.isAreaSelected():
 			# Zoom in
 			x1, y1, x2, y2 = self.gui.selection.getArea()
+			print(f"x1={x1}, y1={y1}, x2={x2}, y2={y2}")
 			size   = self.fractal.mapWH(x2-x1+1, y2-y1+1, imageWidth, imageHeight)
 			corner = self.fractal.mapXY(x1, y1, imageWidth, imageHeight)
+			print("corner=", corner, "size=", size)
 			self.fractal.setDimensions(corner, size)
 
 		elif self.gui.selection.isPointSelected():

@@ -107,7 +107,7 @@ def rgbi2int(rgb: np.ndarray) -> int:
 ###############################################################################
 # Color conversion functions
 #
-# Supported color spaces are rgb, xyz, lab, lch, hsl, hsb
+# Supported color spaces are rgb, xyz, lab, lch, oklch, hsl, hsb
 ###############################################################################
 
 # Matrix-Vector multiplication to prevent installation of Scipy
@@ -175,18 +175,36 @@ def lab2lch(lab: np.ndarray) -> np.ndarray:
 	L, a, b = lab
 	h = np.arctan2(b, a)
 	h = np.where(h > 0, h / np.pi * 180., 360. + h / np.pi * 180.)
-	c = np.sqrt(a**2 + b**2)
+	c = np.sqrt(a * a + b * b)
 	return np.array([L, c, h], dtype=np.float64)
+
+# Convert lab to oklch
+@nb.njit(cache=False)
+def lab2oklch(lab: np.ndarray) -> np.ndarray:
+	l, a, b = lab
+	h = math.atan2(b * a) * (180 / math.pi)
+	if h < 0: h += 360
+	c_max = 100                     # max chroma valua
+	c = math.sqrt(a * a + b * b)
+	c = (c / c_max) * 0.37          # chroma scaled to 0 .. 0.37
+	l = math.round(((l + 16) / 116) * 1000) / 1000   # l in range 0 .. 1
+	return np.array([l, c, h], dtype=np.float64)	
 
 # Convert lch to lab
 @nb.njit(cache=False)
 def lch2lab(lch: np.ndarray) -> np.ndarray:
 	l, c, h = lch
-
 	a = math.cos(h * np.pi / 180.) * c
 	b = math.sin(h * np.pi / 180.) * c
-
 	return np.array([l, a, b ], dtype=np.float64)
+
+# Convert oklch to lab
+@nb.njit(cache=False)
+def oklch2lab(oklch: np.ndarray) -> np.ndarray:
+	l, c, h = oklch
+	a = c * math.cos((h * math.pi) / 180)
+	b = c * math.sin((h * math.pi) / 180)
+	return np.array([l, a, b], dtype=np.float64)
 
 # Convert rgb to lab
 @nb.njit(cache=False)
