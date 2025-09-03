@@ -15,7 +15,7 @@ import numba as nb
 
 import fractal as frc
 import colors as col
-import tkconfigure.src.tkconfigure as tkc
+import tkconfigure.tkconfigure as tkc
 
 from constants import *
 

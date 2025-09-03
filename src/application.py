@@ -13,7 +13,7 @@ import julia as jul
 
 from drawer import *
 
-import tkconfigure.src.tkconfigure as tkc
+import tkconfigure.tkconfigure as tkc
 
 
 class Application:

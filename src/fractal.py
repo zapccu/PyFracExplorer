@@ -4,7 +4,8 @@ import math
 
 import numpy as np
 import numba as nb
-import tkconfigure.src.tkconfigure as tkc
+import tkconfigure.tkconfigure as tkc
+# import .src.tkconfigure as tkc
 import colors as col
 
 from constants import *
