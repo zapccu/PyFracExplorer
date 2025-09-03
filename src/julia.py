@@ -83,7 +83,7 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, bail
 
 	for i in range(0, maxIter+1):
 		if bDist or colorOptions & FO_SHADING:
-			D = D * 2 * Z + 1
+			D = D * 2 * Z
 
 		Z = Z * Z + C
 

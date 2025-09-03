@@ -5,6 +5,8 @@ import cmath
 import numpy as np
 import numba as nb
 
+from constants import *
+
 """
     ***************************************************************************
 	 Predefined color tables
@@ -280,25 +282,28 @@ def hsb2rgb(hue: float, saturation: float, brightness: float) -> np.ndarray:
 # light: Light source for shading
 #  0 = Angle in radians
 #  1 = Angle elevation 0-90
-#  7 = gamma correction 0.1-10.0
+#  8 = Height (1 + elevation[deg] / 90)
 ###############################################################################
 @nb.njit(cache=False)
 def simple3D(normal: complex, light: list[float]) -> float:
-	# height factor of the incoming light (1.5 = 45 deg)
-	h2 = 1 + light[1]
+	# height factor of the incoming light
+	# example for 45 deg elevation: 1 + 45/90 = 1.5
+	# h2 = 1 + light[1]
+	# => Stored in light[8]
 
 	# unit 2D vector in this direction
 	# r1 = exp(r)*cos(i), i1 = exp(r)*sin(i)
-	v = cmath.exp(complex(0,1) * light[0])
+	# exp(complex(0,1)) * light[0]) == (cos(light[0], sin(light[0])))
+	#v = cmath.exp(complex(0,1) * light[0])
 
-	# normal vector: (u.re,u.im,1) 
-	normal /= abs(normal)
-
-	# dot product with the incoming light
-	t = normal.real * v.real + normal.imag * v.imag + h2
+	# normal /= abs(normal)
+	absNormal = normal / abs(normal)
+	vecNormal = [absNormal.real, absNormal.imag, 1.0]
+	vecSimple = [math.cos(light[0]), math.sin(light[0]), 0.0]
+	t = vecSimple[0] * vecNormal[0] +  vecSimple[1] * vecNormal[1] + vecSimple[2] * vecNormal[2] + light[8]
 
 	# rescale so that t does not get bigger than 1
-	bright = t / (1 + h2)
+	bright = t / (1.0 + light[8])
 
 	# Return brightness with optional offset
 	return bright
@@ -321,6 +326,7 @@ def phong3D(normal: complex, light: list[float]) -> float:
 	# Lambert normal shading (diffuse light)
 	normal /= abs(normal)    
 
+	# Diffuse light
 	# theta:         light angle; phi: light azimuth
 	# light vector:  [cos(theta)cos(phi), sin(theta)cos(phi), sin(phi)]
 	# normal vector: [normal.real, normal.imag, 1]
@@ -329,16 +335,18 @@ def phong3D(normal: complex, light: list[float]) -> float:
 		normal.imag * math.sin(light[0]) * math.cos(light[1]) + 
 		1 * math.sin(light[1]))
 	# Normalization
-	ldiff = ldiff / (1 + 1 * math.sin(light[1]))
+	ldiff /= (1 + math.sin(light[1]))
 
+	# Specular light
 	# phi2:  average between phi and pi/2 (viewer azimuth)
 	# lspec: specular light = dot product(phi2, normal)
-	phi2 = (math.pi / 2 + light[1]) / 2
+	phi2 = (NC_PI12 + light[1]) / 2
 	lspec = (normal.real * math.cos(light[0]) * math.sin(phi2) +
 		normal.imag * math.sin(light[0]) * math.sin(phi2) +
 		1 * math.cos(phi2))
 	# Normalization
-	lspec /= (1 + 1 * math.cos(phi2))
+	lspec /= (1 + math.cos(phi2))
+
 	# Shininess
 	lspec = lspec ** light[6]
 

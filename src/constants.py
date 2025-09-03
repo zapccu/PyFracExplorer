@@ -23,8 +23,8 @@ FO_INSIDE_DIST   = 2      # Distance inside set
 FO_SIMPLE_3D     = 4      # Colorize by distance with 3D shading
 FO_BLINNPHONG_3D = 8      # Blinn/Phong 3D shading
 
-FO_SHADING       = 12     # Combination of FO_BLINNPHONG_3D, FO_SIMPLE_3D
-FO_NOSHADING     = 3
+FO_SHADING       = 12     # Bitmask: Combination of FO_BLINNPHONG_3D, FO_SIMPLE_3D
+FO_NOSHADING     = 3      # Bitmask: No shading
 
 
 #####################################################################
@@ -34,3 +34,4 @@ FO_NOSHADING     = 3
 NC_PI12 = math.pi / 2.0
 NC_PI2  = math.pi * 2.0
 NC_LOG2 = math.log(2.0)
+NC_1_LOG2 = 1.0 / NC_LOG2

@@ -233,6 +233,10 @@ gives the object some color""",
 			3 = sqrt(ncycle)
 			4 = diag
 		"""
+		coord1 = self.settings['corner']
+		coord2 = coord1 + self.settings['size']
+		diag = math.sqrt((coord2.real - coord1.real) ** 2 + (coord2.imag - coord1.imag) ** 2)
+		# diag = math.sqrt((self.coord[1]-self.coord[0])**2 + (self.coord[3]-self.coord[2])**2)
 		diag = abs(self.settings['size'])
 		colorPar = [float(self.settings['stripes']), 0.9, float(self.settings['steps']), math.sqrt(self.settings['ncycle']), diag]
 
@@ -257,13 +261,14 @@ gives the object some color""",
 			5 = specular 0-1
 			6 = shininess 1-30
 			7 = gamma correction 0.1-10.0
+			8 = height factor
 		"""
 		light = self.settings['light'].getValues()
-		print("Light = ", light)
+		print("light =", light)
+		light.append(1.0 + light[1] / 90.0)
 		light[0] = deg2rad(light[0])
 		light[1] = deg2rad(light[1])
-		#if colorOptions & FO_SIMPLE_3D:
-			#light[1] = light[1] / 90
+		print("simple =", math.cos(light[0]), math.sin(light[0]))
 
 		return (self.settings['colorize'], self.settings['paletteMode'], colorOptions, colorPar, light)
 
@@ -390,6 +395,7 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 #     2 = ncycle
 #     3 = maxIter
 #
+###############################################################################
 @nb.njit(cache=False)
 def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, colorPar: list[float],
 				  light: list[float], colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:

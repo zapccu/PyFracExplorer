@@ -234,7 +234,8 @@ class Application:
 		self.settings.setValues(sync=True, colorPalette='Preset', fractalType=preset['type'])
 
 		# colorTable = col.createPalette('Preset').tolist()
-		self.settings.set('colorTable', [preset['palette'], 'Preset'], sync=True)
+		# self.settings.set('colorTable', [preset['palette'], 'Preset'], sync=True)
+		self.settings.set('colorTable', preset['palette'], sync=True)
 
 		self.fractal.settings.createMask(self.gui.controlFrame, startrow=self.fractalRow, padx=2, pady=3)
 

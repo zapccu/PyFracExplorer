@@ -57,6 +57,74 @@ class Mandelbrot(frc.Fractal):
 
 ###############################################################################
 #
+# Calculate reference points
+#
+#   C - Point in the complex plain
+#   maxIter - Maximum number of iterations
+#   bailout - Bailout radius
+#
+# Returns:
+#
+#  Array with reference points
+#
+###############################################################################
+@nb.njit(cache=False)
+def perturbationReference(C: complex, maxIter: int, bailout: float) -> np.ndarray:
+	R = np.zeros((maxIter+1,), dtype=np.complex128)
+	Z = complex(0.0, 0.0)
+
+	for i in range(maxIter+1):
+		R[i] = Z
+		Z = Z * Z + C
+
+		if abs(Z) > bailout:
+			break
+
+	return R[:i]
+
+###############################################################################
+#
+# Perturbation of the reference points
+#
+# Parameters:
+#
+#   R - Array with reference points
+#
+#   dc - Difference to the reference point
+#
+#   maxIter - Maximum number of iterations
+#
+#   maxRefIter - The last valid iteration of the reference
+#     (the iteration just before it escapes)
+#
+#   bailout - Bailout radius
+#
+###############################################################################
+@nb.njit(cache=False)
+def perturbation(R: np.ndarray, dc: complex, maxIter: int, maxRefIter: int, bailout: float) -> int:
+	dz = complex(0.0, 0.0)
+	Z = complex(0.0, 0.0)
+	i = 0
+	ri = 0
+
+	while i < maxIter:
+		dz = 2 * R[ri] * dz + dz * dz + dc
+		ri += 1
+
+		Z = R[ri] + dz
+		aZ = abs(Z)
+		if aZ > bailout:
+			break
+		if aZ < abs(dz) or ri == maxRefIter:
+			dz = Z
+			ri = 0
+
+		i += 1
+
+	return i
+
+###############################################################################
+#
 # Iterate complex point using standard Mandelbrot formular Z = Z * Z + C
 #
 # Parameters:
@@ -125,34 +193,46 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	period = 0              # Period counter for fast orbit detection
 	D = complex(1.0, 0.0)   # 1st derivation of Z
 	smooth_i = 0			# Smooth iteration counter
+	potf = 1.0              # Potential factor 1/2^N
 
 	if bOrbits:
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
 		if bDist or colorOptions & FO_SHADING:
+			# Derivation of Z
 			D = D * 2 * Z + 1
 
 		Z = Z * Z + C
 
 		if bStripe:
-			stripe_t = (math.sin(stripe_s * math.atan2(Z.imag, Z.real)) + 1) / 2
+			stripe_t = (math.sin(stripe_s * math.atan2(Z.imag, Z.real)) + 1) * 0.5
 
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout:
+			aZ = math.sqrt(nZ)   # abs(Z)
+
 			if bDist or bStripe:
-				aZ = math.sqrt(nZ)
 				log_ratio = 2 * math.log(aZ) / math.log(bailout)
-				smooth_i = 1 - math.log(log_ratio) / math.log(2)
-				dist = aZ * math.log(aZ) / abs(D) / 2
+				# Smooth iteration counter
+				# maxIter - log2 * log(bailout) * abs(Z)
+				smooth_i = 1.0 - math.log(log_ratio) * NC_1_LOG2
+
+				# Exterior distance to mandelbrot set
+				# dist = abs(Z) * log(abs(Z)) / abs(D)
+				dist = aZ * math.log(aZ) / abs(D) # / 2
 
 			if bStripe:
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
 
 			if colorize == FC_POTENTIAL:
-				logZn = math.log(nZ)/2.0
-				pot = math.log(logZn / math.log(2)) / math.log(2)	
+				# Calculate potential
+				# pot = log(abs(Z)) / 2 ^ N
+				pot = math.log(aZ) * potf
+				# logZn = math.log(nZ)/2.0
+				# pot = math.log(logZn * NC_1_LOG2) * NC_1_LOG2
+				smooth_i = 1.0 - pot
 
 			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter)]
 
@@ -178,6 +258,8 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 
 		if bStripe:
 			stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
+
+		potf *= 0.5
 
 	return col.rgb2rgbi(P[-1])
 

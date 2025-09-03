@@ -31,6 +31,30 @@ shininess = 20.0
 gamma = 1.0
 maxIter = 4000
 Calc parameters = (0, 0, 8, [1.0, 0.9, 0.0, 5.656854249492381, 2.205399766836215e-06], [0.7853981633974483, 0.7853981633974483, 0.75, 0.2, 0.5, 0.5, 20.0, 1.0], 4000)
+
+oversampling=3
+Added FO_BLINPHONG_3D to color options for stripes/steps support
+Color options = 8
+Light =  [45.0, 45.0, 0.75, 0.2, 0.5, 0.5, 20.0, 1.0]
+corner = (-0.444034931929449+0.5679335680125882j)
+size = (6.918886023330793e-06+6.918886023330793e-06j)
+colorize = 0
+paletteMode = 0
+colorOptions = 8
+stripes = 1
+steps = 0
+ncycle = 32
+oversampling = 3
+angle = 45.0
+elevation = 45.0
+opacity = 0.75
+ambient = 0.2
+diffuse = 0.5
+specular = 0.5
+shininess = 20.0
+gamma = 1.0
+maxIter = 4000
+
 """
 
 presets = {
