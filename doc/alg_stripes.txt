@@ -1,0 +1,71 @@
+
+func IterateStripes(complex C, int maxIter, float stripe_s, float stripe_sig) {
+
+	float dist = 0.0
+
+	float stripe_a = 0.0
+
+	float smooth_i	// Smooth iteration counter
+
+	complex Z = 0
+	complex D = 1   // 1st derivation of Z
+
+	for i in 0...maxIter+1 {
+
+		// Mandelbrot iteration
+		Z = Z * Z + C
+
+		// Norm(Z)
+		nZ = Z.real * Z.real + Z.imag * Z.imag
+
+		// Stripe Average Coloring
+    	// See: Jussi Harkonen On Smooth Fractal Coloring Techniques
+        // cos instead of sin for symmetry
+    	// angle(Z) = atan2(Z.imag, Z.real)
+		stripe_t = (sin(stripe_s * atan2(Z.imag, Z.real)) + 1) * 0.5
+
+		if nZ > bailout {
+			aZ = abs(Z)
+
+			// Calculate smooth iteration counter offset 
+			log_ratio = 2 * log(aZ) / log(bailout)
+            smooth_io = 1 - log(log_ratio) / log(2)
+
+			// Calculate smooth iteration counter
+			smooth_i = i + smooth_io
+
+			// Stripe average coloring
+            // Smoothing + linear interpolation
+            // spline interpolation does not improve
+			stripe_a = (stripe_a * (1 + smooth_io * (stripe_sig - 1)) + stripe_t * smooth_io * (1 - stripe_sig))
+          
+            // Init correction, init weight is now:
+            // stripe_sig**n * (1 + smooth_i * (stripe_sig-1))
+            // thus, a's weight is 1 - init_weight. We rescale
+			stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_io * (stripe_sig - 1)))
+
+			// Normal vector for lightning
+			normal = Z / D
+
+			# Milton's distance estimator
+            dem = aZ * log(aZ) / abs(D) / 2
+
+			// Calculate palette color index
+			ncol = len(palette)
+			smooth_i = sqrt(smooth_i) % ncycle / ncycle
+			col_index = round(niter * ncol)
+
+			// Calculate brightness
+			bright = blinn_phong(normal, light)
+
+			// dem: log transform and sigmoid on [0,1] => [0,1]
+    		dem = -log(dem) / 12
+    		dem = 1 / (1 + exp(-10 * ((2 * dem - 1) / 2)))
+		}
+
+		// Derivation of Z
+		D = D * 2 * Z + 1
+
+		stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
+	}
+}

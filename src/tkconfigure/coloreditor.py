@@ -17,6 +17,16 @@ defaultPaletteDef = {
 		"type": "Sinus",
 		"size": 4096,
 		"par": [.85, .0, .15]
+	},
+	"Cosinus": {
+		"type": "Cosinus",
+		"size": 4096,
+		"par": [0.1, 0.0, 2.0, 4.0]
+	},
+	"SinusCosinus": {
+		"type": "SinusCosinus",
+		"size": 4096,
+		"par": [0.1, 0.01]
 	}
 }
 
@@ -30,7 +40,7 @@ class ColorEditor:
 			"Color parameters": {
 				"type": {
 					'inputtype': 'str',
-					'valrange':  ['Linear', 'Sinus', 'SinusCosinus'],
+					'valrange':  ['Linear', 'Sinus', 'Cosinus', 'SinusCosinus'],
 					'initvalue': palettedef['type'],
 					'widget':    'TKCListbox',
 					'label':     'Type',
@@ -72,7 +82,7 @@ class ColorEditor:
 				},
 				'paletteType': {
 					'inputtype': 'str',
-					'valrange':  ['Linear', 'Sinus'],
+					'valrange':  ['Linear', 'Sinus', 'Cosinus','SinusCosinus'],
 					'initvalue': palettedef['type'],
 					'widget':    'TKCListbox',
 					'label':     'Palette type',
@@ -157,11 +167,15 @@ class ColorEditor:
 
 	# Create palette type specific settings
 	def paletteTypeSettings(self, palettedef):
+		# Create new parameter group
+		colorSettings = {
+			"Colorsettings": { }
+		}
+
 		if palettedef['type'] == 'Linear':
 			# Create new parameter group
-			colorSettings = { 'Color points': {} }
 			for n, cp in enumerate(palettedef['par'], start=0):
-				colorSettings['Color points']['point' + str(n)] = {
+				colorSettings['Colorsettings']['point' + str(n)] = {
 					'inputtype': 'str',
 					'initvalue': '#{:02X}{:02X}{:02X}'.format(int(cp[0]*255), int(cp[1]*255), int(cp[2]*255)),
 					'label':     'point ' + str(n),
@@ -169,22 +183,53 @@ class ColorEditor:
 					'width':     80,
 					'notify':    self.onPointChanged
 				}
-			return tkc.TKConfigure(colorSettings)
 		
 		elif palettedef['type'] == 'Sinus':
-			# Create new parameter group
-			colorSettings = { 'Thetas': {} }
 			for n, t in enumerate(palettedef['par'], start=1):
-				colorSettings['Thetas']['theta' + str(n)] = {
+				colorSettings['Colorsettings']['theta' + str(n)] = {
 					'inputtype': 'float',
 					'valrange':  (0, 1, 0.01),
-					'initvalue': t,
+					'initvalue': float(t),
 					'label':     'theta ' + str(n),
 					'widget':    'TKCSlider',
 					'width':     120,
 					'notify':    self.onThetaChanged
 				}
-			return tkc.TKConfigure(colorSettings)
+		
+		elif palettedef['type'] == 'Cosinus':
+			colorSettings['Colorsettings']['Frequency'] = {
+				'inputtype': 'float',
+				'valrange':  (0.01, 1, 0.01),
+				'initvalue': float(palettedef['par'][0]),
+				'label':     'Frequency',
+				'widget':    'TKCSlider',
+				'width':     120,
+				'notify':    self.onCosineChanged
+			}
+			for n in range(1, 4):
+				colorSettings['Colorsettings']['phase' + str(n)] = {
+					'inputtype': 'float',
+					'valrange':  (0, 5, 1),
+					'initvalue': float(palettedef['par'][n]),
+					'label':     'phase ' + str(n),
+					'widget':    'TKCSlider',
+					'width':     120,
+					'notify':    self.onCosineChanged
+				}
+
+		elif palettedef['type'] == 'SinusCosinus':
+			for n, t in enumerate(palettedef['par'], start=1):
+				colorSettings['Colorsettings']['freq' + str(n)] = {
+					'inputtype': 'float',
+					'valrange':  (0, 1, 0.01),
+					'initvalue': t,
+					'label':     'frequency ' + str(n),
+					'widget':    'TKCSlider',
+					'width':     120,
+					'notify':    self.onFrequencyChanged
+				}
+
+		return tkc.TKConfigure(colorSettings)
 	
 	# Convert html color string to rgb 0..1 (f=255) or rgbi 0..255 (f=1)
 	def _str2rgb(self, html: str, f = 1) -> tuple:
@@ -232,12 +277,38 @@ class ColorEditor:
 		return ct
 	
 	@staticmethod
+	def createCosinePalette(numColors: int, par: list = [0.1, 0, 2, 4]) -> list:
+		print("Creating Cosine palette with", numColors, "colors, freq =", par[0], "phase =", par[1:])
+		ct = ColorEditor._linspace((0, 0, 0), (1, 1, 1), numColors)
+		for i in range(numColors):
+			ct[i][0] = 0.5 * (1.0 + math.cos(i * par[0] + par[1]))
+			ct[i][1] = 0.5 * (1.0 + math.cos(i * par[0] + par[2]))
+			ct[i][2] = 0.5 * (1.0 + math.cos(i * par[0] + par[3]))
+
+		return ct
+	
+	# Create Sinus/Cosinus palette
+	@staticmethod
+	def createSinusCosinusPalette(numColors: int, freq: list = [0.1, 0.01]) -> list:
+		ct = ColorEditor._linspace((0, 0, 0), (1, 1, 1), numColors)
+		for i in range(numColors):
+			ct[i][0] = i / (numColors - 1)
+			ct[i][1] = (math.cos(i * freq[0]) + 1.0) * 0.5
+			ct[i][2] = (math.sin(i * freq[1]) + 1.0) * 0.5
+
+		return ct
+	
+	@staticmethod
 	def createPaletteFromDef(paletteDef: dict, size: int = -1) -> list:
 		entries = size if size != -1 else paletteDef['size']
 		if paletteDef['type'] == 'Linear':
 			return ColorEditor.createLinearPalette(entries, paletteDef['par'])
 		elif paletteDef['type'] == 'Sinus':
 			return ColorEditor.createSinusPalette(entries, paletteDef['par'])
+		elif paletteDef['type'] == 'Cosinus':
+			return ColorEditor.createCosinePalette(entries, paletteDef['par'])
+		elif paletteDef['type'] == 'SinusCosinus':
+			return ColorEditor.createSinusCosinusPalette(entries, paletteDef['par'])
 		else:
 			raise ValueError("Illegal palette type")
 
@@ -274,6 +345,23 @@ class ColorEditor:
 			"type": "Sinus",
 			"size": self.masterSettings['paletteSize'],
 			"par":  thetas
+		})
+
+	# Cosinus palette: One of the phase values changed
+	def onCosineChanged(self, oldValue, newValue):
+		par = [ self.typeSettings['Frequency'], self.typeSettings['phase1'], self.typeSettings['phase2'], self.typeSettings['phase3'] ]
+		self.updateColorTable({
+			"type": "Cosinus",
+			"size": self.masterSettings['paletteSize'],
+			"par":  par
+		})
+
+	def onFrequencyChanged(self, oldValue, newValue):
+		frequencies = [ self.typeSettings['freq1'], self.typeSettings['freq2'], self.typeSettings['freq3'] ]
+		self.updateColorTable({
+			"type": "SinusCosinus",
+			"size": self.masterSettings['paletteSize'],
+			"par":  frequencies
 		})
 
 	# Button OK or CANCEL pressed

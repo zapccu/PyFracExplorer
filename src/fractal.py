@@ -148,7 +148,7 @@ gives the object some color""",
 				},
 				"paletteMode": {
 					"inputtype": "int",
-					"valrange":  ["Linear", "Modulo", "Hue", "Hue dynamic", "Luma Chroma Hue"],
+					"valrange":  ["Linear", "Modulo", "Hue", "Hue dynamic", "Luma Chroma Hue", "Bernstein"],
 					"initvalue": 0,
 					"widget":     "TKCRadiobuttons",
 					"widgetattr": {
@@ -245,7 +245,7 @@ gives the object some color""",
 		colorOptions: Flags for color mapping
 		"""
 		colorOptions = self.settings['colorOptions']
-		if self.settings['stripes'] > 0 or self.settings['steps'] > 0:
+		if (self.settings['stripes'] > 0 or self.settings['steps'] > 0) and not (colorOptions & FO_SHADING):
 			# Stripes and steps require 3D shading
 			colorOptions = (colorOptions & FO_NOSHADING) | FO_BLINNPHONG_3D
 			print("Added FO_BLINPHONG_3D to color options for stripes/steps support")
@@ -395,14 +395,19 @@ def findOrbit(O: np.ndarray, Z: complex, tolerance1: float, tolerance2: float):
 #     1 = step_s
 #     2 = ncycle
 #     3 = maxIter
+#	  4 = pot
 #
 ###############################################################################
 @nb.njit(cache=False)
 def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, dist: float, colorPar: list[float],
 				  light: list[float], colorize: int = 0, palettemode: int = 0, colorOptions: int = 0) -> np.ndarray:
-	pLen = len(palette)-1
-	stripe_a, step_s, ncycle, maxIter = colorPar
+	stripe_a, step_s, ncycle, maxIter, pot = colorPar
 
+	# Last palette entry is reserved for out-of-bounds
+	# so reduce palette length by 2 here for indexing
+	pLen = len(palette)-2
+
+	# Calculate brightness for 3D shading
 	if colorOptions & FO_SIMPLE_3D:
 		bright = col.simple3D(normal, light)
 	elif colorOptions & FO_BLINNPHONG_3D:
@@ -410,15 +415,19 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 	else:
 		bright = 1.0
 
+	# Color cycling. cycle_iter in range [0,1]
+	cycle_iter = math.sqrt(iter) % ncycle / ncycle
+
+	# Color based on stripes or steps (colorize and palette mode do not matter here)
 	if stripe_a > 0 or step_s > 0:
-		color = shading(palette, iter, dist, colorPar, bright)
+		color = shading(palette, cycle_iter, dist, colorPar, bright)
 
 	# Color based on iterations
 	elif colorize == FC_ITERATIONS:
 		if palettemode == FP_LINEAR:
 			color = palette[int(iter/maxIter * pLen)] * bright
 		elif palettemode == FP_MODULO:
-			color = palette[int(pLen * iter/maxIter) % int(ncycle)] * bright
+			color = palette[round(cycle_iter * pLen)] * bright
 		elif palettemode == FP_HUE:
 			color = col.hsb2rgb(palette[0,0], palette[0,1], bright)
 		elif palettemode == FP_HUEDYN:
@@ -429,14 +438,24 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 			v = 1.0 - math.pow(math.cos(math.pi * iter), 2.0)
 			# /100, /130
 			color = col.lch2rgb(np.array([(75 - (75 * v)), (28 + (75 - (75 * v))), math.pow(360 * iter, 1.5) % 360])) * bright
+		elif palettemode == FP_BERNSTEIN:
+			t = iter / maxIter
+			r = 9 * (1 - t) * t**3
+			g = 15 * (1 - t)**2 * t**2
+			b = 8.5 * (1 - t)**3 * t
+			color = np.array([r, g, b]) * bright
 
 	# Color based on distance
 	elif colorize == FC_DISTANCE:
+		# color = palette[round(cycle_iter * pLen)]
+		# dist = -math.log(dist) / 12
+		# dist = 1 / (1 + math.exp(-10 * ((2 * dist - 1)/2)))
 		color = palette[int(math.tanh(dist) * pLen)] * bright
+		# color = palette[int(dist * pLen)] * bright
 
 	# Color based on potential
 	elif colorize == FC_POTENTIAL:
-		color = palette[int(pLen * iter/colorPar[3])] * bright
+		color = palette[int(pLen * pot)] * bright
 
 	# Gamma correction
 	if light[7] != 1.0:
@@ -445,18 +464,21 @@ def mapColorValue(palette: np.ndarray, iter: float, nZ: float, normal: complex, 
 		return (color * 255).astype(np.uint8)
 
 #
-# Blending of 2 values (layers)
+# Blending of 2 values (layers) with gamma correction
 # Called by shading()
+# https://en.wikipedia.org/wiki/Blend_modes#Overlay
 #
 @nb.njit
 def overlay(x: float, y: float, gamma: float):
-	# https://en.wikipedia.org/wiki/Blend_modes#Overlay
-	if (2*y) < 1:
+	if y < 0.5:
 		out = 2*x*y
 	else:
 		out = 1 - 2 * (1 - x) * (1 - y)
 	return out * gamma + x * (1-gamma)
 
+#
+# Blending of 2 values (layers) without gamma correction
+#
 @nb.njit
 def hardLight(x: float, y: float):
 	return 2 * x * y if y < 0.5 else 1 - 2 * (1 - x) * (1 - y)
@@ -466,12 +488,11 @@ def hardLight(x: float, y: float):
 #
 @nb.njit
 def shading(palette, niter, dist, colorPar, bright):
-	stripe_a, step_s, ncycle, maxIter = colorPar
-	pLen = len(palette)-2
+	stripe_a, step_s, ncycle, maxIter, pot = colorPar
 
-	# Cycle through palette
-	niter = math.sqrt(niter) % ncycle / ncycle
-	palIdx = round(niter * pLen)
+	# Last palette entry is reserved for out-of-bounds
+	# so reduce palette length by 2 here for indexing
+	pLen = len(palette)-2
 
 	# distance estimation: log transform and sigmoid on [0,1] => [0,1]
 	dist = -math.log(dist) / 12
@@ -505,6 +526,8 @@ def shading(palette, niter, dist, colorPar, bright):
 		light_step = hardLight(light_step2, light_step)
 		nshader += 1
 		shader += light_step
+	else:
+		palIdx = round(niter * pLen)
 
 	# Applying shaders to brightness
 	if nshader > 0:

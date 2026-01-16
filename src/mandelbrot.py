@@ -153,7 +153,9 @@ def perturbation(R: np.ndarray, dc: complex, maxIter: int, maxRefIter: int, bail
 #
 #   maxIter - Maximum number of iterations
 #
-#   bailout - Bailout radius
+#   bailoutPar - Bailout parameters:
+#      [0] = bailoug radius
+#      [1] = log(bailout)
 #
 #   colorPar - Color calculation parameters:
 #      [0] = stripe_s   - Stripe density, frequency for stripe average coloring
@@ -174,7 +176,7 @@ def perturbation(R: np.ndarray, dc: complex, maxIter: int, maxRefIter: int, bail
 #
 ###############################################################################
 @nb.njit(cache=False)
-def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int, colorOptions: int, maxIter: int, bailout: float,
+def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int, colorOptions: int, maxIter: int, bailoutPar: list[float],
 					 colorPar: list[float], light: list[float]) -> np.ndarray:
 	diaScale = maxIter/10.0
 
@@ -182,6 +184,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	pot = 0.0
 	stripe_a = 0.0
 	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
+	bailout, log_bailout = bailoutPar
 
 	bStripe = stripe_s > 0 and colorOptions & FO_SHADING
 	bStep   = step_s > 0 and colorOptions & FO_SHADING
@@ -193,15 +196,15 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	period = 0              # Period counter for fast orbit detection
 	D = complex(1.0, 0.0)   # 1st derivation of Z
 	smooth_i = 0			# Smooth iteration counter
-	potf = 1.0              # Potential factor 1/2^N
+	potf = 0.5              # Potential factor 1/2^N
 
 	if bOrbits:
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
-		if bDist or colorOptions & FO_SHADING:
+		#if bDist or colorOptions & FO_SHADING:
 			# Derivation of Z
-			D = D * 2 * Z + 1
+			#D = D * 2 * Z + 1
 
 		Z = Z * Z + C
 
@@ -211,30 +214,24 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 		nZ = Z.real * Z.real + Z.imag * Z.imag
 		if nZ > bailout:
 			aZ = math.sqrt(nZ)   # abs(Z)
+			log_aZ = math.log(aZ)
 
-			if bDist or bStripe:
-				log_ratio = 2 * math.log(aZ) / math.log(bailout)
-				# Smooth iteration counter
-				# maxIter - log2 * log(bailout) * abs(Z)
-				smooth_i = 1.0 - math.log(log_ratio) * NC_1_LOG2
+			# Smooth iteration counter
+			log_ratio = 2.0 * log_aZ / log_bailout
+			smooth_i = 1.0 - math.log(log_ratio) * NC_1_LOG2
 
-				# Exterior distance to mandelbrot set
-				# dist = abs(Z) * log(abs(Z)) / abs(D)
-				dist = aZ * math.log(aZ) / abs(D) # / 2
+			# Exterior distance to mandelbrot set
+			dist = aZ * log_aZ / abs(D) / 2
+
+			# Calculate potential
+			# pot = log(abs(Z)) / 2 ^ N
+			pot = log_aZ * potf
 
 			if bStripe:
 				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
 
-			if colorize == FC_POTENTIAL:
-				# Calculate potential
-				# pot = log(abs(Z)) / 2 ^ N
-				pot = math.log(aZ) * potf
-				# logZn = math.log(nZ)/2.0
-				# pot = math.log(logZn * NC_1_LOG2) * NC_1_LOG2
-				smooth_i = 1.0 - pot
-
-			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter)]
+			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter), pot]
 
 			return frc.mapColorValue(P, float(i+smooth_i), nZ, Z/D, dist/diag, mapColorPar, light, colorize, paletteMode, colorOptions)
 
@@ -259,6 +256,10 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 		if bStripe:
 			stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
 
+		if bDist or colorOptions & FO_SHADING:
+			# Derivation of Z
+			D = D * 2 * Z + 1
+
 		potf *= 0.5
 
 	return col.rgb2rgbi(P[-1])
@@ -266,7 +267,8 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 @nb.guvectorize([(nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(k),(l),() -> (n,j)', nopython=True, cache=False, target='parallel')
 def calculateVectorZ2(C, P, colorize, paletteMode, colorOptions, colorPar, light, maxIter, R):
 	bailout = 4.0 if colorize == FC_ITERATIONS and paletteMode != FP_HUE and colorOptions == 0 else 10**10
+	logBailout = math.log(bailout)
 
 	for p in range(C.shape[0]):
-		R[p,:] = calculatePointZ2(C[p], P, colorize, paletteMode, colorOptions, maxIter, bailout, colorPar, light)
+		R[p,:] = calculatePointZ2(C[p], P, colorize, paletteMode, colorOptions, maxIter, [bailout, logBailout], colorPar, light)
 

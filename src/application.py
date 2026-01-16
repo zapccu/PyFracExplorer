@@ -27,7 +27,7 @@ class Application:
 			"Color parameters": {
 				"type": {
 					'inputtype': 'str',
-					'valrange':  ['Linear', 'Sinus', 'SinusCosinus'],
+					'valrange':  ['Linear', 'Sinus', 'Cosinus', 'SinusCosinus'],
 					'initvalue': 'Linear',
 					'widget':    'TKCListbox',
 					'label':     'Type',
@@ -226,7 +226,9 @@ class Application:
 			self.fractal = jul.Julia(preset['point'], corner, size, maxIter=preset['maxIter'], stripes=preset['stripes'],
 								steps=preset['steps'], ncycle=preset['ncycle'])
 
-		self.fractal.settings.setValues(colorize=preset['colorize'], colorOptions=preset['colorOptions'])
+		self.fractal.settings.setValues(colorize=preset['colorize'], colorOptions=preset['colorOptions'], sync=True)
+		if 'paletteMode' in preset:
+			self.fractal.settings.set('paletteMode', preset['paletteMode'], sync=True)
 
 		col.colorTables['Preset'] = preset['palette']
 		self.settings['colorPalette'] = 'Preset'

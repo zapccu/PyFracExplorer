@@ -126,6 +126,7 @@ class Drawer:
 
 		self.fractal.settings.dumpConfig()
 		print("Calc parameters =", calcParameters)
+		print("Palette length =", len(self.palette), self.palette.shape)
 
 		# Prepare image map for oversampling
 		if oversampling > 1:

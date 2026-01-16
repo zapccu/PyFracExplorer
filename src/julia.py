@@ -105,7 +105,7 @@ def calculatePointZ2(Z, P, C, colorize, paletteMode, colorOptions, maxIter, bail
 				logZn = math.log(nZ)/2.0
 				pot = math.log(logZn / math.log(2)) / math.log(2)	
 
-			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter)]
+			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter), pot]
 
 			return frc.mapColorValue(P, float(i+smooth_i), nZ, Z/D, dist/diag, mapColorPar, light, colorize, paletteMode, colorOptions)
 

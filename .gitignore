@@ -3,6 +3,7 @@
 __pycache__
 *code-workspace
 test/**
+src/save/*
 test.png
 test*
 mp.py

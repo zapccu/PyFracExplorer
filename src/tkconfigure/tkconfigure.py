@@ -140,6 +140,8 @@ class TKConfigure:
 		self.notifyChange = None
 		self.notifyError  = None
 
+	def __str__(self):
+		return str(self.getConfig(simple=True))
 
 	###########################################################################
 	# Helper functions
@@ -388,6 +390,10 @@ class TKConfigure:
 	def updateParameterDefinition(self, parameterDefinition: dict, config: dict | None = None):
 		# Complete parameter definition. Add defaults for missing attributes
 		for group in parameterDefinition:
+			# First level must be a dict (group definition)
+			if type(parameterDefinition[group]) is not dict:
+				raise TypeError(f"Parameter definition of group {group} must be of type 'dict'")
+
 			for id in parameterDefinition[group]:
 				if id in self.idList:
 					raise KeyError(f"Duplicate parameter id {id}")

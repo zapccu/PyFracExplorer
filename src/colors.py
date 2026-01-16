@@ -25,6 +25,11 @@ colorTables = {
 		"size": 4096,
 		"par": [(80/255, 80/255, 80/255), (1., 1., 1.)]
 	},
+	"Grey 256": {
+		"type": "Linear",
+		"size": 256,
+		"par": [(80/255, 80/255, 80/255), (1., 1., 1.)]
+	},
 	"Blue - Grey - Blue": {
 		"type": "Linear",
 		"size": 4096,
@@ -35,10 +40,15 @@ colorTables = {
 		"size": 4096,
 		"par": [.85, .0, .15]
 	},
+	"Cosinus [0.1, 0, 2, 4]": {
+		"type": "Cosinus",
+		"size": 4096,
+		"par": [0.1, 0, 2, 4]
+	},
 	"Sinus Cosinus": {
 		"type": "SinusCosinus",
 		"size": 4096,
-		"par": []
+		"par": [0.1, 0.01]
 	},
 	"Preset": {
 		"type": "Sinus",
@@ -415,14 +425,34 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 	else:
 		return np.vstack(((0.5 + 0.5 * np.sin(colors)), np.array(defColor, dtype=np.float64)))
 
-# Create Sinus/Cosinus palette
-def createSinusCosinusPalette(numColors: int, defColor: tuple | None = None) -> np.ndarray:
+###############################################################################
+# Create Cosine palette
+#
+# freq: frequency of the cosine wave [0,1]
+# phase: list of phase shifts for r, g, b
+###############################################################################
+def createCosinePalette(numColors: int, freqphase: list = [0.1, 0, 2, 4], defColor: tuple | None = None) -> np.ndarray:
+	freq = freqphase[0]
+	phase = freqphase[1]
+	ct = np.arange(0, numColors, dtype=np.float64)
+	colors = np.column_stack((
+		0.5 * (1.0 + np.cos(ct * freq + phase[0])),
+		0.5 * (1.0 + np.cos(ct * freq + phase[1])),
+		0.5 * (1.0 + np.cos(ct * freq + phase[2]))
+	))
+	if defColor is None:
+		return colors
+	else:
+		return np.vstack((colors, np.array(defColor, dtype=np.float64)))
+
+# Create Sine/Cosine palette
+def createSinusCosinusPalette(numColors: int, freq: list = [0.1, 0.01], defColor: tuple | None = None) -> np.ndarray:
 	ct = np.arange(0, numColors, dtype=np.float64)
 	colors = np.column_stack((
 		ct/(numColors-1),
-		(np.cos(ct * 0.1) + 1.0) * 0.5,
-		(np.sin(ct * 0.01) + 1.0) * 0.5)
-	)
+		(np.cos(ct * freq[0]) + 1.0) * 0.5,
+		(np.sin(ct * freq[1]) + 1.0) * 0.5
+	))
 	if defColor is None:
 		return colors
 	else:
@@ -432,6 +462,7 @@ def createSinusCosinusPalette(numColors: int, defColor: tuple | None = None) -> 
 paletteFunctions = {
 	"Linear": createLinearPalette,
 	"Sinus": createSinusPalette,
+	"Cosinus": createCosinePalette,
 	"SinusCosinus": createSinusCosinusPalette
 }
 
@@ -439,7 +470,10 @@ paletteFunctions = {
 def createPaletteFromDef(paletteDef: dict, size: int = -1, defColor: tuple | None = None) -> np.ndarray:
 	entries = size if size != -1 else paletteDef['size']
 	fnc = paletteFunctions[paletteDef['type']]
-	return fnc(entries, paletteDef['par'], defColor=defColor)
+	if 'par' not in paletteDef:
+		return fnc(entries, defColor=defColor)
+	else:
+		return fnc(entries, paletteDef['par'], defColor=defColor)
 
 # Create palette from colortable (list of rgb values)
 def createPaletteFromList(colorTable: list, defColor: tuple | None = None) -> np.ndarray:

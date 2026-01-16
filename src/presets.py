@@ -109,9 +109,10 @@ presets = {
 		'coord':      [-1.9415524417847085, -1.9415524394561112, 0.00013385928801614168, 0.00013386059768851223],
 		'stripes':    0,
 		'steps':      0,
-		'ncycle':     32,
-		'colorize':   FC_DISTANCE,
+		'ncycle':     1,
+		'colorize':   FC_ITERATIONS,
 		'colorOptions': FO_BLINNPHONG_3D,
+		'paletteMode': FP_MODULO,
 		'palette': {
 			"type": "Sinus",
 			'size': 4096,
