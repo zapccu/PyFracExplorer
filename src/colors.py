@@ -433,7 +433,7 @@ def createSinusPalette(numColors: int, thetas: list = [.85, .0, .15], defColor: 
 ###############################################################################
 def createCosinePalette(numColors: int, freqphase: list = [0.1, 0, 2, 4], defColor: tuple | None = None) -> np.ndarray:
 	freq = freqphase[0]
-	phase = freqphase[1]
+	phase = freqphase[1:]
 	ct = np.arange(0, numColors, dtype=np.float64)
 	colors = np.column_stack((
 		0.5 * (1.0 + np.cos(ct * freq + phase[0])),

@@ -42,6 +42,7 @@ for y in y_domain:
         
         for i in range(max_iterations):
             # dz = 2 * refOrbit[ri] * dz + dz * dz + dc
+            # We can optimize the above line by using precomputed refOrbit2 (already multiplied by 2)
             dz = refOrbit2[ri] * dz + dz * dz + dc
             ri += 1
 

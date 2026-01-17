@@ -185,6 +185,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 	stripe_a = 0.0
 	stripe_s, stripe_sig, step_s, ncycle, diag = colorPar
 	bailout, log_bailout = bailoutPar
+	one_minus_stripe_sig = 1.0 - stripe_sig
 
 	bStripe = stripe_s > 0 and colorOptions & FO_SHADING
 	bStep   = step_s > 0 and colorOptions & FO_SHADING
@@ -202,9 +203,6 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 		orbits = np.zeros(maxIter, dtype=np.complex128)
 
 	for i in range(0, maxIter+1):
-		#if bDist or colorOptions & FO_SHADING:
-			# Derivation of Z
-			#D = D * 2 * Z + 1
 
 		Z = Z * Z + C
 
@@ -217,7 +215,9 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 			log_aZ = math.log(aZ)
 
 			# Smooth iteration counter
-			log_ratio = 2.0 * log_aZ / log_bailout
+			# log_bailout = 2 / log(bailout)
+			# NC_1_LOG2 = 1 / log(2)
+			log_ratio = log_aZ * log_bailout
 			smooth_i = 1.0 - math.log(log_ratio) * NC_1_LOG2
 
 			# Exterior distance to mandelbrot set
@@ -228,7 +228,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 			pot = log_aZ * potf
 
 			if bStripe:
-				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * (1 - stripe_sig))
+				stripe_a = (stripe_a * (1 + smooth_i * (stripe_sig-1)) + stripe_t * smooth_i * one_minus_stripe_sig)
 				stripe_a = stripe_a / (1 - stripe_sig**i * (1 + smooth_i * (stripe_sig-1)))
 
 			mapColorPar = [stripe_a, step_s, ncycle, float(maxIter), pot]
@@ -240,7 +240,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 			idx = frc.findOrbit(orbits[:i], Z, 1e-15, 1e-11)
 			if idx > -1:
 				# Found orbit, colorize point inside mandelbrot set
-				return col.rgb2rgbi(col.hsb2rgb(min(1.0,(i-idx)/maxIter*diaScale), 1.0, 1-i/maxIter))
+				return col.rgb2rgbi(col.hsb2rgb(min(1.0,(i - idx) / maxIter * diaScale), 1.0, 1 - i / maxIter))
 			orbits[i] = Z
 		else:
 			# Simplified periodicity check, no orbit colorization
@@ -254,11 +254,10 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 					nZ1 = nZ
 
 		if bStripe:
-			stripe_a = stripe_a * stripe_sig + stripe_t * (1-stripe_sig)
+			stripe_a = stripe_a * stripe_sig + stripe_t * one_minus_stripe_sig
 
-		if bDist or colorOptions & FO_SHADING:
-			# Derivation of Z
-			D = D * 2 * Z + 1
+		# Derivation of Z
+		D = D * 2 * Z + 1
 
 		potf *= 0.5
 
@@ -267,7 +266,7 @@ def calculatePointZ2(C: complex, P: np.ndarray, colorize: int, paletteMode: int,
 @nb.guvectorize([(nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.int32, nb.uint8[:,:])], '(n),(i,j),(),(),(),(k),(l),() -> (n,j)', nopython=True, cache=False, target='parallel')
 def calculateVectorZ2(C, P, colorize, paletteMode, colorOptions, colorPar, light, maxIter, R):
 	bailout = 4.0 if colorize == FC_ITERATIONS and paletteMode != FP_HUE and colorOptions == 0 else 10**10
-	logBailout = math.log(bailout)
+	logBailout = 2.0 / math.log(bailout)
 
 	for p in range(C.shape[0]):
 		R[p,:] = calculatePointZ2(C[p], P, colorize, paletteMode, colorOptions, maxIter, [bailout, logBailout], colorPar, light)

@@ -393,7 +393,8 @@ class Application:
 
 	# Cancel button pressed
 	def onCancel(self):
-		self.draw.cancel = True
+		if self.draw is not None:
+			self.draw.cancel = True
 
 
 	###########################################################################

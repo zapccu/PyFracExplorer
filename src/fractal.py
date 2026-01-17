@@ -275,6 +275,9 @@ gives the object some color""",
 
 	# Change fractal dimensions
 	def setDimensions(self, corner: complex, size: complex, sync: bool = True):
+		if size.real == 0 or size.imag == 0:
+			print("Error: fractal size cannot be zero")
+			return
 		self.settings.setValues(sync=sync, corner=corner, size=size)
 
 	# Change fractal coordinates
