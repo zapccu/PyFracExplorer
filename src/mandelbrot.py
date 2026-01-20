@@ -406,7 +406,7 @@ def calculateVectorZ2(C, P, colorize, paletteMode, colorOptions, colorPar, light
 	for p in range(C.shape[0]):
 		R[p,:] = calculatePointZ2(C[p], P, colorize, paletteMode, colorOptions, maxIter, [bailout, log_2_Bailout], colorPar, light)
 
-@nb.guvectorize([(nb.complex128[:], nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.int32, nb.uint8[:,:])], '(n),(n),(i,j),(),(),(),(k),(l),() -> (n,j)', nopython=True, cache=False, target='parallel')
+@nb.guvectorize([(nb.complex128[:], nb.complex128[:], nb.float64[:,:], nb.int32, nb.int32, nb.int32, nb.float64[:], nb.float64[:], nb.int32, nb.uint8[:,:])], '(n),(m),(i,j),(),(),(),(k),(l),() -> (n,j)', nopython=True, cache=False, target='parallel')
 def calculateVectorZ2Pert(DC, RO, P, colorize, paletteMode, colorOptions, colorPar, light, maxIter, R):
 	bailout = 4.0 if colorize == FC_ITERATIONS and paletteMode != FP_HUE and colorOptions == 0 else 10**10
 	log_2_Bailout = 2.0 / math.log(bailout)
