@@ -33,6 +33,11 @@ class Drawer:
 			'Julia': jul.calculateVectorZ2
 		}
 
+		self.iterFncPert = {
+			'Mandelbrot': man.calculateVectorZ2Pert,
+			'Julia': None	# To be implemented
+		}
+
 		self.drawFnc = {
 			'Vectorized': self.drawVectorized,
 			'SQEM Recursive': self.drawSquareEstimationRec,
@@ -85,7 +90,17 @@ class Drawer:
 
 		# Get drawing and calculation methods
 		drawFnc = self.drawFnc[self.app['drawMode']]
-		iterFnc = self.iterFnc[self.app['fractalType']]
+		fractalType = self.app['fractalType']
+		if fractal.settings['perturbation']:
+			iterFnc = self.iterFncPert[fractalType]
+			print("Using perturbation method")
+		else:
+			iterFnc = self.iterFnc[fractalType]
+		if iterFnc is None:
+			print(f"Error: Fractal type '{fractalType}' not supported")
+			return False
+		else:
+			print(f"Drawing fractal type: {fractalType}")
 
 		if width == -1:
 			width = self.width
@@ -155,11 +170,14 @@ class Drawer:
 		return True
 	
 	def drawVectorized(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
-		self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
+		if self.fractal.settings['perturbation']:
+			self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.fractal.refOrbit, self.palette, *calcParameters)
+		else:
+			self.imageMap[y1:y2+1,x1:x2+1] = iterFnc(self.fractal.cplxGrid[y1:y2+1,x1:x2+1], self.palette, *calcParameters)
 
 	def drawLineByLine(self, x1: int, y1: int, x2: int, y2: int, iterFnc, calcParameters: tuple):
 		for y in range(y1, y2+1):
-			self.imageMap[y,x1:x2+1] = man.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
+			self.imageMap[y,x1:x2+1] = frc.calculateSlices(self.fractal.cplxGrid[y,x1:x2+1], self.palette, iterFnc, calcParameters)
 	
 	# Calculate and draw a line, detect unique color
 	def drawLine(self, C, x1, y1, x2, y2, iterFnc, calcParameters):

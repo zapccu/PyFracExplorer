@@ -5,7 +5,6 @@ import math
 import numpy as np
 import numba as nb
 import tkconfigure.tkconfigure as tkc
-# import .src.tkconfigure as tkc
 import colors as col
 
 from constants import *
@@ -134,6 +133,13 @@ gives the object some color""",
 					"widget":    "TKCEntry",
 					"label":     "Size",
 					"width":     30
+				},
+				"perturbation": {
+					"inputtype": "int",
+					"valrange":  (0, 1),
+					"initvalue": 0,
+					"widget":    "TKCCheckbox",
+					"label":     "Use perturbation method"
 				}
 			},
 			"Colorization": {
@@ -218,9 +224,19 @@ gives the object some color""",
 			}
 		})
 
+		# Complex grid for fractal calculation
+		self.cplxGrid = np.array([], dtype=np.complex128)
+
+		# Reference orbit for perturbation method
+		self.refOrbit = np.array([], dtype=np.complex128)
+
 		# Calculation time measurement
 		self.startTime = 0
 		self.calcTime  = 0
+
+	# Reset fractal to initial parameters. Must be implemented in derived classes!
+	def reset(self):
+		pass
 
 	# Return tuple of calculation parameters depending on fractal type
 	def getCalcParameters(self) -> tuple:
@@ -337,6 +353,9 @@ gives the object some color""",
 
 		return (corner, size)
 
+	def perturbationReference(self, C: complex, maxIter: int, bailout: float) -> np.ndarray:
+		pass  # Must be implemented in derived classes
+
 	# Create matrix with mapping of screen coordinates to fractal coordinates
 	def mapScreenCoordinates(self, imageWidth: int, imageHeight: int, aspectRatio: bool = True):
 		corner, size = self.settings.getValues(['corner', 'size'])
@@ -350,7 +369,20 @@ gives the object some color""",
 				   np.ones((imageWidth,), dtype=np.complex128))
 		self.cplxGrid = dxTab + dyTab
 
+		# For perturbation method, store distance from referenece point in matrix
+		# Also create reference orbit for reference point
+		if self.settings['perturbation']:
+			colorOptions = self.settings['colorOptions']
+			colorize = self.settings['colorize']
+			paletteMode = self.settings['paletteMode']
+			bailout = 4.0 if colorize == FC_ITERATIONS and paletteMode != FP_HUE and colorOptions == 0 else 10**10
+
+			refPoint = corner + size / 2.0
+			self.cplxGrid = self.cplxGrid - refPoint
+			self.refOrbit = self.perturbationReference(refPoint, self.getMaxValue(), bailout)
+
 	# Maximum calculation value (i.e. max iterations)
+	# Override in derived classes!
 	def getMaxValue(self):
 		return 1
 	

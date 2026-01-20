@@ -42,6 +42,11 @@ class Julia(frc.Fractal):
 			}
 		})
 
+	# Reset to initial parameters
+	def reset(self):
+		self.settings.setValues(sync=True, corner=complex(-1.5, -1.5), size=complex(3.0, 3.0),
+						  point=complex(-0.7269, 0.1889), maxIter=500)
+	
 	def getParameterNames(self) -> list:
 		return self.settings.getIds()
 

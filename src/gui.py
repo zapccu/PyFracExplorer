@@ -114,12 +114,14 @@ class ControlFrame(Frame):
 		# Draw and Cancel Buttons
 		self.btnFrame = LabelFrame(self)
 		self.btnFrame.grid(columnspan=2, column=0, row=0)
-		self.btnApply  = Button(self.btnFrame, text="Apply",  width=8, state=DISABLED, command=lambda: self.app.onApply())
-		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=8, command=lambda: self.app.onDraw())
-		self.btnCancel = Button(self.btnFrame, text="Cancel", width=8, command=lambda: self.app.onCancel())
-		self.btnApply.grid(column=0, row=0, padx=5, pady=5)
-		self.btnDraw.grid(column=1, row=0, padx=5, pady=5)
-		self.btnCancel.grid(column=2, row=0, pady=5)
+		self.btnApply  = Button(self.btnFrame, text="Apply",  width=6, state=DISABLED, command=lambda: self.app.onApply())
+		self.btnDraw   = Button(self.btnFrame, text="Draw",   width=6, command=lambda: self.app.onDraw())
+		self.btnCancel = Button(self.btnFrame, text="Cancel", width=6, command=lambda: self.app.onCancel())
+		self.btnReset  = Button(self.btnFrame, text="Reset",  width=6, command=lambda: self.app.onReset())
+		self.btnApply.grid(column=0, row=0, padx=2, pady=5)
+		self.btnDraw.grid(column=1, row=0, padx=2, pady=5)
+		self.btnCancel.grid(column=2, row=0, padx=2, pady=5)
+		self.btnReset.grid(column=3, row=0, pady=5)
 
 		self.row = 1
 

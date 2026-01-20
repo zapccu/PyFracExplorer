@@ -396,6 +396,12 @@ class Application:
 		if self.draw is not None:
 			self.draw.cancel = True
 
+	# Reset button pressed
+	def onReset(self):
+		self.fractal.reset()
+		self.gui.selection.reset()
+		self.gui.controlFrame.btnApply.config(state=DISABLED)
+
 
 	###########################################################################
 	# Widget event handling
